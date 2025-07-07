@@ -4,6 +4,17 @@ import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
 import { SearchResults } from '../components/SearchResults';
 import { Button } from '../components/ui/button';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 export interface Note {
   id: string;
@@ -13,6 +24,8 @@ export interface Note {
   tags: string[];
   createdAt: Date;
   updatedAt: Date;
+  isFavorite: boolean;
+  favoriteEmoji: string;
 }
 
 export interface Category {
@@ -22,10 +35,52 @@ export interface Category {
   count: number;
 }
 
+// Add Twemoji CDN for rendering SVGs
+const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/';
+const EMOJI_LIST = [
+  '1f60d', // 😍
+  '1f60a', // 😊
+  '1f609', // 😉
+  '1f618', // 😘
+  '1f970', // 🥰
+  '1f60e', // 😎
+  '1f44d', // 👍
+  '1f389', // 🎉
+  '1f525', // 🔥
+  '1f499', // 💙
+  '1f49a', // 💚
+  '1f49b', // 💛
+  '1f49c', // 💜
+  '1f494', // 💔
+  '1f44f', // 👏
+  '1f604', // 😄
+  '1f622', // 😢
+  '1f62d', // 😭
+  '1f631', // 😱
+  '1f62e', // 😮
+];
+
 const Index = () => {
   const [isDark, setIsDark] = useState(true);
 
-  const [notes, setNotes] = useState<Note[]>([]);
+  // Load notes from localStorage if available
+  const [notes, setNotes] = useState<Note[]>(() => {
+    const stored = localStorage.getItem('notes');
+    if (stored) {
+      try {
+        // Parse and revive Date objects
+        return JSON.parse(stored, (key, value) => {
+          if ((key === 'createdAt' || key === 'updatedAt') && typeof value === 'string') {
+            return new Date(value);
+          }
+          return value;
+        });
+      } catch {
+        return [];
+      }
+    }
+    return [];
+  });
 
   const [categories] = useState<Category[]>([
     { id: '1', name: 'Design Thinking', color: 'bg-white', count: 2 },
@@ -45,10 +100,19 @@ const Index = () => {
 
   const mainContentRef = useRef<HTMLDivElement>(null);
 
+  const [favoriteDialogOpen, setFavoriteDialogOpen] = useState(false);
+  const [favoriteEmoji, setFavoriteEmoji] = useState('');
+  const [favoriteNotes, setFavoriteNotes] = useState<{ id: string; title: string; emoji: string }[]>([]);
+
   // Sync editorTitle with selectedNote when switching notes
   useEffect(() => {
     setEditorTitle(selectedNote ? selectedNote.title : '');
   }, [selectedNote]);
+
+  // Save notes to localStorage whenever notes change
+  useEffect(() => {
+    localStorage.setItem('notes', JSON.stringify(notes));
+  }, [notes]);
 
   const filteredNotes = notes.filter(note => {
     const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -74,7 +138,9 @@ const Index = () => {
       category: 'Personal',
       tags: [],
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
+      isFavorite: false,
+      favoriteEmoji: '',
     };
     setNotes([newNote, ...notes]);
     setSelectedNote(newNote);
@@ -112,6 +178,9 @@ const Index = () => {
   const toggleTheme = () => {
     setIsDark(!isDark);
   };
+
+  // Helper to get favorite for a note
+  const getFavoriteForNote = (noteId: string) => favoriteNotes.find(fav => fav.id === noteId);
 
   return (
     <div className="h-screen flex overflow-hidden" style={{ backgroundColor: '#1c1c1c' }}>
@@ -180,15 +249,93 @@ const Index = () => {
             )}
           </div>
           <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-7 h-7"
-              aria-label="Favorite"
-              // No onClick yet
-            >
-              <Heart className="w-4 h-4" />
-            </Button>
+            <Dialog open={favoriteDialogOpen} onOpenChange={setFavoriteDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-7 h-7 relative"
+                  aria-label="Favorite"
+                >
+                  {selectedNote && selectedNote.isFavorite && selectedNote.favoriteEmoji ? (
+                    <img
+                      src={`${TWEMOJI_BASE}${selectedNote.favoriteEmoji}.svg`}
+                      alt="emoji"
+                      className="w-4 h-4"
+                      style={{ display: 'inline' }}
+                    />
+                  ) : (
+                    <Heart className="w-4 h-4" />
+                  )}
+                </Button>
+              </DialogTrigger>
+              {selectedNote && (
+                <DialogContent className="sm:max-w-[340px]" style={{ background: '#262626', color: '#fff' }}>
+                  <DialogHeader>
+                    <DialogTitle style={{ color: '#fff' }}>Favorite Note</DialogTitle>
+                    <DialogDescription style={{ color: '#bbb' }}>
+                      Add this note to your favorites and pick an emoji.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4">
+                    <div className="grid gap-2">
+                      <div className="flex items-center gap-2">
+                        <Label style={{ color: '#bbb', minWidth: 40 }}>Title:</Label>
+                        <span
+                          className="font-medium text-base"
+                          style={{
+                            color: '#fff',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: 180,
+                            display: 'inline-block',
+                          }}
+                          title={selectedNote.title || 'Untitled Note'}
+                        >
+                          {selectedNote.title || 'Untitled Note'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="grid gap-2">
+                      <Label style={{ color: '#bbb' }}>Pick an emoji</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {EMOJI_LIST.map(code => (
+                          <button
+                            key={code}
+                            type="button"
+                            className={`rounded-md border ${favoriteEmoji === code ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
+                            onClick={() => setFavoriteEmoji(code)}
+                            style={{ background: 'none' }}
+                          >
+                            <img src={`${TWEMOJI_BASE}${code}.svg`} alt="emoji" style={{ width: 28, height: 28 }} />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline" type="button" style={{ background: '#222', color: '#bbb', borderColor: '#444' }} onClick={() => setFavoriteEmoji('')}>Cancel</Button>
+                    </DialogClose>
+                    <Button
+                      type="button"
+                      disabled={!favoriteEmoji}
+                      style={{ background: favoriteEmoji ? '#ff9800' : '#444', color: '#fff', border: 'none' }}
+                      onClick={() => {
+                        if (selectedNote) {
+                          setNotes(notes => notes.map(note => note.id === selectedNote.id ? { ...note, isFavorite: true, favoriteEmoji } : note));
+                        }
+                        setFavoriteDialogOpen(false);
+                        setFavoriteEmoji('');
+                      }}
+                    >
+                      Save
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              )}
+            </Dialog>
             <Button
               variant="outline"
               size="sm"

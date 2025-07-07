@@ -126,7 +126,16 @@ export const Sidebar = ({
               className="flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-gray-300 hover:bg-gray-700"
               onClick={() => onNoteSelect(note)}
             >
-              <span className="text-sm">❤️</span>
+              {note.favoriteEmoji ? (
+                <img
+                  src={`https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${note.favoriteEmoji}.svg`}
+                  alt="emoji"
+                  className="w-4 h-4"
+                  style={{ display: 'inline' }}
+                />
+              ) : (
+                <span className="text-sm">❤️</span>
+              )}
               <span className="font-normal text-sm truncate">{note.title || 'Untitled Note'}</span>
             </div>
           ))}

@@ -33,22 +33,20 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
   const prevNoteId = useRef(note.id);
 
   useEffect(() => {
-    // Only update DOM content if switching to a different note
-    if (note.id !== prevNoteId.current) {
-      setTitle(note.title || '');
-      setContent(note.content);
-      setTags(note.tags);
-      setCategory(note.category);
-      if (titleRef.current) {
-        titleRef.current.innerText = note.title || '';
-      }
-      if (contentRef.current) {
-        contentRef.current.innerText = note.content || '';
-        setIsContentEmpty(!note.content || note.content.trim() === '');
-      }
-      setContentRerender(r => !r); // force placeholder check
-      prevNoteId.current = note.id;
+    // Always update local state when note prop changes
+    setTitle(note.title || '');
+    setContent(note.content);
+    setTags(note.tags);
+    setCategory(note.category);
+    if (titleRef.current) {
+      titleRef.current.innerText = note.title || '';
     }
+    if (contentRef.current) {
+      contentRef.current.innerText = note.content || '';
+      setIsContentEmpty(!note.content || note.content.trim() === '');
+    }
+    setContentRerender(r => !r); // force placeholder check
+    prevNoteId.current = note.id;
   }, [note]);
 
   const handleSave = () => {
@@ -108,6 +106,7 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
       onKeyDown={e => {
         if (e.key === 'Escape' && typeof onClose === 'function') {
           e.stopPropagation();
+          handleSave(); // Force save before closing
           onClose();
         }
       }}
