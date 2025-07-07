@@ -45,6 +45,11 @@ const Index = () => {
 
   const mainContentRef = useRef<HTMLDivElement>(null);
 
+  // Sync editorTitle with selectedNote when switching notes
+  useEffect(() => {
+    setEditorTitle(selectedNote ? selectedNote.title : '');
+  }, [selectedNote]);
+
   const filteredNotes = notes.filter(note => {
     const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -144,25 +149,35 @@ const Index = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </Button>
-            <span
-              className="flex items-center px-4 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white truncate cursor-pointer"
-              style={{ minHeight: '2.25rem', maxWidth: '100%' }}
-              title={editorTitle}
-              onClick={() => {
-                if (mainContentRef.current) {
-                  mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-                }
-              }}
-            >
-              <Loader2 className={`w-4 h-4 mr-2 ${saving ? 'animate-spin text-blue-400' : 'text-gray-500 opacity-40'}`} />
-              {(() => {
-                const words = (editorTitle || 'Untitled Note').trim().split(/\s+/);
-                if (words.length > 7) {
-                  return words.slice(0, 7).join(' ') + '...';
-                }
-                return editorTitle || 'Untitled Note';
-              })()}
-            </span>
+            {selectedNote && (
+              <>
+                <span
+                  className="flex items-center px-4 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white truncate cursor-pointer"
+                  style={{ minHeight: '2.25rem', maxWidth: '100%' }}
+                  title={editorTitle}
+                  onClick={() => {
+                    if (mainContentRef.current) {
+                      mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                >
+                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  {(() => {
+                    const words = (editorTitle || 'Untitled Note').trim().split(/\s+/);
+                    if (words.length > 7) {
+                      return words.slice(0, 7).join(' ') + '...';
+                    }
+                    return editorTitle || 'Untitled Note';
+                  })()}
+                </span>
+                <span
+                  className="ml-3 flex items-center px-3 py-1 rounded-xl bg-white/5 backdrop-blur-sm"
+                  style={{ minHeight: '2.25rem' }}
+                >
+                  <Loader2 className={`w-4 h-4 ${saving ? 'animate-spin text-blue-400' : 'text-gray-500 opacity-40'}`} />
+                </span>
+              </>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -180,7 +195,7 @@ const Index = () => {
               className="bg-gray-200 text-black hover:bg-gray-300"
               onClick={() => {/* Export logic here */}}
             >
-              Export As
+              Export
             </Button>
           </div>
         </div>
