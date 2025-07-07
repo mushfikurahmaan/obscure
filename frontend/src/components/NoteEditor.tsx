@@ -33,7 +33,7 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
   const prevNoteId = useRef(note.id);
 
   useEffect(() => {
-    // Always update local state when note prop changes
+    // Only update when switching to a different note
     setTitle(note.title || '');
     setContent(note.content);
     setTags(note.tags);
@@ -47,7 +47,7 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
     }
     setContentRerender(r => !r); // force placeholder check
     prevNoteId.current = note.id;
-  }, [note]);
+  }, [note.id]);
 
   const handleSave = () => {
     const updatedNote = {
