@@ -7,16 +7,11 @@ interface DeletedNotesGridProps {
   onRestore: (noteId: string) => void;
   onDeletePermanently: (noteId: string) => void;
   onSelectNote: (note: Note) => void;
-  onBack: () => void;
 }
 
-export const DeletedNotesGrid: React.FC<DeletedNotesGridProps> = ({ notes, onRestore, onDeletePermanently, onSelectNote, onBack }) => {
+export const DeletedNotesGrid: React.FC<DeletedNotesGridProps> = ({ notes, onRestore, onDeletePermanently, onSelectNote }) => {
   return (
     <div className="p-8 w-full h-full flex flex-col">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-white">Deleted Notes</h2>
-        <Button onClick={onBack} className="bg-gray-700 text-white hover:bg-gray-600">Back</Button>
-      </div>
       {notes.length === 0 ? (
         <div className="text-gray-400 text-center mt-16">No deleted notes.</div>
       ) : (

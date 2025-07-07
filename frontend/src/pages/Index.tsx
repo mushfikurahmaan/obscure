@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import {Plus, Edit, Heart, Loader2 } from 'lucide-react';
+import {Plus, Edit, Heart, Loader2, Circle} from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
 import { SearchResults } from '../components/SearchResults';
@@ -210,6 +210,15 @@ const Index = () => {
     }
   };
 
+  useEffect(() => {
+    if (!viewingDeleted) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setViewingDeleted(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [viewingDeleted]);
+
   return (
     <div className="h-screen flex overflow-hidden" style={{ backgroundColor: '#1c1c1c' }}>
       {/* Sidebar */}
@@ -250,7 +259,14 @@ const Index = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Top tabs bar */}
-        <div className="flex items-center px-6 py-2 justify-between" style={{ backgroundColor: '#1c1c1c' }}>
+        <div className="flex items-center px-6 py-2 justify-between" style={{ backgroundColor: '#1c1c1c' }}
+          tabIndex={viewingDeleted ? 0 : undefined}
+          onKeyDown={e => {
+            if (viewingDeleted && e.key === 'Escape') {
+              setViewingDeleted(false);
+            }
+          }}
+        >
           <div className="flex items-center">
             <Button
               variant="ghost"
@@ -264,7 +280,15 @@ const Index = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </Button>
-            {selectedNote && (
+            {viewingDeleted ? (
+              <span
+                className="flex items-center px-4 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white truncate"
+                style={{ minHeight: '2.25rem', maxWidth: '100%' }}
+              >
+                <Circle className="w-3 h-3 mr-2" style={{ color: '#ff3b3b', fill: '#ff3b3b' }} />
+                Trashed Notes
+              </span>
+            ) : selectedNote && (
               <>
                 <span
                   className="flex items-center px-4 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white truncate cursor-pointer"
@@ -294,109 +318,111 @@ const Index = () => {
               </>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <Dialog open={favoriteDialogOpen} onOpenChange={setFavoriteDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-7 h-7 relative"
-                  aria-label="Favorite"
-                >
-                  {selectedNote && selectedNote.isFavorite && selectedNote.favoriteEmoji ? (
-                    <img
-                      src={`${TWEMOJI_BASE}${selectedNote.favoriteEmoji}.svg`}
-                      alt="emoji"
-                      className="w-4 h-4"
-                      style={{ display: 'inline' }}
-                    />
-                  ) : (
-                    <Heart className="w-4 h-4" />
-                  )}
-                </Button>
-              </DialogTrigger>
-              {selectedNote && (
-                <DialogContent className="sm:max-w-[340px]" style={{ background: '#262626', color: '#fff' }}>
-                  <DialogHeader>
-                    <DialogTitle style={{ color: '#fff' }}>Favorite Note</DialogTitle>
-                    <DialogDescription style={{ color: '#bbb' }}>
-                      Add this note to your favorites and pick an emoji.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4">
-                    <div className="grid gap-2">
-                      <div className="flex items-center gap-2">
-                        <Label style={{ color: '#bbb', minWidth: 40 }}>Title:</Label>
-                        <span
-                          className="font-medium text-base"
-                          style={{
-                            color: '#fff',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            maxWidth: 180,
-                            display: 'inline-block',
-                          }}
-                          title={selectedNote.title || 'Untitled Note'}
-                        >
-                          {selectedNote.title || 'Untitled Note'}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label style={{ color: '#bbb' }}>Pick an emoji</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {EMOJI_LIST.map(code => (
-                          <button
-                            key={code}
-                            type="button"
-                            className={`rounded-md border ${favoriteEmoji === code ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
-                            onClick={() => setFavoriteEmoji(code)}
-                            style={{ background: 'none' }}
+          {!viewingDeleted && selectedNote && (
+            <div className="flex items-center gap-2">
+              <Dialog open={favoriteDialogOpen} onOpenChange={setFavoriteDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-7 h-7 relative"
+                    aria-label="Favorite"
+                  >
+                    {selectedNote && selectedNote.isFavorite && selectedNote.favoriteEmoji ? (
+                      <img
+                        src={`${TWEMOJI_BASE}${selectedNote.favoriteEmoji}.svg`}
+                        alt="emoji"
+                        className="w-4 h-4"
+                        style={{ display: 'inline' }}
+                      />
+                    ) : (
+                      <Heart className="w-4 h-4" />
+                    )}
+                  </Button>
+                </DialogTrigger>
+                {selectedNote && (
+                  <DialogContent className="sm:max-w-[340px]" style={{ background: '#262626', color: '#fff' }}>
+                    <DialogHeader>
+                      <DialogTitle style={{ color: '#fff' }}>Favorite Note</DialogTitle>
+                      <DialogDescription style={{ color: '#bbb' }}>
+                        Add this note to your favorites and pick an emoji.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4">
+                      <div className="grid gap-2">
+                        <div className="flex items-center gap-2">
+                          <Label style={{ color: '#bbb', minWidth: 40 }}>Title:</Label>
+                          <span
+                            className="font-medium text-base"
+                            style={{
+                              color: '#fff',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              maxWidth: 180,
+                              display: 'inline-block',
+                            }}
+                            title={selectedNote.title || 'Untitled Note'}
                           >
-                            <img src={`${TWEMOJI_BASE}${code}.svg`} alt="emoji" style={{ width: 28, height: 28 }} />
-                          </button>
-                        ))}
+                            {selectedNote.title || 'Untitled Note'}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="grid gap-2">
+                        <Label style={{ color: '#bbb' }}>Pick an emoji</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {EMOJI_LIST.map(code => (
+                            <button
+                              key={code}
+                              type="button"
+                              className={`rounded-md border ${favoriteEmoji === code ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
+                              onClick={() => setFavoriteEmoji(code)}
+                              style={{ background: 'none' }}
+                            >
+                              <img src={`${TWEMOJI_BASE}${code}.svg`} alt="emoji" style={{ width: 28, height: 28 }} />
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button variant="outline" type="button" style={{ background: '#222', color: '#bbb', borderColor: '#444' }} onClick={() => setFavoriteEmoji('')}>Cancel</Button>
-                    </DialogClose>
-                    <Button
-                      type="button"
-                      disabled={!favoriteEmoji}
-                      style={{ background: favoriteEmoji ? '#ff9800' : '#444', color: '#fff', border: 'none' }}
-                      onClick={() => {
-                        if (selectedNote) {
-                          setNotes(notes => {
-                            const updated = notes.map(note => note.id === selectedNote.id ? { ...note, isFavorite: true, favoriteEmoji } : note);
-                            // Also update selectedNote to keep UI in sync
-                            const updatedNote = updated.find(n => n.id === selectedNote.id);
-                            setSelectedNote(updatedNote ? { ...updatedNote } : null);
-                            return updated;
-                          });
-                        }
-                        setFavoriteDialogOpen(false);
-                        setFavoriteEmoji('');
-                      }}
-                    >
-                      Save
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              )}
-            </Dialog>
-            <Button
-              variant="outline"
-              size="sm"
-              className="bg-gray-200 text-black hover:bg-gray-300"
-              onClick={() => {/* Export logic here */}}
-            >
-              Export
-            </Button>
-          </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button variant="outline" type="button" style={{ background: '#222', color: '#bbb', borderColor: '#444' }} onClick={() => setFavoriteEmoji('')}>Cancel</Button>
+                      </DialogClose>
+                      <Button
+                        type="button"
+                        disabled={!favoriteEmoji}
+                        style={{ background: favoriteEmoji ? '#ff9800' : '#444', color: '#fff', border: 'none' }}
+                        onClick={() => {
+                          if (selectedNote) {
+                            setNotes(notes => {
+                              const updated = notes.map(note => note.id === selectedNote.id ? { ...note, isFavorite: true, favoriteEmoji } : note);
+                              // Also update selectedNote to keep UI in sync
+                              const updatedNote = updated.find(n => n.id === selectedNote.id);
+                              setSelectedNote(updatedNote ? { ...updatedNote } : null);
+                              return updated;
+                            });
+                          }
+                          setFavoriteDialogOpen(false);
+                          setFavoriteEmoji('');
+                        }}
+                      >
+                        Save
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                )}
+              </Dialog>
+              <Button
+                variant="outline"
+                size="sm"
+                className="bg-gray-200 text-black hover:bg-gray-300"
+                onClick={() => {/* Export logic here */}}
+              >
+                Export
+              </Button>
+            </div>
+          )}
         </div>
         {/* Scroll Progress Bar */}
         <ScrollProgressBar containerRef={mainContentRef} height={6} color="#fff" />
@@ -408,7 +434,6 @@ const Index = () => {
               onRestore={handleRestoreNote}
               onDeletePermanently={handleDeletePermanently}
               onSelectNote={setSelectedNote}
-              onBack={() => setViewingDeleted(false)}
             />
           ) : isSearching ? (
             <SearchResults
