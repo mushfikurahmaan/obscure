@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button } from './ui/button';
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu';
 import type { Note } from '../pages/Index';
 
 interface DeletedNotesGridProps {
@@ -15,21 +15,30 @@ export const DeletedNotesGrid: React.FC<DeletedNotesGridProps> = ({ notes, onRes
       {notes.length === 0 ? (
         <div className="text-gray-400 text-center mt-16">No deleted notes.</div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {notes.map(note => (
-            <div key={note.id} className="bg-[#232323] rounded-lg shadow p-5 flex flex-col gap-3 border border-gray-700 hover:border-blue-500 transition cursor-pointer group" onClick={() => onSelectNote(note)}>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-white truncate mb-1">{note.title || 'Untitled Note'}</h3>
-                <p className="text-sm text-gray-400 truncate">{note.content?.slice(0, 60) || 'No content'}</p>
-              </div>
-              <div className="flex items-center justify-between mt-2">
-                <span className="text-xs text-gray-500">Deleted: {note.updatedAt ? new Date(note.updatedAt).toLocaleString() : ''}</span>
-                <div className="flex gap-2">
-                  <Button size="sm" className="bg-green-600 text-white hover:bg-green-700" onClick={e => { e.stopPropagation(); onRestore(note.id); }}>Restore</Button>
-                  <Button size="sm" className="bg-red-600 text-white hover:bg-red-700" onClick={e => { e.stopPropagation(); onDeletePermanently(note.id); }}>Delete Permanently</Button>
+            <ContextMenu key={note.id}>
+              <ContextMenuTrigger asChild>
+                <div
+                  className="flex items-center gap-4 px-4 py-3 rounded-md bg-[#232323] border border-gray-700 hover:border-blue-500 transition cursor-pointer select-none"
+                  onClick={() => onSelectNote(note)}
+                  tabIndex={0}
+                >
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-white truncate">{note.title || 'Untitled Note'}</div>
+                    <div className="text-xs text-gray-400 truncate">Created: {note.createdAt ? new Date(note.createdAt).toLocaleString() : ''}</div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent>
+                <ContextMenuItem onClick={() => onRestore(note.id)} variant="default">
+                  Restore
+                </ContextMenuItem>
+                <ContextMenuItem onClick={() => onDeletePermanently(note.id)} variant="destructive">
+                  Delete Permanently
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           ))}
         </div>
       )}

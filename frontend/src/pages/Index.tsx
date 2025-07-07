@@ -139,6 +139,7 @@ const Index = () => {
     const existingBlank = notes.find(note => !note.title && !note.content && !note.deleted);
     if (existingBlank) {
       setSelectedNote(existingBlank);
+      if (viewingDeleted) setViewingDeleted(false);
       return;
     }
     const newNote: Note = {
@@ -155,6 +156,7 @@ const Index = () => {
     };
     setNotes([newNote, ...notes]);
     setSelectedNote(newNote);
+    if (viewingDeleted) setViewingDeleted(false);
     // Ensure My Notes list updates immediately
   };
 
