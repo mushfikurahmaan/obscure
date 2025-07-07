@@ -15,6 +15,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import ScrollProgressBar from '../components/ScrollProgressBar';
 
 export interface Note {
   id: string;
@@ -346,7 +347,8 @@ const Index = () => {
             </Button>
           </div>
         </div>
-
+        {/* Scroll Progress Bar */}
+        <ScrollProgressBar containerRef={mainContentRef} height={6} color="#fff" />
         {/* Main Editor Area */}
         <main ref={mainContentRef} className="flex-1 overflow-auto" style={{ backgroundColor: '#1c1c1c' }}>
           {isSearching ? (
