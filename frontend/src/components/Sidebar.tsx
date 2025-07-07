@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, Trash2, Edit, Settings, HelpCircle, Circle, FileText, FolderOpen, Archive, Hash, Star } from 'lucide-react';
+import { Search, Plus, Trash2, Edit, Settings, HelpCircle, Circle, FileText, FolderOpen, Archive, Hash, Star, BookDashed, NotebookPen } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
@@ -50,43 +50,14 @@ export const Sidebar = ({
   };
 
   const menuItems = [
-    { icon: FileText, label: 'New Note', shortcut: '⌘N', active: false },
-    { icon: Search, label: 'Search', shortcut: '⌘S', active: false },
-    { icon: FolderOpen, label: 'Recent', shortcut: '⌘R', active: false }
+    { icon: NotebookPen, label: 'New Note', shortcut: 'Ctrl + N', active: false },
+    { icon: Search, label: 'Search', shortcut: 'Ctrl + K', active: false },
+    { icon: BookDashed, label: 'Drafts', shortcut: 'Ctrl + D', active: false },
   ];
 
   const folderItems = [
-    { icon: FileText, label: 'Drafts', count: 3, active: false },
-    { icon: Trash2, label: 'Deleted', count: 12, active: false }
-  ];
-
-  const favoriteItems = [
-    { emoji: '🎨', label: 'How to work with Design systems', active: false },
-    { emoji: '📝', label: 'Typography Chapter 1 Lesson 3', active: false },
-    { emoji: '⚡', label: 'Technical task for UX Designer.', active: false }
-  ];
-
-  const noteItems = [
-    { 
-      icon: FileText, 
-      label: 'Equal. Product Design Agency', 
-      active: true,
-      subitems: [
-        { label: 'Estimate. OlderVoid team' },
-        { 
-          label: 'UX audit & Nav Architecture',
-          subitems: [
-            { label: 'UX audit', active: false },
-            { label: 'The Essentials of Navi...', active: true }
-          ]
-        }
-      ]
-    },
-    { icon: FileText, label: 'Dribbble shots', active: false },
-    { icon: FileText, label: 'Personal stuff', active: false },
-    { icon: FileText, label: 'Design inspiration', active: false },
-    { icon: FileText, label: 'Something to read', active: false },
-    { icon: FileText, label: 'Draft', active: false }
+    { icon: Settings, label: 'Settings', count: undefined, active: false, shortcut: 'Ctrl + ,' },
+    { icon: Trash2, label: 'Deleted', count: 12, active: false },
   ];
 
   return (
@@ -127,7 +98,12 @@ export const Sidebar = ({
                 <item.icon className="w-4 h-4" />
                 <span className="font-normal">{item.label}</span>
               </div>
-              <span className="text-xs text-gray-500">{item.count}</span>
+              {item.shortcut && (
+                <span className="text-xs text-gray-500">{item.shortcut}</span>
+              )}
+              {item.count !== undefined && !item.shortcut && (
+                <span className="text-xs text-gray-500">{item.count}</span>
+              )}
             </div>
           ))}
         </div>
@@ -144,23 +120,14 @@ export const Sidebar = ({
           <h3 className="text-xs font-normal text-gray-500 px-3">Favourites</h3>
         </div>
         <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
-          {[
-            ...favoriteItems,
-            { emoji: '📚', label: 'Reading List', active: false },
-            { emoji: '🎵', label: 'Music Notes', active: false },
-            { emoji: '🧠', label: 'Brainstorm Ideas', active: false },
-            { emoji: '🌟', label: 'Starred Note', active: false },
-            { emoji: '💡', label: 'Inspiration', active: false },
-            { emoji: '📅', label: 'Meeting Notes', active: false },
-            { emoji: '🛠️', label: 'Project Tasks', active: false },
-            { emoji: '🍔', label: 'Recipe Ideas', active: false }
-          ].map((item, index) => (
+          {notes.filter(note => note.isFavorite).map((note, index) => (
             <div
-              key={index}
+              key={note.id}
               className="flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-gray-300 hover:bg-gray-700"
+              onClick={() => onNoteSelect(note)}
             >
-              <span className="text-sm">{item.emoji}</span>
-              <span className="font-normal text-sm truncate">{item.label}</span>
+              <span className="text-sm">❤️</span>
+              <span className="font-normal text-sm truncate">{note.title || 'Untitled Note'}</span>
             </div>
           ))}
         </div>
@@ -179,49 +146,37 @@ export const Sidebar = ({
             variant="ghost"
             size="sm"
             className="h-5 w-5 p-0 text-gray-500 hover:text-white hover:bg-gray-700"
+            onClick={onCreateNote}
           >
             <Plus className="w-3 h-3" />
           </Button>
         </div>
         <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
-          {[
-            ...noteItems,
-            { icon: FileText, label: 'UX Research', active: false },
-            { icon: FileText, label: 'Meeting Minutes', active: false },
-            { icon: FileText, label: 'Client Feedback', active: false },
-            { icon: FileText, label: 'Wireframes', active: false },
-            { icon: FileText, label: 'Sprint Planning', active: false },
-            { icon: FileText, label: 'Release Notes', active: false },
-            { icon: FileText, label: 'Bug Reports', active: false },
-            { icon: FileText, label: 'Feature Requests', active: false },
-            { icon: FileText, label: 'Personal Journal', active: false },
-            { icon: FileText, label: 'Travel Plans', active: false },
-            { icon: FileText, label: 'Shopping List', active: false }
-          ].map((item, index) => (
+          {notes.map((note, index) => (
             <div
-              key={index}
+              key={note.id}
               className={`flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
-                item.active ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700'
+                selectedNote && note.id === selectedNote.id ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700'
               }`}
+              onClick={() => onNoteSelect(note)}
+              onMouseEnter={() => setHoveredNote(note.id)}
+              onMouseLeave={() => setHoveredNote(null)}
             >
-              <item.icon className="w-3 h-3 text-gray-400" />
-              <span className="font-normal text-sm flex-1 truncate">{item.label}</span>
+              <FileText className="w-3 h-3 text-gray-400" />
+              <span className="font-normal text-sm flex-1 truncate">{note.title || 'Untitled Note'}</span>
+              {hoveredNote === note.id && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-5 h-5 p-0"
+                  onClick={e => { e.stopPropagation(); onDeleteNote(note.id); }}
+                  aria-label="Delete Note"
+                >
+                  <Trash2 className="w-3 h-3" />
+                </Button>
+              )}
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Bottom Section */}
-      <div className="px-3 py-4">
-        <div className="space-y-1">
-          <div className="flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer text-gray-300 hover:bg-gray-700 transition-colors">
-            <Settings className="w-4 h-4" />
-            <span className="font-normal">Settings</span>
-          </div>
-          <div className="flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer text-gray-300 hover:bg-gray-700 transition-colors">
-            <HelpCircle className="w-4 h-4" />
-            <span className="font-normal">Help & Support</span>
-          </div>
         </div>
       </div>
     </div>

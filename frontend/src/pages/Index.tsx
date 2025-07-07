@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Search, Plus, Edit, Trash2, Tag, Book, Settings, Sun, Moon, Star } from 'lucide-react';
+import {Plus, Edit, Heart, Loader2 } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
 import { SearchResults } from '../components/SearchResults';
@@ -25,35 +25,7 @@ export interface Category {
 const Index = () => {
   const [isDark, setIsDark] = useState(true);
 
-  const [notes, setNotes] = useState<Note[]>([
-    {
-      id: '1',
-      title: 'The Essentials of Navigation Architecture',
-      content: 'In the ever-evolving landscape of digital design, navigation architecture stands as a cornerstone of user experience (UX). It is the blueprint that guides users through an application or website, ensuring that they can find information quickly and efficiently...',
-      category: 'Design Thinking',
-      tags: ['UX/UI Design', 'Navigation', 'Architecture'],
-      createdAt: new Date('2024-01-15'),
-      updatedAt: new Date('2024-01-15')
-    },
-    {
-      id: '2',
-      title: 'How to work with Design Systems',
-      content: 'Design systems provide a unified approach to creating consistent user interfaces across products...',
-      category: 'Design Thinking',
-      tags: ['Design Systems', 'UI', 'Consistency'],
-      createdAt: new Date('2024-01-14'),
-      updatedAt: new Date('2024-01-14')
-    },
-    {
-      id: '3',
-      title: 'Typography Chapter 1 Lesson 3',
-      content: 'Understanding the fundamentals of typography is crucial for effective design communication...',
-      category: 'Personal',
-      tags: ['Typography', 'Design', 'Learning'],
-      createdAt: new Date('2024-01-13'),
-      updatedAt: new Date('2024-01-13')
-    }
-  ]);
+  const [notes, setNotes] = useState<Note[]>([]);
 
   const [categories] = useState<Category[]>([
     { id: '1', name: 'Design Thinking', color: 'bg-white', count: 2 },
@@ -64,10 +36,12 @@ const Index = () => {
   ]);
 
   const [selectedNote, setSelectedNote] = useState<Note | null>(notes[0]);
+  const [editorTitle, setEditorTitle] = useState(selectedNote ? selectedNote.title : '');
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   const mainContentRef = useRef<HTMLDivElement>(null);
 
@@ -82,9 +56,15 @@ const Index = () => {
   });
 
   const handleCreateNote = () => {
+    // Check for an existing blank note (title and content both empty)
+    const existingBlank = notes.find(note => !note.title && !note.content);
+    if (existingBlank) {
+      setSelectedNote(existingBlank);
+      return;
+    }
     const newNote: Note = {
       id: Date.now().toString(),
-      title: 'Untitled Note',
+      title: '',
       content: '',
       category: 'Personal',
       tags: [],
@@ -98,6 +78,16 @@ const Index = () => {
   const handleUpdateNote = (updatedNote: Note) => {
     setNotes(notes.map(note => 
       note.id === updatedNote.id ? { ...updatedNote, updatedAt: new Date() } : note
+    ));
+    setSelectedNote(updatedNote);
+  };
+
+  const handleTitleChange = (title: string) => {
+    setEditorTitle(title);
+    if (!selectedNote) return;
+    const updatedNote = { ...selectedNote, title };
+    setNotes(notes.map(note => 
+      note.id === updatedNote.id ? updatedNote : note
     ));
     setSelectedNote(updatedNote);
   };
@@ -140,31 +130,59 @@ const Index = () => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
         {/* Top tabs bar */}
-        <div className="flex items-center px-6 py-2" style={{ backgroundColor: '#1c1c1c' }}>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="mr-3 text-gray-400 hover:text-white hover:bg-gray-700 border-none w-7 h-7"
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {/* Hamburger icon for expand/collapse */}
-            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </Button>
-          <span
-            className="flex items-center px-4 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white truncate cursor-pointer"
-            style={{ minHeight: '2.25rem', maxWidth: '100%' }}
-            onClick={() => {
-              if (mainContentRef.current) {
-                mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-              }
-            }}
-          >
-            <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-            {selectedNote ? selectedNote.title : ''}
-          </span>
+        <div className="flex items-center px-6 py-2 justify-between" style={{ backgroundColor: '#1c1c1c' }}>
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="mr-3 text-gray-400 hover:text-white hover:bg-gray-700 border-none w-7 h-7"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            >
+              {/* Hamburger icon for expand/collapse */}
+              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </Button>
+            <span
+              className="flex items-center px-4 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white truncate cursor-pointer"
+              style={{ minHeight: '2.25rem', maxWidth: '100%' }}
+              title={editorTitle}
+              onClick={() => {
+                if (mainContentRef.current) {
+                  mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+              }}
+            >
+              <Loader2 className={`w-4 h-4 mr-2 ${saving ? 'animate-spin text-blue-400' : 'text-gray-500 opacity-40'}`} />
+              {(() => {
+                const words = (editorTitle || 'Untitled Note').trim().split(/\s+/);
+                if (words.length > 7) {
+                  return words.slice(0, 7).join(' ') + '...';
+                }
+                return editorTitle || 'Untitled Note';
+              })()}
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-7 h-7"
+              aria-label="Favorite"
+              // No onClick yet
+            >
+              <Heart className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-gray-200 text-black hover:bg-gray-300"
+              onClick={() => {/* Export logic here */}}
+            >
+              Export As
+            </Button>
+          </div>
         </div>
 
         {/* Main Editor Area */}
@@ -182,6 +200,9 @@ const Index = () => {
               onUpdate={handleUpdateNote}
               isDark={isDark}
               alignLeft={32}
+              onTitleChange={handleTitleChange}
+              onClose={() => setSelectedNote(null)}
+              setSaving={setSaving}
             />
           ) : (
             <div className="h-full flex items-center justify-center" style={{ marginLeft: 31, marginRight: 31 }}>
