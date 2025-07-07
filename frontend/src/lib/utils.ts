@@ -1,19 +1,8 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { writeTextFile, BaseDirectory, createDir } from '@tauri-apps/api/fs';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
-}
-
-export async function saveNoteToFile(title: string, content: string) {
-  // Sanitize title for filename
-  const safeTitle = title.trim() ? title.replace(/[^a-z0-9\-_ ]/gi, '_') : 'Untitled_Note';
-  const fileName = `${safeTitle}.txt`;
-  // Ensure notes directory exists
-  await createDir('notes', { dir: BaseDirectory.App, recursive: true });
-  // Write file
-  await writeTextFile(`notes/${fileName}`, content, { dir: BaseDirectory.App });
 }
 
 /**

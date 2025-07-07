@@ -4,6 +4,12 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
 import type { Note, Category } from '../pages/Index';
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem
+} from './ui/context-menu';
 
 interface SidebarProps {
   notes: Note[];
@@ -18,7 +24,12 @@ interface SidebarProps {
   onSearch: (query: string) => void;
   onCreateNote: () => void;
   onDeleteNote: (noteId: string) => void;
+  onRestoreNote: (noteId: string) => void;
+  onDeletePermanently: (noteId: string) => void;
   onToggleCollapse: () => void;
+  onRemoveFavorite: (noteId: string) => void;
+  onDeletedClick: () => void;
+  deletedCount: number;
 }
 
 export const Sidebar = ({
@@ -34,7 +45,12 @@ export const Sidebar = ({
   onSearch,
   onCreateNote,
   onDeleteNote,
-  onToggleCollapse
+  onRestoreNote,
+  onDeletePermanently,
+  onToggleCollapse,
+  onRemoveFavorite,
+  onDeletedClick,
+  deletedCount
 }: SidebarProps) => {
   const [hoveredNote, setHoveredNote] = useState<string | null>(null);
 
@@ -57,7 +73,7 @@ export const Sidebar = ({
 
   const folderItems = [
     { icon: Settings, label: 'Settings', count: undefined, active: false, shortcut: 'Ctrl + ,' },
-    { icon: Trash2, label: 'Deleted', count: 12, active: false },
+    { icon: Trash2, label: 'Trash', count: deletedCount, active: false, onClick: onDeletedClick },
   ];
 
   return (
@@ -93,6 +109,7 @@ export const Sidebar = ({
             <div
               key={item.label}
               className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-gray-300 hover:bg-gray-700"
+              onClick={item.onClick}
             >
               <div className="flex items-center space-x-3">
                 <item.icon className="w-4 h-4" />
@@ -121,23 +138,34 @@ export const Sidebar = ({
         </div>
         <div className="space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
           {notes.filter(note => note.isFavorite).map((note, index) => (
-            <div
-              key={note.id}
-              className="flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-gray-300 hover:bg-gray-700"
-              onClick={() => onNoteSelect(note)}
-            >
-              {note.favoriteEmoji ? (
-                <img
-                  src={`https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${note.favoriteEmoji}.svg`}
-                  alt="emoji"
-                  className="w-4 h-4"
-                  style={{ display: 'inline' }}
-                />
-              ) : (
-                <span className="text-sm">❤️</span>
-              )}
-              <span className="font-normal text-sm truncate">{note.title || 'Untitled Note'}</span>
-            </div>
+            <ContextMenu key={note.id}>
+              <ContextMenuTrigger asChild>
+                <div
+                  className="flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-gray-300 hover:bg-gray-700"
+                  onClick={() => onNoteSelect(note)}
+                >
+                  {note.favoriteEmoji ? (
+                    <img
+                      src={`https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${note.favoriteEmoji}.svg`}
+                      alt="emoji"
+                      className="w-4 h-4"
+                      style={{ display: 'inline' }}
+                    />
+                  ) : (
+                    <span className="text-sm">❤️</span>
+                  )}
+                  <span className="font-normal text-sm truncate">{note.title || 'Untitled Note'}</span>
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="min-w-[120px] bg-[#232323] border border-gray-700 rounded-md p-1 animate-in fade-in-80">
+                <ContextMenuItem
+                  className="text-red-500 hover:bg-gray-700 hover:text-red-400 cursor-pointer rounded px-2 py-1.5 transition-colors"
+                  onClick={() => onRemoveFavorite(note.id)}
+                >
+                  Remove
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           ))}
         </div>
       </div>
@@ -161,7 +189,7 @@ export const Sidebar = ({
           </Button>
         </div>
         <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
-          {notes.map((note, index) => (
+          {notes.filter(note => !note.deleted).map((note, index) => (
             <div
               key={note.id}
               className={`flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${

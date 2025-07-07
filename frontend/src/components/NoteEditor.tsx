@@ -6,8 +6,9 @@ import { Textarea } from './ui/textarea';
 import { Badge } from './ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import type { Note } from '../pages/Index';
-import { saveNoteToFile } from '../lib/utils';
+// import { saveNoteToFile } from '../lib/utils';
 import { formatRelativeDate } from '../lib/utils';
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu';
 
 interface NoteEditorProps {
   note: Note;
@@ -17,9 +18,11 @@ interface NoteEditorProps {
   onTitleChange?: (title: string) => void;
   onClose?: () => void;
   setSaving?: (saving: boolean) => void;
+  onRestoreNote?: (noteId: string) => void;
+  onDeletePermanently?: (noteId: string) => void;
 }
 
-export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChange, onClose, setSaving }: NoteEditorProps) => {
+export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChange, onClose, setSaving, onRestoreNote, onDeletePermanently }: NoteEditorProps) => {
   const [title, setTitle] = useState(note.title || '');
   const [content, setContent] = useState(note.content);
   const [tags, setTags] = useState<string[]>(note.tags);
@@ -59,7 +62,7 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
       updatedAt: new Date(),
     };
     onUpdate(updatedNote);
-    saveNoteToFile(title, contentRef.current ? contentRef.current.innerText : '');
+    // saveNoteToFile(title, contentRef.current ? contentRef.current.innerText : '');
   };
 
   // Only update state and save on blur
@@ -101,88 +104,108 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
   }, [title, content, tags, category]);
 
   return (
-    <div className="h-full flex flex-col" style={{ backgroundColor: '#1c1c1c' }}
-      tabIndex={0}
-      onKeyDown={e => {
-        if (e.key === 'Escape' && typeof onClose === 'function') {
-          e.stopPropagation();
-          handleSave(); // Force save before closing
-          onClose();
-        }
-      }}
-    >
-      {/* Editor Content */}
-      <div
-        className="flex-1 p-8 w-full"
-        style={{ paddingLeft: alignLeft, paddingRight: alignLeft }}
-      >
-        {/* Editable Title */}
-        <div className="relative mb-2">
-          <h1
-            ref={titleRef}
-            className="text-4xl font-bold leading-tight outline-none bg-transparent text-white min-h-[48px]"
-            contentEditable
-            suppressContentEditableWarning
-            spellCheck={false}
-            dir="ltr"
-            onBlur={e => {
-              const newTitle = titleRef.current ? titleRef.current.innerText : '';
-              setTitle(newTitle);
-              if (typeof onTitleChange === 'function') onTitleChange(newTitle);
-              handleSave();
-            }}
-            onInput={e => {
-              const newTitle = titleRef.current ? titleRef.current.innerText : '';
-              setTitle(newTitle);
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                (e.target as HTMLElement).blur();
-              }
-            }}
-          />
-          {(!title || title.trim() === '') && (
-            <span
-              className="absolute left-0 top-0 text-4xl font-bold leading-tight text-gray-500 pointer-events-none select-none"
-              style={{ userSelect: 'none' }}
-            >
-              Untitled Note
-            </span>
-          )}
-        </div>
-        {/* Metadata */}
-        <div className="flex items-center space-x-4 mb-4 text-sm text-gray-400">
-          <span>Created {formatRelativeDate(note.createdAt)}</span>
-          <span className="text-gray-600">•</span>
-          <span>Last modified {formatRelativeDate(note.updatedAt)}</span>
-        </div>
-        {/* Editable Content */}
-        <div className="relative min-h-[300px]">
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <div className="h-full flex flex-col" style={{ backgroundColor: '#1c1c1c' }}
+          tabIndex={0}
+          onKeyDown={e => {
+            if (e.key === 'Escape' && typeof onClose === 'function') {
+              e.stopPropagation();
+              handleSave(); // Force save before closing
+              onClose();
+            }
+          }}
+        >
+          {/* Editor Content */}
           <div
-            ref={contentRef}
-            className="flex-1 text-base text-gray-200 bg-transparent outline-none focus:outline-none min-h-[300px]"
-            contentEditable
-            suppressContentEditableWarning
-            spellCheck={true}
-            style={{ whiteSpace: 'pre-wrap' }}
-            onBlur={handleContentBlur}
-            onInput={e => {
-              const newContent = (e.currentTarget as HTMLElement).innerText;
-              setContent(newContent);
-              setIsContentEmpty(!newContent || newContent.trim() === '');
-            }}
-          ></div>
-          {isContentEmpty && (
-            <span
-              className="absolute left-0 top-0 text-base text-gray-500 pointer-events-none select-none mt-1"
-              style={{ userSelect: 'none', pointerEvents: 'none' }}
-            >
-              Start writing your note...
-            </span>
-          )}
+            className="flex-1 p-8 w-full"
+            style={{ paddingLeft: alignLeft, paddingRight: alignLeft }}
+          >
+            {/* Editable Title */}
+            <div className="relative mb-2">
+              <h1
+                ref={titleRef}
+                className="text-4xl font-bold leading-tight outline-none bg-transparent text-white min-h-[48px]"
+                contentEditable
+                suppressContentEditableWarning
+                spellCheck={false}
+                dir="ltr"
+                onBlur={e => {
+                  const newTitle = titleRef.current ? titleRef.current.innerText : '';
+                  setTitle(newTitle);
+                  if (typeof onTitleChange === 'function') onTitleChange(newTitle);
+                  handleSave();
+                }}
+                onInput={e => {
+                  const newTitle = titleRef.current ? titleRef.current.innerText : '';
+                  setTitle(newTitle);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    (e.target as HTMLElement).blur();
+                  }
+                }}
+              />
+              {(!title || title.trim() === '') && (
+                <span
+                  className="absolute left-0 top-0 text-4xl font-bold leading-tight text-gray-500 pointer-events-none select-none"
+                  style={{ userSelect: 'none' }}
+                >
+                  Untitled Note
+                </span>
+              )}
+            </div>
+            {/* Metadata */}
+            <div className="flex items-center space-x-4 mb-4 text-sm text-gray-400">
+              <span>Created {formatRelativeDate(note.createdAt)}</span>
+              <span className="text-gray-600">•</span>
+              <span>Last modified {formatRelativeDate(note.updatedAt)}</span>
+            </div>
+            {/* Editable Content */}
+            <div className="relative min-h-[300px]">
+              <div
+                ref={contentRef}
+                className="flex-1 text-base text-gray-200 bg-transparent outline-none focus:outline-none min-h-[300px]"
+                contentEditable
+                suppressContentEditableWarning
+                spellCheck={true}
+                style={{ whiteSpace: 'pre-wrap' }}
+                onBlur={handleContentBlur}
+                onInput={e => {
+                  const newContent = (e.currentTarget as HTMLElement).innerText;
+                  setContent(newContent);
+                  setIsContentEmpty(!newContent || newContent.trim() === '');
+                }}
+              ></div>
+              {isContentEmpty && (
+                <span
+                  className="absolute left-0 top-0 text-base text-gray-500 pointer-events-none select-none mt-1"
+                  style={{ userSelect: 'none', pointerEvents: 'none' }}
+                >
+                  Start writing your note...
+                </span>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      </ContextMenuTrigger>
+      {note.deleted && (
+        <ContextMenuContent className="min-w-[160px] bg-[#232323] border border-gray-700 rounded-md p-1 animate-in fade-in-80">
+          <ContextMenuItem
+            className="text-green-500 hover:bg-gray-700 hover:text-green-400 cursor-pointer rounded px-2 py-1.5 transition-colors"
+            onClick={() => onRestoreNote && onRestoreNote(note.id)}
+          >
+            Restore
+          </ContextMenuItem>
+          <ContextMenuItem
+            className="text-red-500 hover:bg-gray-700 hover:text-red-400 cursor-pointer rounded px-2 py-1.5 transition-colors"
+            onClick={() => onDeletePermanently && onDeletePermanently(note.id)}
+          >
+            Delete Permanently
+          </ContextMenuItem>
+        </ContextMenuContent>
+      )}
+    </ContextMenu>
   );
 };

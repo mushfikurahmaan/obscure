@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import ScrollProgressBar from '../components/ScrollProgressBar';
+import { DeletedNotesGrid } from '../components/DeletedNotesGrid';
 
 export interface Note {
   id: string;
@@ -27,6 +28,7 @@ export interface Note {
   updatedAt: Date;
   isFavorite: boolean;
   favoriteEmoji: string;
+  deleted: boolean;
 }
 
 export interface Category {
@@ -105,6 +107,8 @@ const Index = () => {
   const [favoriteEmoji, setFavoriteEmoji] = useState('');
   const [favoriteNotes, setFavoriteNotes] = useState<{ id: string; title: string; emoji: string }[]>([]);
 
+  const [viewingDeleted, setViewingDeleted] = useState(false);
+
   // Sync editorTitle with selectedNote when switching notes
   useEffect(() => {
     setEditorTitle(selectedNote ? selectedNote.title : '');
@@ -125,9 +129,14 @@ const Index = () => {
     return matchesSearch && matchesCategory;
   });
 
+  // Filter for My Notes (not deleted)
+  const myNotes = notes.filter(note => !note.deleted);
+  // Filter for Deleted Notes
+  const deletedNotes = notes.filter(note => note.deleted);
+
   const handleCreateNote = () => {
-    // Check for an existing blank note (title and content both empty)
-    const existingBlank = notes.find(note => !note.title && !note.content);
+    // Check for an existing blank note (title and content both empty and not deleted)
+    const existingBlank = notes.find(note => !note.title && !note.content && !note.deleted);
     if (existingBlank) {
       setSelectedNote(existingBlank);
       return;
@@ -142,9 +151,11 @@ const Index = () => {
       updatedAt: new Date(),
       isFavorite: false,
       favoriteEmoji: '',
+      deleted: false,
     };
     setNotes([newNote, ...notes]);
     setSelectedNote(newNote);
+    // Ensure My Notes list updates immediately
   };
 
   const handleUpdateNote = (updatedNote: Note) => {
@@ -165,10 +176,13 @@ const Index = () => {
   };
 
   const handleDeleteNote = (noteId: string) => {
-    setNotes(notes.filter(note => note.id !== noteId));
+    setNotes(notes.map(note => note.id === noteId ? { ...note, deleted: true } : note));
+    // If the deleted note was selected, select the next available note in My Notes
     if (selectedNote?.id === noteId) {
-      setSelectedNote(notes.length > 1 ? notes.find(n => n.id !== noteId) || null : null);
+      const remainingMyNotes = notes.filter(n => n.id !== noteId && !n.deleted);
+      setSelectedNote(remainingMyNotes.length > 0 ? remainingMyNotes[0] : null);
     }
+    // Do NOT set viewingDeleted here
   };
 
   const handleSearch = (query: string) => {
@@ -183,23 +197,54 @@ const Index = () => {
   // Helper to get favorite for a note
   const getFavoriteForNote = (noteId: string) => favoriteNotes.find(fav => fav.id === noteId);
 
+  // Restore a deleted note
+  const handleRestoreNote = (noteId: string) => {
+    setNotes(notes.map(note => note.id === noteId ? { ...note, deleted: false } : note));
+  };
+
+  // Permanently delete a note
+  const handleDeletePermanently = (noteId: string) => {
+    setNotes(notes.filter(note => note.id !== noteId));
+    if (selectedNote?.id === noteId) {
+      setSelectedNote(notes.length > 1 ? notes.find(n => n.id !== noteId) || null : null);
+    }
+  };
+
   return (
     <div className="h-screen flex overflow-hidden" style={{ backgroundColor: '#1c1c1c' }}>
       {/* Sidebar */}
       <Sidebar
-        notes={filteredNotes}
+        notes={notes}
         categories={categories}
         selectedNote={selectedNote}
         selectedCategory={selectedCategory}
         searchQuery={searchQuery}
         collapsed={sidebarCollapsed}
         isDark={isDark}
-        onNoteSelect={setSelectedNote}
+        onNoteSelect={note => {
+          setSelectedNote(note);
+          setViewingDeleted(false);
+        }}
         onCategorySelect={setSelectedCategory}
         onSearch={handleSearch}
         onCreateNote={handleCreateNote}
         onDeleteNote={handleDeleteNote}
+        onRestoreNote={handleRestoreNote}
+        onDeletePermanently={handleDeletePermanently}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+        onRemoveFavorite={(noteId: string) => {
+          setNotes(notes => {
+            const updated = notes.map(note => note.id === noteId ? { ...note, isFavorite: false, favoriteEmoji: '' } : note);
+            // If the current selectedNote is the one being updated, update selectedNote as well
+            if (selectedNote && selectedNote.id === noteId) {
+              const updatedNote = updated.find(n => n.id === noteId);
+              setSelectedNote(updatedNote ? { ...updatedNote } : null);
+            }
+            return updated;
+          });
+        }}
+        onDeletedClick={() => setViewingDeleted(true)}
+        deletedCount={deletedNotes.length}
       />
 
       {/* Main Content */}
@@ -325,7 +370,13 @@ const Index = () => {
                       style={{ background: favoriteEmoji ? '#ff9800' : '#444', color: '#fff', border: 'none' }}
                       onClick={() => {
                         if (selectedNote) {
-                          setNotes(notes => notes.map(note => note.id === selectedNote.id ? { ...note, isFavorite: true, favoriteEmoji } : note));
+                          setNotes(notes => {
+                            const updated = notes.map(note => note.id === selectedNote.id ? { ...note, isFavorite: true, favoriteEmoji } : note);
+                            // Also update selectedNote to keep UI in sync
+                            const updatedNote = updated.find(n => n.id === selectedNote.id);
+                            setSelectedNote(updatedNote ? { ...updatedNote } : null);
+                            return updated;
+                          });
                         }
                         setFavoriteDialogOpen(false);
                         setFavoriteEmoji('');
@@ -351,7 +402,15 @@ const Index = () => {
         <ScrollProgressBar containerRef={mainContentRef} height={6} color="#fff" />
         {/* Main Editor Area */}
         <main ref={mainContentRef} className="flex-1 overflow-auto" style={{ backgroundColor: '#1c1c1c' }}>
-          {isSearching ? (
+          {viewingDeleted ? (
+            <DeletedNotesGrid
+              notes={deletedNotes}
+              onRestore={handleRestoreNote}
+              onDeletePermanently={handleDeletePermanently}
+              onSelectNote={setSelectedNote}
+              onBack={() => setViewingDeleted(false)}
+            />
+          ) : isSearching ? (
             <SearchResults
               query={searchQuery}
               results={filteredNotes}
@@ -367,6 +426,8 @@ const Index = () => {
               onTitleChange={handleTitleChange}
               onClose={() => setSelectedNote(null)}
               setSaving={setSaving}
+              onRestoreNote={selectedNote.deleted ? handleRestoreNote : undefined}
+              onDeletePermanently={selectedNote.deleted ? handleDeletePermanently : undefined}
             />
           ) : (
             <div className="h-full flex items-center justify-center" style={{ marginLeft: 31, marginRight: 31 }}>
