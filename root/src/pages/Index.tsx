@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import {Plus, Edit, Heart, Loader2, Circle} from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
-import { SearchResults } from '../components/SearchResults';
 import { Button } from '../components/ui/button';
 import {
   Dialog,
@@ -95,8 +94,6 @@ const Index = () => {
 
   const [selectedNote, setSelectedNote] = useState<Note | null>(notes[0]);
   const [editorTitle, setEditorTitle] = useState(selectedNote ? selectedNote.title : '');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -118,16 +115,6 @@ const Index = () => {
   useEffect(() => {
     localStorage.setItem('notes', JSON.stringify(notes));
   }, [notes]);
-
-  const filteredNotes = notes.filter(note => {
-    const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         note.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         note.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    const matchesCategory = selectedCategory === 'all' || note.category === selectedCategory;
-    
-    return matchesSearch && matchesCategory;
-  });
 
   // Filter for My Notes (not deleted)
   const myNotes = notes.filter(note => !note.deleted);
@@ -187,11 +174,6 @@ const Index = () => {
     // Do NOT set viewingDeleted here
   };
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    setIsSearching(query.length > 0);
-  };
-
   const toggleTheme = () => {
     setIsDark(!isDark);
   };
@@ -229,7 +211,6 @@ const Index = () => {
         categories={categories}
         selectedNote={selectedNote}
         selectedCategory={selectedCategory}
-        searchQuery={searchQuery}
         collapsed={sidebarCollapsed}
         isDark={isDark}
         onNoteSelect={note => {
@@ -237,7 +218,6 @@ const Index = () => {
           setViewingDeleted(false);
         }}
         onCategorySelect={setSelectedCategory}
-        onSearch={handleSearch}
         onCreateNote={handleCreateNote}
         onDeleteNote={handleDeleteNote}
         onRestoreNote={handleRestoreNote}
@@ -320,27 +300,30 @@ const Index = () => {
               </>
             )}
           </div>
+          {/* Right side: favorite button card and stats card */}
           {!viewingDeleted && selectedNote && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center ml-4 gap-3">
               <Dialog open={favoriteDialogOpen} onOpenChange={setFavoriteDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-7 h-7 relative"
-                    aria-label="Favorite"
-                  >
-                    {selectedNote && selectedNote.isFavorite && selectedNote.favoriteEmoji ? (
-                      <img
-                        src={`${TWEMOJI_BASE}${selectedNote.favoriteEmoji}.svg`}
-                        alt="emoji"
-                        className="w-4 h-4"
-                        style={{ display: 'inline' }}
-                      />
-                    ) : (
-                      <Heart className="w-4 h-4" />
-                    )}
-                  </Button>
+                  <div className="flex items-center px-2 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white cursor-pointer" style={{ minHeight: '2.25rem' }}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-7 h-7 relative"
+                      aria-label="Favorite"
+                    >
+                      {selectedNote && selectedNote.isFavorite && selectedNote.favoriteEmoji ? (
+                        <img
+                          src={`${TWEMOJI_BASE}${selectedNote.favoriteEmoji}.svg`}
+                          alt="emoji"
+                          className="w-4 h-4"
+                          style={{ display: 'inline' }}
+                        />
+                      ) : (
+                        <Heart className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
                 </DialogTrigger>
                 {selectedNote && (
                   <DialogContent className="sm:max-w-[340px]" style={{ background: '#262626', color: '#fff' }}>
@@ -415,6 +398,11 @@ const Index = () => {
                   </DialogContent>
                 )}
               </Dialog>
+              <div className="flex items-center px-4 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white" style={{ minHeight: '2.25rem' }}>
+                <span className="mr-4">Words: {selectedNote.content ? selectedNote.content.trim().split(/\s+/).filter(Boolean).length : 0}</span>
+                <span className="mr-4">Chars: {selectedNote.content ? selectedNote.content.length : 0}</span>
+                <span>Lines: {selectedNote.content ? selectedNote.content.split(/\r?\n/).length : 0}</span>
+              </div>
             </div>
           )}
         </div>
@@ -428,13 +416,6 @@ const Index = () => {
               onRestore={handleRestoreNote}
               onDeletePermanently={handleDeletePermanently}
               onSelectNote={setSelectedNote}
-            />
-          ) : isSearching ? (
-            <SearchResults
-              query={searchQuery}
-              results={filteredNotes}
-              onSelectNote={setSelectedNote}
-              isDark={isDark}
             />
           ) : selectedNote ? (
             <NoteEditor

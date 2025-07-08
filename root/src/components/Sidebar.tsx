@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, Plus, Trash2, Edit, Settings, HelpCircle, Circle, FileText, FolderOpen, Archive, Hash, Star, BookDashed, NotebookPen } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -20,12 +20,10 @@ interface SidebarProps {
   categories: Category[];
   selectedNote: Note | null;
   selectedCategory: string;
-  searchQuery: string;
   collapsed: boolean;
   isDark: boolean;
   onNoteSelect: (note: Note) => void;
   onCategorySelect: (category: string) => void;
-  onSearch: (query: string) => void;
   onCreateNote: () => void;
   onDeleteNote: (noteId: string) => void;
   onRestoreNote: (noteId: string) => void;
@@ -41,12 +39,10 @@ export const Sidebar = ({
   categories,
   selectedNote,
   selectedCategory,
-  searchQuery,
   collapsed,
   isDark,
   onNoteSelect,
   onCategorySelect,
-  onSearch,
   onCreateNote,
   onDeleteNote,
   onRestoreNote,
@@ -70,15 +66,17 @@ export const Sidebar = ({
   };
 
   const menuItems = [
-    { icon: NotebookPen, label: 'New Note', shortcut: 'Ctrl + N', active: false },
-    { icon: Search, label: 'Search', shortcut: 'Ctrl + K', active: false },
-    { icon: BookDashed, label: 'Drafts', shortcut: 'Ctrl + D', active: false },
+    { icon: NotebookPen, label: 'New Note', active: false },
+    { icon: Search, label: 'Search', active: false },
+    { icon: BookDashed, label: 'Drafts', active: false },
   ];
 
   const folderItems = [
-    { icon: Settings, label: 'Settings', count: undefined, active: false, shortcut: 'Ctrl + ,' },
+    { icon: Settings, label: 'Settings', count: undefined, active: false },
     { icon: Trash2, label: 'Trash', count: deletedCount, active: false, onClick: onDeletedClick },
   ];
+
+  // Remove any useEffect or event listeners related to keyboard shortcuts
 
   return (
     <div 
@@ -100,7 +98,6 @@ export const Sidebar = ({
                 <item.icon className="w-4 h-4" />
                 <span className="font-normal">{item.label}</span>
               </div>
-              <span className="text-xs text-gray-500">{item.shortcut}</span>
             </div>
           ))}
         </div>
@@ -119,10 +116,7 @@ export const Sidebar = ({
                 <item.icon className="w-4 h-4" />
                 <span className="font-normal">{item.label}</span>
               </div>
-              {item.shortcut && (
-                <span className="text-xs text-gray-500">{item.shortcut}</span>
-              )}
-              {item.count !== undefined && !item.shortcut && (
+              {item.count !== undefined && (
                 <span className="text-xs text-gray-500">{item.count}</span>
               )}
             </div>
