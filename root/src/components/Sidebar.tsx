@@ -12,7 +12,12 @@ import {
   ContextMenuSub,
   ContextMenuSubTrigger,
   ContextMenuSubContent,
-  ContextMenuSeparator
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuCheckboxItem,
+  ContextMenuLabel,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem
 } from './ui/context-menu';
 
 interface SidebarProps {
@@ -80,7 +85,7 @@ export const Sidebar = ({
 
   return (
     <div 
-      className={`flex flex-col h-screen transition-all duration-200 ${
+      className={`flex flex-col h-screen min-h-0 transition-all duration-200 ${
         collapsed ? 'w-0 overflow-hidden' : 'w-64'
       } overflow-hidden`}
       style={{ backgroundColor: '#262626' }}
@@ -106,21 +111,143 @@ export const Sidebar = ({
       {/* Folder Section */}
       <div className="px-3 py-2">
         <div className="space-y-1">
-          {folderItems.map((item) => (
+          {/* Settings Button with Context Menu */}
+          <ContextMenu>
+            <ContextMenuTrigger asChild>
             <div
-              key={item.label}
               className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-gray-300 hover:bg-gray-700"
-              onClick={item.onClick}
             >
               <div className="flex items-center space-x-3">
-                <item.icon className="w-4 h-4" />
-                <span className="font-normal">{item.label}</span>
+                  <Settings className="w-4 h-4" />
+                  <span className="font-normal">Settings</span>
+                </div>
               </div>
-              {item.count !== undefined && (
-                <span className="text-xs text-gray-500">{item.count}</span>
-              )}
+            </ContextMenuTrigger>
+            <ContextMenuContent className="w-64">
+              {/* Appearance Section */}
+              <ContextMenuSub>
+                <ContextMenuSubTrigger inset>Appearance</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-56">
+                  <ContextMenuRadioGroup value="system">
+                    <ContextMenuItem inset disabled>Theme</ContextMenuItem>
+                    <ContextMenuRadioItem value="light">Light</ContextMenuRadioItem>
+                    <ContextMenuRadioItem value="dark">Dark</ContextMenuRadioItem>
+                    <ContextMenuRadioItem value="system">System</ContextMenuRadioItem>
+                  </ContextMenuRadioGroup>
+                  <ContextMenuSeparator />
+                  <ContextMenuRadioGroup value="medium">
+                    <ContextMenuItem inset disabled>Font size</ContextMenuItem>
+                    <ContextMenuRadioItem value="small">Small</ContextMenuRadioItem>
+                    <ContextMenuRadioItem value="medium">Medium</ContextMenuRadioItem>
+                    <ContextMenuRadioItem value="large">Large</ContextMenuRadioItem>
+                  </ContextMenuRadioGroup>
+                  <ContextMenuSeparator />
+                  <ContextMenuRadioGroup value="left">
+                    <ContextMenuItem inset disabled>Sidebar position</ContextMenuItem>
+                    <ContextMenuRadioItem value="left">Left</ContextMenuRadioItem>
+                    <ContextMenuRadioItem value="right">Right</ContextMenuRadioItem>
+                  </ContextMenuRadioGroup>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem inset disabled>Accent color</ContextMenuItem>
+                  <ContextMenuItem>Blue</ContextMenuItem>
+                  <ContextMenuItem>Green</ContextMenuItem>
+                  <ContextMenuItem>Purple</ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+              {/* Editor Preferences Section */}
+              <ContextMenuSub>
+                <ContextMenuSubTrigger inset>Editor Preferences</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-56">
+                  <ContextMenuItem inset disabled>Default font</ContextMenuItem>
+                  <ContextMenuItem>Sans</ContextMenuItem>
+                  <ContextMenuItem>Serif</ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuCheckboxItem checked>Auto-save</ContextMenuCheckboxItem>
+                  <ContextMenuItem inset disabled>Auto-save interval</ContextMenuItem>
+                  <ContextMenuItem>1 min</ContextMenuItem>
+                  <ContextMenuItem>5 min</ContextMenuItem>
+                  <ContextMenuItem>10 min</ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuCheckboxItem checked>Spell check</ContextMenuCheckboxItem>
+                  <ContextMenuCheckboxItem>Markdown support</ContextMenuCheckboxItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+              {/* Notes Management Section */}
+              <ContextMenuSub>
+                <ContextMenuSubTrigger inset>Notes Management</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-56">
+                  <ContextMenuItem inset disabled>Default save location</ContextMenuItem>
+                  <ContextMenuItem>Local</ContextMenuItem>
+                  <ContextMenuItem>Cloud</ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem inset disabled>Deleted notes retention</ContextMenuItem>
+                  <ContextMenuItem>7 days</ContextMenuItem>
+                  <ContextMenuItem>30 days</ContextMenuItem>
+                  <ContextMenuItem>Forever</ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem>Backup & Restore</ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+              {/* Notifications Section */}
+              <ContextMenuSub>
+                <ContextMenuSubTrigger inset>Notifications</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-56">
+                  <ContextMenuCheckboxItem>Enable desktop notifications</ContextMenuCheckboxItem>
+                  <ContextMenuCheckboxItem>Sound</ContextMenuCheckboxItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+              {/* Security & Privacy Section */}
+              <ContextMenuSub>
+                <ContextMenuSubTrigger inset>Security & Privacy</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-56">
+                  <ContextMenuCheckboxItem>App lock</ContextMenuCheckboxItem>
+                  <ContextMenuCheckboxItem>Data encryption</ContextMenuCheckboxItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem variant="destructive">Clear all data</ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+              {/* Sync & Cloud Section */}
+              <ContextMenuSub>
+                <ContextMenuSubTrigger inset>Sync & Cloud</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-56">
+                  <ContextMenuCheckboxItem>Sync with cloud</ContextMenuCheckboxItem>
+                  <ContextMenuItem>Account management</ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+              {/* Advanced Section */}
+              <ContextMenuSub>
+                <ContextMenuSubTrigger inset>Advanced</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-56">
+                  <ContextMenuItem>Export notes</ContextMenuItem>
+                  <ContextMenuItem>Import notes</ContextMenuItem>
+                  <ContextMenuItem>Developer options</ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+              {/* About Section */}
+              <ContextMenuSub>
+                <ContextMenuSubTrigger inset>About</ContextMenuSubTrigger>
+                <ContextMenuSubContent className="w-56">
+                  <ContextMenuItem>App version</ContextMenuItem>
+                  <ContextMenuItem>Check for updates</ContextMenuItem>
+                  <ContextMenuItem>Contact support</ContextMenuItem>
+                  <ContextMenuItem>Open source licenses</ContextMenuItem>
+                </ContextMenuSubContent>
+              </ContextMenuSub>
+            </ContextMenuContent>
+          </ContextMenu>
+          {/* Trash Button (unchanged) */}
+          <div
+            className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-gray-300 hover:bg-gray-700"
+            onClick={onDeletedClick}
+          >
+            <div className="flex items-center space-x-3">
+              <Trash2 className="w-4 h-4" />
+              <span className="font-normal">Trash</span>
             </div>
-          ))}
+            {deletedCount !== undefined && (
+              <span className="text-xs text-gray-500">{deletedCount}</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -146,11 +273,11 @@ export const Sidebar = ({
                     <img
                       src={`https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${note.favoriteEmoji}.svg`}
                       alt="emoji"
-                      className="w-4 h-4"
+                      className="w-4 h-4 favorite-icon"
                       style={{ display: 'inline' }}
                     />
                   ) : (
-                    <span className="text-sm">❤️</span>
+                    <span className="text-sm favorite-icon">❤️</span>
                   )}
                   <span className="font-normal text-sm truncate">{note.title || 'Untitled Note'}</span>
                 </div>
@@ -174,7 +301,7 @@ export const Sidebar = ({
       </div>
 
       {/* My Notes Section */}
-      <div className="px-3 py-2 flex-1 overflow-hidden">
+      <div className="px-3 py-2 flex flex-col flex-1 min-h-0 overflow-hidden">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-normal text-gray-500 px-3">My Notes</h3>
           <Button
@@ -186,7 +313,7 @@ export const Sidebar = ({
             <Plus className="w-3 h-3" />
           </Button>
         </div>
-        <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
+        <div className="space-y-1 flex-1 min-h-0 overflow-y-auto custom-scrollbar">
           {notes.filter(note => !note.deleted).map((note, index) => (
             <ContextMenu key={note.id}>
               <ContextMenuTrigger asChild>
@@ -198,7 +325,7 @@ export const Sidebar = ({
                   onMouseEnter={() => setHoveredNote(note.id)}
                   onMouseLeave={() => setHoveredNote(null)}
                 >
-                  <FileText className="w-3 h-3 text-gray-400" />
+                  <FileText className="w-3 h-3 note-icon text-gray-400" style={{ shapeRendering: 'geometricPrecision' }} />
                   <span className="font-normal text-xs flex-1 truncate">{note.title || 'Untitled Note'}</span>
                 </div>
               </ContextMenuTrigger>

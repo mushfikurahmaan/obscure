@@ -14,7 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import ScrollProgressBar from '../components/ScrollProgressBar';
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { DeletedNotesGrid } from '../components/DeletedNotesGrid';
 
 export interface Note {
@@ -97,8 +97,6 @@ const Index = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  const mainContentRef = useRef<HTMLDivElement>(null);
 
   const [favoriteDialogOpen, setFavoriteDialogOpen] = useState(false);
   const [favoriteEmoji, setFavoriteEmoji] = useState('');
@@ -276,11 +274,7 @@ const Index = () => {
                   className="flex items-center px-4 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white truncate cursor-pointer"
                   style={{ minHeight: '2.25rem', maxWidth: '100%' }}
                   title={editorTitle}
-                  onClick={() => {
-                    if (mainContentRef.current) {
-                      mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
-                    }
-                  }}
+                  // Removed scroll to top logic as ScrollArea handles scrolling
                 >
                   <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                   {(() => {
@@ -406,10 +400,8 @@ const Index = () => {
             </div>
           )}
         </div>
-        {/* Scroll Progress Bar */}
-        <ScrollProgressBar containerRef={mainContentRef} height={6} color="#fff" />
-        {/* Main Editor Area */}
-        <main ref={mainContentRef} className="flex-1 overflow-auto" style={{ backgroundColor: '#1c1c1c' }}>
+        {/* Main Editor Area with ScrollArea */}
+        <ScrollArea className="flex-1 h-full" style={{ backgroundColor: '#1c1c1c' }}>
           {viewingDeleted ? (
             <DeletedNotesGrid
               notes={deletedNotes}
@@ -447,7 +439,7 @@ const Index = () => {
               </div>
             </div>
           )}
-        </main>
+        </ScrollArea>
       </div>
     </div>
   );
