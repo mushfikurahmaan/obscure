@@ -8,7 +8,11 @@ import {
   ContextMenu,
   ContextMenuTrigger,
   ContextMenuContent,
-  ContextMenuItem
+  ContextMenuItem,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
+  ContextMenuSeparator
 } from './ui/context-menu';
 
 interface SidebarProps {
@@ -190,29 +194,36 @@ export const Sidebar = ({
         </div>
         <div className="space-y-1 max-h-60 overflow-y-auto custom-scrollbar">
           {notes.filter(note => !note.deleted).map((note, index) => (
-            <div
-              key={note.id}
-              className={`flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
-                selectedNote && note.id === selectedNote.id ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700'
-              }`}
-              onClick={() => onNoteSelect(note)}
-              onMouseEnter={() => setHoveredNote(note.id)}
-              onMouseLeave={() => setHoveredNote(null)}
-            >
-              <FileText className="w-3 h-3 text-gray-400" />
-              <span className="font-normal text-sm flex-1 truncate">{note.title || 'Untitled Note'}</span>
-              {hoveredNote === note.id && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-5 h-5 p-0"
-                  onClick={e => { e.stopPropagation(); onDeleteNote(note.id); }}
-                  aria-label="Delete Note"
+            <ContextMenu key={note.id}>
+              <ContextMenuTrigger asChild>
+                <div
+                  className={`flex items-center space-x-3 px-3 py-1.5 rounded-md text-xs cursor-pointer transition-colors ${
+                    selectedNote && note.id === selectedNote.id ? 'bg-gray-700 text-white' : 'text-gray-300 hover:bg-gray-700'
+                  }`}
+                  onClick={() => onNoteSelect(note)}
+                  onMouseEnter={() => setHoveredNote(note.id)}
+                  onMouseLeave={() => setHoveredNote(null)}
                 >
-                  <Trash2 className="w-3 h-3" />
-                </Button>
-              )}
-            </div>
+                  <FileText className="w-3 h-3 text-gray-400" />
+                  <span className="font-normal text-xs flex-1 truncate">{note.title || 'Untitled Note'}</span>
+                </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-40 bg-[#23272a] border border-gray-700 rounded-sm text-xs text-white shadow-xl p-0">
+                <ContextMenuSub>
+                  <ContextMenuSubTrigger className="text-white hover:bg-[#36393f] focus:bg-[#36393f] px-2 py-1 rounded-sm font-normal">Export As</ContextMenuSubTrigger>
+                  <ContextMenuSubContent className="w-40 bg-[#23272a] border border-gray-700 rounded-sm text-xs text-white shadow-xl p-0">
+                    <ContextMenuItem className="hover:bg-[#36393f] focus:bg-[#36393f] px-2 py-1 rounded-sm font-semibold">PDF</ContextMenuItem>
+                    <ContextMenuItem className="hover:bg-[#36393f] focus:bg-[#36393f] px-2 py-1 rounded-sm font-semibold">Encrypted</ContextMenuItem>
+                  </ContextMenuSubContent>
+                </ContextMenuSub>
+                <ContextMenuItem
+                  className="text-red-400 opacity-80 hover:opacity-100 hover:text-red-300 font-medium px-2 py-1 rounded-sm"
+                  onClick={() => onDeleteNote(note.id)}
+                >
+                  Trash
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           ))}
         </div>
       </div>

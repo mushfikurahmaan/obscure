@@ -415,14 +415,6 @@ const Index = () => {
                   </DialogContent>
                 )}
               </Dialog>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-gray-200 text-black hover:bg-gray-300"
-                onClick={() => {/* Export logic here */}}
-              >
-                Export
-              </Button>
             </div>
           )}
         </div>
