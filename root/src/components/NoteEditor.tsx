@@ -106,7 +106,7 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <div className="h-full flex flex-col" style={{ backgroundColor: '#1c1c1c' }}
+        <div className="h-full flex flex-col bg-[hsl(var(--background))] text-[hsl(var(--foreground))]"
           tabIndex={0}
           onKeyDown={e => {
             if (e.key === 'Escape' && typeof onClose === 'function') {
@@ -125,7 +125,7 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
             <div className="relative mb-2">
               <h1
                 ref={titleRef}
-                className="text-4xl font-bold leading-tight outline-none bg-transparent text-white min-h-[48px]"
+                className="text-4xl font-bold leading-tight outline-none bg-transparent text-[hsl(var(--foreground))] min-h-[48px]"
                 contentEditable
                 suppressContentEditableWarning
                 spellCheck={false}
@@ -149,7 +149,7 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
               />
               {(!title || title.trim() === '') && (
                 <span
-                  className="absolute left-0 top-0 text-4xl font-bold leading-tight text-gray-500 pointer-events-none select-none"
+                  className="absolute left-0 top-0 text-4xl font-bold leading-tight text-[hsl(var(--muted-foreground))] pointer-events-none select-none"
                   style={{ userSelect: 'none' }}
                 >
                   Untitled Note
@@ -157,16 +157,16 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
               )}
             </div>
             {/* Metadata */}
-            <div className="flex items-center space-x-4 mb-4 text-sm text-gray-400">
+            <div className="flex items-center space-x-4 mb-4 text-sm text-[hsl(var(--muted-foreground))">
               <span>Created {formatRelativeDate(note.createdAt)}</span>
-              <span className="text-gray-600">•</span>
+              <span className="text-[hsl(var(--muted-foreground))]">•</span>
               <span>Last modified {formatRelativeDate(note.updatedAt)}</span>
             </div>
             {/* Editable Content */}
             <div className="relative min-h-[300px]">
               <div
                 ref={contentRef}
-                className="flex-1 text-base text-gray-200 bg-transparent outline-none focus:outline-none min-h-[300px]"
+                className="flex-1 text-base text-[hsl(var(--foreground))] bg-transparent outline-none focus:outline-none min-h-[300px]"
                 contentEditable
                 suppressContentEditableWarning
                 spellCheck={true}
@@ -180,7 +180,7 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
               ></div>
               {isContentEmpty && (
                 <span
-                  className="absolute left-0 top-0 text-base text-gray-500 pointer-events-none select-none mt-1"
+                  className="absolute left-0 top-0 text-base text-[hsl(var(--muted-foreground))] pointer-events-none select-none mt-1"
                   style={{ userSelect: 'none', pointerEvents: 'none' }}
                 >
                   Start writing your note...

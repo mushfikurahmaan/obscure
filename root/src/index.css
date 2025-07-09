@@ -8,8 +8,8 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 0 0% 100%; /* pure white for light mode */
+    --foreground: 0 0% 0%; /* black text for light mode */
 
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
@@ -35,12 +35,13 @@ All colors MUST be HSL.
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
+    --context-menu-border: 214.3 31.8% 91.4%; /* Light mode border color */
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
+    --sidebar-background: 54 100% 98%;
 
-    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-foreground: 0 0% 0%; /* dark gray for sidebar text in light mode */
 
     --sidebar-primary: 240 5.9% 10%;
 
@@ -50,16 +51,18 @@ All colors MUST be HSL.
 
     --sidebar-accent-foreground: 240 5.9% 10%;
 
-    --sidebar-border: 220 13% 91%;
+    --sidebar-border: 54 100% 98%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-hover: 0 0% 90%; /* light gray for sidebar hover in light mode */
+    --topbar-background: 210 40% 96%; /* #f1f5f9 for light mode */
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 0 0% 10%; /* #1c1c1c */
+    --foreground: 0 0% 100%; /* white text for dark mode */
 
-    --card: 222.2 84% 4.9%;
+    --card: 0 0% 15%; /* #262626 */
     --card-foreground: 210 40% 98%;
 
     --popover: 222.2 84% 4.9%;
@@ -71,7 +74,7 @@ All colors MUST be HSL.
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
+    --muted: 220 4% 15%;
     --muted-foreground: 215 20.2% 65.1%;
 
     --accent: 217.2 32.6% 17.5%;
@@ -80,17 +83,20 @@ All colors MUST be HSL.
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
+    --border: 220 9% 34%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-background: 0 0% 15%; /* #262626 */
+    --sidebar-foreground: 0 0% 100%; /* light gray for sidebar text in dark mode */
     --sidebar-primary: 224.3 76.3% 48%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 0 0 10%; /* #4b5563 */
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-hover: 220 9% 20%; /* dark gray for sidebar hover in dark mode */
+    --context-menu-border: 220 9% 34%; /* #4b5563 for dark mode */
+    --topbar-background: 220 4% 15%; /* match dark bg or pick a suitable dark shade */
   }
 }
 

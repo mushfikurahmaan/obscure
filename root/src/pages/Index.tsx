@@ -63,7 +63,38 @@ const EMOJI_LIST = [
 ];
 
 const Index = () => {
-  const [isDark, setIsDark] = useState(true);
+  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
+    const stored = localStorage.getItem('theme');
+    return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
+  });
+
+  // Listen for system theme changes if theme is 'system'
+  useEffect(() => {
+    if (theme !== 'system') return;
+    const mql = window.matchMedia('(prefers-color-scheme: dark)');
+    const applySystemTheme = () => {
+      if (mql.matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    };
+    applySystemTheme();
+    mql.addEventListener('change', applySystemTheme);
+    return () => mql.removeEventListener('change', applySystemTheme);
+  }, [theme]);
+
+  // Apply theme class to <html>
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (theme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      // handled by system effect above
+    }
+    localStorage.setItem('theme', theme);
+  }, [theme]);
 
   // Load notes from localStorage if available
   const [notes, setNotes] = useState<Note[]>(() => {
@@ -172,10 +203,6 @@ const Index = () => {
     // Do NOT set viewingDeleted here
   };
 
-  const toggleTheme = () => {
-    setIsDark(!isDark);
-  };
-
   // Helper to get favorite for a note
   const getFavoriteForNote = (noteId: string) => favoriteNotes.find(fav => fav.id === noteId);
 
@@ -202,7 +229,9 @@ const Index = () => {
   }, [viewingDeleted]);
 
   return (
-    <div className="h-screen flex overflow-hidden" style={{ backgroundColor: '#1c1c1c' }}>
+    <div className="h-screen flex overflow-hidden bg-background text-[hsl(var(--foreground))]"
+      data-theme={theme}
+    >
       {/* Sidebar */}
       <Sidebar
         notes={notes}
@@ -210,7 +239,7 @@ const Index = () => {
         selectedNote={selectedNote}
         selectedCategory={selectedCategory}
         collapsed={sidebarCollapsed}
-        isDark={isDark}
+        isDark={theme === 'dark'}
         onNoteSelect={note => {
           setSelectedNote(note);
           setViewingDeleted(false);
@@ -234,12 +263,14 @@ const Index = () => {
         }}
         onDeletedClick={() => setViewingDeleted(true)}
         deletedCount={deletedNotes.length}
+        theme={theme}
+        setTheme={setTheme}
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col h-screen overflow-hidden bg-background text-[hsl(var(--foreground))]">
         {/* Top tabs bar */}
-        <div className="flex items-center px-6 py-2 justify-between" style={{ backgroundColor: '#1c1c1c' }}
+        <div className="flex items-center px-6 py-2 justify-between bg-background text-[hsl(var(--foreground))]"
           tabIndex={viewingDeleted ? 0 : undefined}
           onKeyDown={e => {
             if (viewingDeleted && e.key === 'Escape') {
@@ -251,7 +282,7 @@ const Index = () => {
             <Button
               variant="ghost"
               size="icon"
-              className="mr-3 text-gray-400 hover:text-white hover:bg-gray-700 border-none w-7 h-7"
+              className="mr-3 text-gray-400 hover:text-[hsl(var(--foreground))] hover:bg-gray-700 border-none w-7 h-7"
               onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
               aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             >
@@ -261,17 +292,14 @@ const Index = () => {
               </svg>
             </Button>
             {viewingDeleted ? (
-              <span
-                className="flex items-center px-4 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white truncate"
-                style={{ minHeight: '2.25rem', maxWidth: '100%' }}
-              >
-                <Circle className="w-3 h-3 mr-2" style={{ color: '#ff3b3b', fill: '#ff3b3b' }} />
+              <span className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--muted))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
+                <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(0, 100%, 60%)', fill: 'hsl(0, 100%, 60%)' }} />
                 Trashed Notes
               </span>
             ) : selectedNote && (
               <>
                 <span
-                  className="flex items-center px-4 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white truncate cursor-pointer"
+                  className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate cursor-pointer"
                   style={{ minHeight: '2.25rem', maxWidth: '100%' }}
                   title={editorTitle}
                   // Removed scroll to top logic as ScrollArea handles scrolling
@@ -286,7 +314,7 @@ const Index = () => {
                   })()}
                 </span>
                 <span
-                  className="ml-3 flex items-center px-3 py-1 rounded-xl bg-white/5 backdrop-blur-sm"
+                  className="ml-3 flex items-center px-3 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm"
                   style={{ minHeight: '2.25rem' }}
                 >
                   <Loader2 className={`w-4 h-4 ${saving ? 'animate-spin text-blue-400' : 'text-gray-500 opacity-40'}`} />
@@ -299,7 +327,7 @@ const Index = () => {
             <div className="flex items-center ml-4 gap-3">
               <Dialog open={favoriteDialogOpen} onOpenChange={setFavoriteDialogOpen}>
                 <DialogTrigger asChild>
-                  <div className="flex items-center px-2 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white cursor-pointer" style={{ minHeight: '2.25rem' }}>
+                  <div className="flex items-center px-2 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer" style={{ minHeight: '2.25rem' }}>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -320,17 +348,19 @@ const Index = () => {
                   </div>
                 </DialogTrigger>
                 {selectedNote && (
-                  <DialogContent className="sm:max-w-[340px]" style={{ background: '#262626', color: '#fff' }}>
+                  <DialogContent className="sm:max-w-[340px] bg-background text-[hsl(var(--foreground))]"
+                    data-theme={theme}
+                  >
                     <DialogHeader>
-                      <DialogTitle style={{ color: '#fff' }}>Favorite Note</DialogTitle>
-                      <DialogDescription style={{ color: '#bbb' }}>
+                      <DialogTitle className="text-[hsl(var(--foreground))]">Favorite Note</DialogTitle>
+                      <DialogDescription className="text-[hsl(var(--muted-foreground))]">
                         Add this note to your favorites and pick an emoji.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4">
                       <div className="grid gap-2">
                         <div className="flex items-center gap-2">
-                          <Label style={{ color: '#bbb', minWidth: 40 }}>Title:</Label>
+                          <Label className="text-[hsl(var(--muted-foreground))]" style={{ minWidth: 40 }}>Title:</Label>
                           <span
                             className="font-medium text-base"
                             style={{
@@ -366,12 +396,12 @@ const Index = () => {
                     </div>
                     <DialogFooter>
                       <DialogClose asChild>
-                        <Button variant="outline" type="button" style={{ background: '#222', color: '#bbb', borderColor: '#444' }} onClick={() => setFavoriteEmoji('')}>Cancel</Button>
+                        <Button variant="outline" type="button" className="bg-background text-[hsl(var(--muted-foreground))] border border-border" onClick={() => setFavoriteEmoji('')}>Cancel</Button>
                       </DialogClose>
                       <Button
                         type="button"
                         disabled={!favoriteEmoji}
-                        style={{ background: favoriteEmoji ? '#ff9800' : '#444', color: '#fff', border: 'none' }}
+                        className={favoriteEmoji ? 'bg-orange-600 text-white border-none' : 'bg-muted text-[hsl(var(--muted-foreground))] border-none'}
                         onClick={() => {
                           if (selectedNote) {
                             setNotes(notes => {
@@ -392,7 +422,7 @@ const Index = () => {
                   </DialogContent>
                 )}
               </Dialog>
-              <div className="flex items-center px-4 py-1 rounded-xl bg-white/5 backdrop-blur-sm text-sm font-medium text-white" style={{ minHeight: '2.25rem' }}>
+              <div className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))]" style={{ minHeight: '2.25rem' }}>
                 <span className="mr-4">Words: {selectedNote.content ? selectedNote.content.trim().split(/\s+/).filter(Boolean).length : 0}</span>
                 <span className="mr-4">Chars: {selectedNote.content ? selectedNote.content.length : 0}</span>
                 <span>Lines: {selectedNote.content ? selectedNote.content.split(/\r?\n/).length : 0}</span>
@@ -401,7 +431,7 @@ const Index = () => {
           )}
         </div>
         {/* Main Editor Area with ScrollArea */}
-        <ScrollArea className="flex-1 h-full" style={{ backgroundColor: '#1c1c1c' }}>
+        <ScrollArea className="flex-1 h-full bg-background text-[hsl(var(--foreground))]">
           {viewingDeleted ? (
             <DeletedNotesGrid
               notes={deletedNotes}
@@ -413,7 +443,7 @@ const Index = () => {
             <NoteEditor
               note={selectedNote}
               onUpdate={handleUpdateNote}
-              isDark={isDark}
+              isDark={theme === 'dark'}
               alignLeft={32}
               onTitleChange={handleTitleChange}
               onClose={() => setSelectedNote(null)}
@@ -427,8 +457,8 @@ const Index = () => {
                 <div className="w-24 h-24 bg-gray-700 rounded-xl flex items-center justify-center mx-auto mb-6">
                   <Edit className="w-12 h-12 text-gray-500" />
                 </div>
-                <h2 className="text-2xl font-medium text-white mb-3">Start writing</h2>
-                <p className="text-gray-400 mb-6 text-base">Select a note from the sidebar or create a new one</p>
+                <h2 className="text-2xl font-medium text-[hsl(var(--foreground))] mb-3">Start writing</h2>
+                <p className="text-[hsl(var(--muted-foreground))] mb-6 text-base">Select a note from the sidebar or create a new one</p>
                 <Button
                   onClick={handleCreateNote}
                   className="bg-orange-600 text-white hover:bg-orange-700 border-none"
