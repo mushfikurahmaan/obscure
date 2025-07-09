@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {Plus, Edit, Heart, Loader2, Circle} from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
@@ -131,7 +131,7 @@ const Index = () => {
 
   const [favoriteDialogOpen, setFavoriteDialogOpen] = useState(false);
   const [favoriteEmoji, setFavoriteEmoji] = useState('');
-  const [favoriteNotes, setFavoriteNotes] = useState<{ id: string; title: string; emoji: string }[]>([]);
+  const [] = useState<{ id: string; title: string; emoji: string }[]>([]);
 
   const [viewingDeleted, setViewingDeleted] = useState(false);
 
@@ -146,7 +146,6 @@ const Index = () => {
   }, [notes]);
 
   // Filter for My Notes (not deleted)
-  const myNotes = notes.filter(note => !note.deleted);
   // Filter for Deleted Notes
   const deletedNotes = notes.filter(note => note.deleted);
 
@@ -204,7 +203,6 @@ const Index = () => {
   };
 
   // Helper to get favorite for a note
-  const getFavoriteForNote = (noteId: string) => favoriteNotes.find(fav => fav.id === noteId);
 
   // Restore a deleted note
   const handleRestoreNote = (noteId: string) => {
@@ -292,7 +290,7 @@ const Index = () => {
               </svg>
             </Button>
             {viewingDeleted ? (
-              <span className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--muted))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
+              <span className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
                 <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(0, 100%, 60%)', fill: 'hsl(0, 100%, 60%)' }} />
                 Trashed Notes
               </span>

@@ -1,10 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { Tag, Plus, X, Loader2 } from 'lucide-react';
-import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Textarea } from './ui/textarea';
-import { Badge } from './ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import type { Note } from '../pages/Index';
 // import { saveNoteToFile } from '../lib/utils';
 import { formatRelativeDate } from '../lib/utils';
@@ -22,13 +16,13 @@ interface NoteEditorProps {
   onDeletePermanently?: (noteId: string) => void;
 }
 
-export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChange, onClose, setSaving, onRestoreNote, onDeletePermanently }: NoteEditorProps) => {
+export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClose, setSaving, onRestoreNote, onDeletePermanently }: NoteEditorProps) => {
   const [title, setTitle] = useState(note.title || '');
   const [content, setContent] = useState(note.content);
   const [tags, setTags] = useState<string[]>(note.tags);
-  const [newTag, setNewTag] = useState('');
+  const [] = useState('');
   const [category, setCategory] = useState(note.category);
-  const [contentRerender, setContentRerender] = useState(false); // for placeholder
+  const [, setContentRerender] = useState(false); // for placeholder
   const [isContentEmpty, setIsContentEmpty] = useState(true);
 
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -73,22 +67,8 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
     setContentRerender(r => !r); // update placeholder
   };
 
-  const addTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags([...tags, newTag.trim()]);
-      setNewTag('');
-    }
-  };
 
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && e.ctrlKey) {
-      handleSave();
-    }
-  };
 
   // Auto-save functionality
   useEffect(() => {
@@ -130,13 +110,13 @@ export const NoteEditor = ({ note, onUpdate, isDark, alignLeft = 0, onTitleChang
                 suppressContentEditableWarning
                 spellCheck={false}
                 dir="ltr"
-                onBlur={e => {
+                onBlur={() => {
                   const newTitle = titleRef.current ? titleRef.current.innerText : '';
                   setTitle(newTitle);
                   if (typeof onTitleChange === 'function') onTitleChange(newTitle);
                   handleSave();
                 }}
-                onInput={e => {
+                onInput={() => {
                   const newTitle = titleRef.current ? titleRef.current.innerText : '';
                   setTitle(newTitle);
                 }}

@@ -1,8 +1,6 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Search, Plus, Trash2, Settings, NotebookText, BookDashed, NotebookPen, Sun, Moon, Laptop, Lock, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, FileLock, FileDown} from 'lucide-react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
-import { Badge } from './ui/badge';
 import type { Note, Category } from '../pages/Index';
 import {
   ContextMenu,
@@ -13,9 +11,6 @@ import {
   ContextMenuSubTrigger,
   ContextMenuSubContent,
   ContextMenuSeparator,
-  ContextMenuShortcut,
-  ContextMenuCheckboxItem,
-  ContextMenuLabel,
   ContextMenuRadioGroup,
   ContextMenuRadioItem
 } from './ui/context-menu';
@@ -43,36 +38,20 @@ interface SidebarProps {
 
 export const Sidebar = ({
   notes,
-  categories,
   selectedNote,
-  selectedCategory,
   collapsed,
-  isDark,
   onNoteSelect,
-  onCategorySelect,
   onCreateNote,
   onDeleteNote,
-  onRestoreNote,
-  onDeletePermanently,
-  onToggleCollapse,
   onRemoveFavorite,
   onDeletedClick,
   deletedCount,
   theme,
   setTheme,
 }: SidebarProps) => {
-  const [hoveredNote, setHoveredNote] = useState<string | null>(null);
+  const [, setHoveredNote] = useState<string | null>(null);
 
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('en-US', {
-      month: 'short',
-      day: 'numeric'
-    }).format(date);
-  };
 
-  const truncateContent = (content: string, maxLength: number = 40) => {
-    return content.length > maxLength ? content.substring(0, maxLength) + '...' : content;
-  };
 
   const menuItems = [
     { icon: NotebookPen, label: 'New Note', active: false },
@@ -80,10 +59,6 @@ export const Sidebar = ({
     { icon: BookDashed, label: 'Drafts', active: false },
   ];
 
-  const folderItems = [
-    { icon: Settings, label: 'Settings', count: undefined, active: false },
-    { icon: Trash2, label: 'Trash', count: deletedCount, active: false, onClick: onDeletedClick },
-  ];
 
   // Remove any useEffect or event listeners related to keyboard shortcuts
 
@@ -240,7 +215,7 @@ export const Sidebar = ({
           <h3 className="text-xs font-normal text-[hsl(var(--sidebar-foreground))] px-3">Favourites</h3>
         </div>
         <div className="space-y-1 max-h-40 overflow-y-auto">
-          {notes.filter(note => note.isFavorite).map((note, index) => (
+          {notes.filter(note => note.isFavorite).map((note) => (
             <ContextMenu key={note.id}>
               <ContextMenuTrigger asChild>
                 <div
@@ -293,7 +268,7 @@ export const Sidebar = ({
           </Button>
         </div>
         <div className="space-y-1 flex-1 min-h-0 overflow-y-auto">
-          {notes.filter(note => !note.deleted).map((note, index) => (
+          {notes.filter(note => !note.deleted).map((note) => (
             <ContextMenu key={note.id}>
               <ContextMenuTrigger asChild>
                 <div
