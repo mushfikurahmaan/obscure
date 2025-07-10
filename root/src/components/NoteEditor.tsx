@@ -30,6 +30,8 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   const titleRef = useRef<HTMLHeadingElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const prevNoteId = useRef(note.id);
+  // Add a ref to store the caret position
+  const caretPositionRef = useRef<{start: number, end: number} | null>(null);
 
   useEffect(() => {
     // Only update when switching to a different note or when note's archive/trash/content status changes
@@ -38,7 +40,8 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     if (titleRef.current) {
       titleRef.current.innerText = note.title || '';
     }
-    if (contentRef.current) {
+    // Only update contentRef.current.innerText if the note ID has changed (i.e., a new note is loaded) or if the div is empty (initial mount)
+    if (contentRef.current && (prevNoteId.current !== note.id || contentRef.current.innerText === '')) {
       contentRef.current.innerText = note.content || '';
       setIsContentEmpty(!note.content || note.content.trim() === '');
     }
@@ -46,11 +49,55 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     prevNoteId.current = note.id;
   }, [note.id, note.archived, note.deleted, note.content]);
 
+  // Helper to get caret position in contentEditable div
+  function getCaretPosition(element: HTMLElement | null) {
+    if (!element) return { start: 0, end: 0 };
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return { start: 0, end: 0 };
+    const range = selection.getRangeAt(0);
+    const preSelectionRange = range.cloneRange();
+    preSelectionRange.selectNodeContents(element);
+    preSelectionRange.setEnd(range.startContainer, range.startOffset);
+    const start = preSelectionRange.toString().length;
+    return { start, end: start + range.toString().length };
+  }
+
+  // Helper to set caret position in contentEditable div
+  function setCaretPosition(element: HTMLElement | null, position: number) {
+    if (!element) return;
+    const setPos = (el: Node, pos: number): boolean => {
+      if (el.nodeType === 3) { // text node
+        if (el.textContent) {
+          if (pos <= el.textContent.length) {
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.setStart(el, pos);
+            range.collapse(true);
+            sel?.removeAllRanges();
+            sel?.addRange(range);
+            return true;
+          } else {
+            pos -= el.textContent.length;
+          }
+        }
+      } else {
+        for (let i = 0; i < el.childNodes.length; i++) {
+          const child = el.childNodes[i];
+          const found = setPos(child, pos);
+          if (found) return true;
+          if (child.textContent) pos -= child.textContent.length;
+        }
+      }
+      return false;
+    };
+    setPos(element, position);
+  }
+
   const handleSave = () => {
     const updatedNote = {
       ...note,
       title,
-      content, // ✅ Use React state, not contentRef.current.innerText
+      content, // Use React state, not contentRef.current.innerText
       updatedAt: new Date(),
     };
     onUpdate(updatedNote);
@@ -71,6 +118,10 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   // Auto-save functionality (debounced)
   useEffect(() => {
     if (setSaving) setSaving(true);
+    // Save caret position before content changes
+    if (contentRef.current && document.activeElement === contentRef.current) {
+      caretPositionRef.current = getCaretPosition(contentRef.current);
+    }
     const timeoutId = setTimeout(() => {
       if (title !== note.title || content !== note.content) {
         handleSave();
@@ -80,6 +131,14 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
 
     return () => clearTimeout(timeoutId);
   }, [title, content]);
+
+  // Restore caret position after content changes
+  useEffect(() => {
+    if (contentRef.current && caretPositionRef.current && document.activeElement === contentRef.current) {
+      setCaretPosition(contentRef.current, caretPositionRef.current.start);
+      caretPositionRef.current = null;
+    }
+  }, [content]);
 
   return (
     contextType ? (
