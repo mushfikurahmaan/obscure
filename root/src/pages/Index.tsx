@@ -14,8 +14,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { DeletedNotesGrid } from '../components/DeletedNotesGrid';
+import "../styles/scroll-thumb-only.css";
 
 export interface Note {
   id: string;
@@ -30,12 +30,7 @@ export interface Note {
   deleted: boolean;
 }
 
-export interface Category {
-  id: string;
-  name: string;
-  color: string;
-  count: number;
-}
+
 
 // Add Twemoji CDN for rendering SVGs
 const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/';
@@ -115,17 +110,8 @@ const Index = () => {
     return [];
   });
 
-  const [categories] = useState<Category[]>([
-    { id: '1', name: 'Design Thinking', color: 'bg-white', count: 2 },
-    { id: '2', name: 'Personal', color: 'bg-white', count: 1 },
-    { id: '3', name: 'Work', color: 'bg-white', count: 0 },
-    { id: '4', name: 'Projects', color: 'bg-white', count: 0 },
-    { id: '5', name: 'Books', color: 'bg-white', count: 0 }
-  ]);
-
-  const [selectedNote, setSelectedNote] = useState<Note | null>(notes[0]);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [editorTitle, setEditorTitle] = useState(selectedNote ? selectedNote.title : '');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -227,22 +213,17 @@ const Index = () => {
   }, [viewingDeleted]);
 
   return (
-    <div className="h-screen flex overflow-hidden bg-background text-[hsl(var(--foreground))]"
-      data-theme={theme}
-    >
+    <div className="h-screen flex bg-background text-[hsl(var(--foreground))]" data-theme={theme}>
       {/* Sidebar */}
       <Sidebar
         notes={notes}
-        categories={categories}
         selectedNote={selectedNote}
-        selectedCategory={selectedCategory}
         collapsed={sidebarCollapsed}
         isDark={theme === 'dark'}
         onNoteSelect={note => {
           setSelectedNote(note);
           setViewingDeleted(false);
         }}
-        onCategorySelect={setSelectedCategory}
         onCreateNote={handleCreateNote}
         onDeleteNote={handleDeleteNote}
         onRestoreNote={handleRestoreNote}
@@ -264,10 +245,9 @@ const Index = () => {
         theme={theme}
         setTheme={setTheme}
       />
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden bg-background text-[hsl(var(--foreground))]">
-        {/* Top tabs bar */}
+      {/* Main Content Area */}
+      <div className="flex-1 h-full flex flex-col bg-background text-[hsl(var(--foreground))]">
+        {/* Top tabs bar (fixed, always visible) */}
         <div className="flex items-center px-6 py-2 justify-between bg-background text-[hsl(var(--foreground))]"
           tabIndex={viewingDeleted ? 0 : undefined}
           onKeyDown={e => {
@@ -276,6 +256,7 @@ const Index = () => {
             }
           }}
         >
+          {/* Top bar content (favorite, spinner, note info) */}
           <div className="flex items-center">
             <Button
               variant="ghost"
@@ -300,7 +281,6 @@ const Index = () => {
                   className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate cursor-pointer"
                   style={{ minHeight: '2.25rem', maxWidth: '100%' }}
                   title={editorTitle}
-                  // Removed scroll to top logic as ScrollArea handles scrolling
                 >
                   <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
                   {(() => {
@@ -428,8 +408,8 @@ const Index = () => {
             </div>
           )}
         </div>
-        {/* Main Editor Area with ScrollArea */}
-        <ScrollArea className="flex-1 h-full bg-background text-[hsl(var(--foreground))]">
+        {/* Main Editor Area (scrollable, with custom thumb) */}
+        <div className="flex-1 overflow-auto custom-scroll-thumb bg-background text-[hsl(var(--foreground))]">
           {viewingDeleted ? (
             <DeletedNotesGrid
               notes={deletedNotes}
@@ -467,7 +447,7 @@ const Index = () => {
               </div>
             </div>
           )}
-        </ScrollArea>
+        </div>
       </div>
     </div>
   );

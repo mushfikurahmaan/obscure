@@ -122,7 +122,7 @@ body {
   height: 0;
 }
 
-/* Show scrollbars for Radix ScrollArea */
+/* Show scrollbars for Radix ScrollArea
 [data-radix-scroll-area-viewport] {
   scrollbar-width: thin !important;
 }
@@ -134,7 +134,7 @@ body {
 [data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
   background: #444;
   border-radius: 4px;
-}
+} */
 
 .favorite-icon, .note-icon {
   image-rendering: crisp-edges;

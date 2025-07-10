@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Search, Plus, Trash2, Settings, NotebookText, BookDashed, NotebookPen, Sun, Moon, Laptop, Lock, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, FileLock, FileDown} from 'lucide-react';
+import { Search, Plus, Trash2, Settings, NotebookText, Archive, NotebookPen, Sun, Moon, Laptop, Lock, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, FileLock, FileDown} from 'lucide-react';
 import { Button } from './ui/button';
-import type { Note, Category } from '../pages/Index';
+import type { Note } from '../pages/Index';
 import {
   ContextMenu,
   ContextMenuTrigger,
@@ -17,13 +17,10 @@ import {
 
 interface SidebarProps {
   notes: Note[];
-  categories: Category[];
   selectedNote: Note | null;
-  selectedCategory: string;
   collapsed: boolean;
   isDark: boolean;
   onNoteSelect: (note: Note) => void;
-  onCategorySelect: (category: string) => void;
   onCreateNote: () => void;
   onDeleteNote: (noteId: string) => void;
   onRestoreNote: (noteId: string) => void;
@@ -56,7 +53,7 @@ export const Sidebar = ({
   const menuItems = [
     { icon: NotebookPen, label: 'New Note', active: false },
     { icon: Search, label: 'Search', active: false },
-    { icon: BookDashed, label: 'Drafts', active: false },
+    { icon: Archive, label: 'Archive', active: false },
   ];
 
 
