@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { DeletedNotesGrid } from '../components/DeletedNotesGrid';
 import { ArchiveNotesGrid } from '../components/ArchiveNotesGrid';
 import "../styles/scroll-thumb-only.css";
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '../components/ui/context-menu';
 
 export interface Note {
   id: string;
@@ -205,7 +206,14 @@ const Index = () => {
 
   // Restore a deleted note
   const handleRestoreNote = (noteId: string) => {
-    setNotes(notes.map(note => note.id === noteId ? { ...note, deleted: false } : note));
+    setNotes(notes => {
+      const updated = notes.map(note => note.id === noteId ? { ...note, deleted: false } : note);
+      if (selectedNote && selectedNote.id === noteId) {
+        const updatedNote = updated.find(n => n.id === noteId);
+        setSelectedNote(updatedNote ? { ...updatedNote } : null);
+      }
+      return updated;
+    });
   };
 
   // Permanently delete a note
@@ -217,7 +225,14 @@ const Index = () => {
   };
 
   const handleRemoveFromArchive = (noteId: string) => {
-    setNotes(notes.map(note => note.id === noteId ? { ...note, archived: false } : note));
+    setNotes(notes => {
+      const updated = notes.map(note => note.id === noteId ? { ...note, archived: false } : note);
+      if (selectedNote && selectedNote.id === noteId) {
+        const updatedNote = updated.find(n => n.id === noteId);
+        setSelectedNote(updatedNote ? { ...updatedNote } : null);
+      }
+      return updated;
+    });
   };
 
   useEffect(() => {
@@ -268,8 +283,16 @@ const Index = () => {
             return updated;
           });
         }}
-        onDeletedClick={() => setViewingDeleted(true)}
-        onArchivedClick={() => setViewingArchived(true)}
+        onDeletedClick={() => {
+          setViewingDeleted(true);
+          setViewingArchived(false);
+          setSelectedNote(null);
+        }}
+        onArchivedClick={() => {
+          setViewingArchived(true);
+          setViewingDeleted(false);
+          setSelectedNote(null);
+        }}
         deletedCount={deletedNotes.length}
         archivedCount={archivedNotes.length}
         theme={theme}
@@ -320,7 +343,16 @@ const Index = () => {
                   style={{ minHeight: '2.25rem', maxWidth: '100%' }}
                   title={editorTitle}
                 >
-                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                  <span
+                    className="w-2 h-2 rounded-full mr-2"
+                    style={{
+                      backgroundColor: selectedNote.deleted
+                        ? 'hsl(0, 100%, 60%)' // Trash
+                        : selectedNote.archived
+                        ? 'hsl(35, 100%, 55%)' // Archive
+                        : 'rgb(34 197 94)', // Green for My Notes (tailwind green-500)
+                    }}
+                  ></span>
                   {(() => {
                     const words = (editorTitle || 'Untitled Note').trim().split(/\s+/);
                     if (words.length > 7) {
@@ -339,7 +371,7 @@ const Index = () => {
             )}
           </div>
           {/* Right side: favorite button card and stats card */}
-          {!viewingArchived && selectedNote && (
+          {!viewingArchived && !viewingDeleted && selectedNote && (
             <div className="flex items-center ml-4 gap-3">
               <Dialog open={favoriteDialogOpen} onOpenChange={setFavoriteDialogOpen}>
                 <DialogTrigger asChild>
@@ -454,6 +486,7 @@ const Index = () => {
               onSelectNote={note => {
                 setSelectedNote(note);
                 setViewingArchived(false);
+                setViewingDeleted(false);
               }}
               onRemoveFromArchive={handleRemoveFromArchive}
               onDeletePermanently={handleDeletePermanently}
@@ -463,7 +496,10 @@ const Index = () => {
               notes={deletedNotes}
               onRestore={handleRestoreNote}
               onDeletePermanently={handleDeletePermanently}
-              onSelectNote={setSelectedNote}
+              onSelectNote={note => {
+                setSelectedNote(note);
+                setViewingDeleted(false);
+              }}
             />
           ) : selectedNote ? (
             <NoteEditor
@@ -474,8 +510,10 @@ const Index = () => {
               onTitleChange={handleTitleChange}
               onClose={() => setSelectedNote(null)}
               setSaving={setSaving}
-              onRestoreNote={selectedNote.deleted ? handleRestoreNote : undefined}
-              onDeletePermanently={selectedNote.deleted ? handleDeletePermanently : undefined}
+              contextType={selectedNote.deleted ? 'trash' : selectedNote.archived ? 'archive' : undefined}
+              onRemoveFromArchive={selectedNote.archived ? handleRemoveFromArchive : undefined}
+              onRestore={selectedNote.deleted ? handleRestoreNote : undefined}
+              onDeletePermanently={(selectedNote.archived || selectedNote.deleted) ? handleDeletePermanently : undefined}
             />
           ) : (
             <div className="h-full flex items-center justify-center" style={{ marginLeft: 31, marginRight: 31 }}>
