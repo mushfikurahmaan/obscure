@@ -29,6 +29,9 @@ interface SidebarProps {
   onRemoveFavorite: (noteId: string) => void;
   onDeletedClick: () => void;
   deletedCount: number;
+  onArchivedClick: () => void;
+  archivedCount: number;
+  onArchiveNote: (noteId: string) => void;
   theme: 'light' | 'dark' | 'system';
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
 }
@@ -43,6 +46,9 @@ export const Sidebar = ({
   onRemoveFavorite,
   onDeletedClick,
   deletedCount,
+  onArchivedClick,
+  archivedCount,
+  onArchiveNote,
   theme,
   setTheme,
 }: SidebarProps) => {
@@ -51,9 +57,8 @@ export const Sidebar = ({
 
 
   const menuItems = [
-    { icon: NotebookPen, label: 'New Note', active: false },
+    { icon: NotebookPen, label: 'New Note', active: false, onClick: onCreateNote },
     { icon: Search, label: 'Search', active: false },
-    { icon: Archive, label: 'Archive', active: false },
   ];
 
 
@@ -66,11 +71,11 @@ export const Sidebar = ({
       {/* Top Menu Section */}
       <div className="px-3 py-2">
         <div className="space-y-1">
-          {menuItems.map((item, index) => (
+          {menuItems.map((item) => (
             <div
               key={item.label}
               className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
-              onClick={index === 0 ? onCreateNote : undefined}
+              onClick={item.onClick}
             >
               <div className="flex items-center space-x-3">
                 <item.icon className="w-4 h-4" />
@@ -78,6 +83,19 @@ export const Sidebar = ({
               </div>
             </div>
           ))}
+          {/* Archive Button (main menu) */}
+          <div
+            className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+            onClick={onArchivedClick}
+          >
+            <div className="flex items-center space-x-3">
+              <Archive className="w-4 h-4" />
+              <span className="font-normal">Archive</span>
+            </div>
+            {archivedCount !== undefined && (
+              <span className="text-xs text-[hsl(var(--sidebar-foreground))]">{archivedCount}</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -265,7 +283,7 @@ export const Sidebar = ({
           </Button>
         </div>
         <div className="space-y-1 flex-1 min-h-0 overflow-y-auto">
-          {notes.filter(note => !note.deleted).map((note) => (
+          {notes.filter(note => !note.deleted && !note.archived).map((note) => (
             <ContextMenu key={note.id}>
               <ContextMenuTrigger asChild>
                 <div
@@ -283,6 +301,7 @@ export const Sidebar = ({
               <ContextMenuContent className="w-44 bg-[hsl(var(--sidebar-background))] text-xs border border-[hsl(var(--context-menu-border))] text-[hsl(var(--sidebar-foreground))]">
                 <ContextMenuSub>
                   <ContextMenuSubTrigger className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]">
+                    <Upload className="w-4 h-4 mr-2" />
                     Export As
                   </ContextMenuSubTrigger>
                   <ContextMenuSubContent className="w-40 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))] rounded-md p-1">
@@ -296,7 +315,14 @@ export const Sidebar = ({
                     </ContextMenuItem>
                   </ContextMenuSubContent>
                 </ContextMenuSub>
-
+                {/* Archive Item */}
+                <ContextMenuItem
+                  onClick={() => onArchiveNote(note.id)}
+                  className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-yellow-500 hover:text-yellow-400 hover:bg-[hsl(var(--sidebar-hover))]"
+                >
+                  <Archive className="w-4 h-4 mr-2" />
+                  Archive
+                </ContextMenuItem>
                 {/* Trash Item */}
                 <ContextMenuItem
                   onClick={() => onDeleteNote(note.id)}

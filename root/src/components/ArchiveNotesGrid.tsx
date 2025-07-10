@@ -1,20 +1,25 @@
 import React from 'react';
-import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu';
 import type { Note } from '../pages/Index';
-import { RotateCcw, Trash2 } from 'lucide-react';
+import {
+  ContextMenu,
+  ContextMenuTrigger,
+  ContextMenuContent,
+  ContextMenuItem
+} from './ui/context-menu';
+import { Box, Trash2 } from 'lucide-react';
 
-interface DeletedNotesGridProps {
+interface ArchiveNotesGridProps {
   notes: Note[];
-  onRestore: (noteId: string) => void;
-  onDeletePermanently: (noteId: string) => void;
   onSelectNote: (note: Note) => void;
+  onRemoveFromArchive: (noteId: string) => void;
+  onDeletePermanently: (noteId: string) => void;
 }
 
-export const DeletedNotesGrid: React.FC<DeletedNotesGridProps> = ({ notes, onRestore, onDeletePermanently, onSelectNote }) => {
+export const ArchiveNotesGrid: React.FC<ArchiveNotesGridProps> = ({ notes, onSelectNote, onRemoveFromArchive, onDeletePermanently }) => {
   return (
     <div className="p-8 w-full h-full flex flex-col">
       {notes.length === 0 ? (
-        <div className="text-[hsl(var(--muted-foreground))] text-center mt-16">No deleted notes.</div>
+        <div className="text-[hsl(var(--muted-foreground))] text-center mt-16">No archived notes.</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {notes.map(note => (
@@ -32,9 +37,9 @@ export const DeletedNotesGrid: React.FC<DeletedNotesGridProps> = ({ notes, onRes
                 </div>
               </ContextMenuTrigger>
               <ContextMenuContent>
-                <ContextMenuItem onClick={() => onRestore(note.id)} variant="default">
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Restore
+                <ContextMenuItem onClick={() => onRemoveFromArchive(note.id)}>
+                  <Box className="w-4 h-4 mr-2" />
+                  Remove from Archive
                 </ContextMenuItem>
                 <ContextMenuItem onClick={() => onDeletePermanently(note.id)} variant="destructive">
                   <Trash2 className="w-4 h-4 mr-2" />

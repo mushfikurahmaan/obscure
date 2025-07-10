@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { DeletedNotesGrid } from '../components/DeletedNotesGrid';
+import { ArchiveNotesGrid } from '../components/ArchiveNotesGrid';
 import "../styles/scroll-thumb-only.css";
 
 export interface Note {
@@ -28,6 +29,7 @@ export interface Note {
   isFavorite: boolean;
   favoriteEmoji: string;
   deleted: boolean;
+  archived: boolean;
 }
 
 
@@ -120,6 +122,7 @@ const Index = () => {
   const [] = useState<{ id: string; title: string; emoji: string }[]>([]);
 
   const [viewingDeleted, setViewingDeleted] = useState(false);
+  const [viewingArchived, setViewingArchived] = useState(false);
 
   // Sync editorTitle with selectedNote when switching notes
   useEffect(() => {
@@ -134,6 +137,7 @@ const Index = () => {
   // Filter for My Notes (not deleted)
   // Filter for Deleted Notes
   const deletedNotes = notes.filter(note => note.deleted);
+  const archivedNotes = notes.filter(note => note.archived);
 
   const handleCreateNote = () => {
     // Check for an existing blank note (title and content both empty and not deleted)
@@ -154,6 +158,7 @@ const Index = () => {
       isFavorite: false,
       favoriteEmoji: '',
       deleted: false,
+      archived: false,
     };
     setNotes([newNote, ...notes]);
     setSelectedNote(newNote);
@@ -188,6 +193,14 @@ const Index = () => {
     // Do NOT set viewingDeleted here
   };
 
+  const handleArchiveNote = (noteId: string) => {
+    setNotes(notes.map(note => note.id === noteId ? { ...note, archived: true } : note));
+    if (selectedNote?.id === noteId) {
+      const remainingMyNotes = notes.filter(n => n.id !== noteId && !n.deleted && !n.archived);
+      setSelectedNote(remainingMyNotes.length > 0 ? remainingMyNotes[0] : null);
+    }
+  };
+
   // Helper to get favorite for a note
 
   // Restore a deleted note
@@ -203,6 +216,10 @@ const Index = () => {
     }
   };
 
+  const handleRemoveFromArchive = (noteId: string) => {
+    setNotes(notes.map(note => note.id === noteId ? { ...note, archived: false } : note));
+  };
+
   useEffect(() => {
     if (!viewingDeleted) return;
     const handleEsc = (e: KeyboardEvent) => {
@@ -211,6 +228,15 @@ const Index = () => {
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
   }, [viewingDeleted]);
+
+  useEffect(() => {
+    if (!viewingArchived) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setViewingArchived(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [viewingArchived]);
 
   return (
     <div className="h-screen flex bg-background text-[hsl(var(--foreground))]" data-theme={theme}>
@@ -223,11 +249,13 @@ const Index = () => {
         onNoteSelect={note => {
           setSelectedNote(note);
           setViewingDeleted(false);
+          setViewingArchived(false);
         }}
         onCreateNote={handleCreateNote}
         onDeleteNote={handleDeleteNote}
         onRestoreNote={handleRestoreNote}
         onDeletePermanently={handleDeletePermanently}
+        onArchiveNote={handleArchiveNote}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         onRemoveFavorite={(noteId: string) => {
           setNotes(notes => {
@@ -241,7 +269,9 @@ const Index = () => {
           });
         }}
         onDeletedClick={() => setViewingDeleted(true)}
+        onArchivedClick={() => setViewingArchived(true)}
         deletedCount={deletedNotes.length}
+        archivedCount={archivedNotes.length}
         theme={theme}
         setTheme={setTheme}
       />
@@ -249,10 +279,13 @@ const Index = () => {
       <div className="flex-1 h-full flex flex-col bg-background text-[hsl(var(--foreground))]">
         {/* Top tabs bar (fixed, always visible) */}
         <div className="flex items-center px-6 py-2 justify-between bg-background text-[hsl(var(--foreground))]"
-          tabIndex={viewingDeleted ? 0 : undefined}
+          tabIndex={viewingDeleted || viewingArchived ? 0 : undefined}
           onKeyDown={e => {
             if (viewingDeleted && e.key === 'Escape') {
               setViewingDeleted(false);
+            }
+            if (viewingArchived && e.key === 'Escape') {
+              setViewingArchived(false);
             }
           }}
         >
@@ -270,7 +303,12 @@ const Index = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </Button>
-            {viewingDeleted ? (
+            {viewingArchived ? (
+              <span className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
+                <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(35, 100%, 55%)', fill: 'hsl(35, 100%, 55%)' }} />
+                Archived Notes
+              </span>
+            ) : viewingDeleted ? (
               <span className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
                 <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(0, 100%, 60%)', fill: 'hsl(0, 100%, 60%)' }} />
                 Trashed Notes
@@ -301,7 +339,7 @@ const Index = () => {
             )}
           </div>
           {/* Right side: favorite button card and stats card */}
-          {!viewingDeleted && selectedNote && (
+          {!viewingArchived && selectedNote && (
             <div className="flex items-center ml-4 gap-3">
               <Dialog open={favoriteDialogOpen} onOpenChange={setFavoriteDialogOpen}>
                 <DialogTrigger asChild>
@@ -410,7 +448,17 @@ const Index = () => {
         </div>
         {/* Main Editor Area (scrollable, with custom thumb) */}
         <div className="flex-1 overflow-auto custom-scroll-thumb bg-background text-[hsl(var(--foreground))]">
-          {viewingDeleted ? (
+          {viewingArchived ? (
+            <ArchiveNotesGrid
+              notes={archivedNotes}
+              onSelectNote={note => {
+                setSelectedNote(note);
+                setViewingArchived(false);
+              }}
+              onRemoveFromArchive={handleRemoveFromArchive}
+              onDeletePermanently={handleDeletePermanently}
+            />
+          ) : viewingDeleted ? (
             <DeletedNotesGrid
               notes={deletedNotes}
               onRestore={handleRestoreNote}
