@@ -17,14 +17,11 @@ import { Label } from "@/components/ui/label";
 import { DeletedNotesGrid } from '../components/DeletedNotesGrid';
 import { ArchiveNotesGrid } from '../components/ArchiveNotesGrid';
 import "../styles/scroll-thumb-only.css";
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '../components/ui/context-menu';
 
 export interface Note {
   id: string;
   title: string;
   content: string;
-  category: string;
-  tags: string[];
   createdAt: Date;
   updatedAt: Date;
   isFavorite: boolean;
@@ -152,8 +149,6 @@ const Index = () => {
       id: Date.now().toString(),
       title: '',
       content: '',
-      category: 'Personal',
-      tags: [],
       createdAt: new Date(),
       updatedAt: new Date(),
       isFavorite: false,

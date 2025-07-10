@@ -23,9 +23,7 @@ interface NoteEditorProps {
 export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClose, setSaving, contextType, onRemoveFromArchive, onRestore, onDeletePermanently }: NoteEditorProps) => {
   const [title, setTitle] = useState(note.title || '');
   const [content, setContent] = useState(note.content);
-  const [tags, setTags] = useState<string[]>(note.tags);
   const [] = useState('');
-  const [category, setCategory] = useState(note.category);
   const [, setContentRerender] = useState(false); // for placeholder
   const [isContentEmpty, setIsContentEmpty] = useState(true);
 
@@ -34,11 +32,9 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   const prevNoteId = useRef(note.id);
 
   useEffect(() => {
-    // Only update when switching to a different note
+    // Only update when switching to a different note or when note's archive/trash/content status changes
     setTitle(note.title || '');
     setContent(note.content);
-    setTags(note.tags);
-    setCategory(note.category);
     if (titleRef.current) {
       titleRef.current.innerText = note.title || '';
     }
@@ -48,19 +44,17 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     }
     setContentRerender(r => !r); // force placeholder check
     prevNoteId.current = note.id;
-  }, [note.id]);
+  }, [note.id, note.archived, note.deleted, note.content]);
 
   const handleSave = () => {
     const updatedNote = {
       ...note,
       title,
-      content: contentRef.current ? contentRef.current.innerText : '',
-      tags,
-      category,
+      content, // ✅ Use React state, not contentRef.current.innerText
       updatedAt: new Date(),
     };
     onUpdate(updatedNote);
-    // saveNoteToFile(title, contentRef.current ? contentRef.current.innerText : '');
+    // saveNoteToFile(title, content);
   };
 
   // Only update state and save on blur
@@ -74,18 +68,18 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
 
 
 
-  // Auto-save functionality
+  // Auto-save functionality (debounced)
   useEffect(() => {
     if (setSaving) setSaving(true);
     const timeoutId = setTimeout(() => {
-      if (title !== note.title || content !== note.content || tags !== note.tags || category !== note.category) {
+      if (title !== note.title || content !== note.content) {
         handleSave();
       }
       if (setSaving) setSaving(false);
-    }, 1000);
+    }, 800); // 800ms debounce
 
     return () => clearTimeout(timeoutId);
-  }, [title, content, tags, category]);
+  }, [title, content]);
 
   return (
     contextType ? (
@@ -178,11 +172,19 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
         <ContextMenuContent>
           {contextType === 'archive' && (
             <>
-              <ContextMenuItem onClick={() => onRemoveFromArchive && onRemoveFromArchive(note.id)}>
+              <ContextMenuItem onClick={e => {
+                e.preventDefault();
+                e.stopPropagation(); // ✅ Prevents blur-triggered autosave
+                onRemoveFromArchive && onRemoveFromArchive(note.id);
+              }}>
                 <Box className="w-4 h-4 mr-2" />
                 Remove from Archive
               </ContextMenuItem>
-              <ContextMenuItem onClick={() => onDeletePermanently && onDeletePermanently(note.id)} variant="destructive">
+              <ContextMenuItem onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDeletePermanently && onDeletePermanently(note.id);
+              }} variant="destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Permanently
               </ContextMenuItem>
@@ -190,11 +192,19 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
           )}
           {contextType === 'trash' && (
             <>
-              <ContextMenuItem onClick={() => onRestore && onRestore(note.id)}>
+              <ContextMenuItem onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                onRestore && onRestore(note.id);
+              }}>
                 <RotateCcw className="w-4 h-4 mr-2" />
                 Restore
               </ContextMenuItem>
-              <ContextMenuItem onClick={() => onDeletePermanently && onDeletePermanently(note.id)} variant="destructive">
+              <ContextMenuItem onClick={e => {
+                e.preventDefault();
+                e.stopPropagation();
+                onDeletePermanently && onDeletePermanently(note.id);
+              }} variant="destructive">
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Permanently
               </ContextMenuItem>
