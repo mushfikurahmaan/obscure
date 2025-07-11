@@ -137,6 +137,17 @@ const HIGHLIGHTER_COLORS = [
   { name: 'Purple', color: '#DDA0DD', darkColor: '#BA55D3' },
 ];
 
+// Text colors
+const TEXT_COLORS = [
+  { name: 'Black', color: '#000000' },
+  { name: 'Blue', color: '#0000FF' },
+  { name: 'Red', color: '#FF0000' },
+  { name: 'Green', color: '#008000' },
+  { name: 'Purple', color: '#800080' },
+  { name: 'Orange', color: '#FFA500' },
+];
+
+
 // Rich text context menu component
 const RichTextContextMenu = ({ 
   editor, 
@@ -150,22 +161,35 @@ const RichTextContextMenu = ({
   onClose: () => void;
 }) => {
   const [showHighlighterPalette, setShowHighlighterPalette] = useState(false);
+  const [showTextColorPalette, setShowTextColorPalette] = useState(false);
   const [selectedHighlightColor, setSelectedHighlightColor] = useState(HIGHLIGHTER_COLORS[0].color);
+  const [selectedTextColor, setSelectedTextColor] = useState(TEXT_COLORS[0].color);
   const highlighterRef = useRef<HTMLDivElement>(null);
+  const textColorRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
-  // Fix: Always call useEffect, but handle the conditional logic inside
+  // Handle clicks outside the menu to close it
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      // Check if click is outside the entire menu system
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+      
+      // Handle palette-specific clicks
       if (highlighterRef.current && !highlighterRef.current.contains(e.target as Node)) {
         setShowHighlighterPalette(false);
       }
+      if (textColorRef.current && !textColorRef.current.contains(e.target as Node)) {
+        setShowTextColorPalette(false);
+      }
     };
 
-    if (showHighlighterPalette) {
+    if (isVisible) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [showHighlighterPalette]);
+  }, [isVisible, onClose]);
 
   if (!isVisible) return null;
 
@@ -186,19 +210,32 @@ const RichTextContextMenu = ({
     highlight: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-highlighter-icon w-4 h-4"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
     ),
+    textColor: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-type-icon w-4 h-4"><polyline points="4,7 4,4 20,4 20,7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+    ),
   };
 
-  // Handlers for formatting
+  // Handlers for formatting - REMOVED onClose() calls
   const handleMark = (format: string) => {
     toggleMark(editor, format);
     ReactEditor.focus(editor);
-    onClose();
+    // DON'T close the menu - let user apply multiple formats
   };
 
   const handleCodeBlock = () => {
     toggleMark(editor, 'code');
     ReactEditor.focus(editor);
-    onClose();
+    // DON'T close the menu
+  };
+
+  const handleFontSize = (size: string) => {
+    if (size === 'default') {
+      Editor.removeMark(editor, 'fontSize');
+    } else {
+      toggleMark(editor, 'fontSize', size);
+    }
+    ReactEditor.focus(editor);
+    // DON'T close the menu
   };
 
   const handleHighlight = (color?: string) => {
@@ -219,25 +256,56 @@ const RichTextContextMenu = ({
     }
     
     ReactEditor.focus(editor);
-    if (!color) { // Only close if not selecting a color
-    onClose();
+    // DON'T close the menu when applying highlight
+  };
+
+  const handleTextColor = (color?: string) => {
+    const colorToUse = color || selectedTextColor;
+    
+    // Check if text already has this color
+    const marks = Editor.marks(editor);
+    const currentColor = marks?.color;
+    
+    if (currentColor === colorToUse) {
+      // Remove color (reset to default)
+      Editor.removeMark(editor, 'color');
+    } else {
+      // Set new color
+      Editor.addMark(editor, 'color', colorToUse);
     }
+    
+    ReactEditor.focus(editor);
+    // DON'T close the menu when applying color
   };
 
   const handleHighlighterClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setShowHighlighterPalette(!showHighlighterPalette);
+    setShowTextColorPalette(false); // Close text color palette
   };
 
-  const handleColorSelect = (color: string) => {
+  const handleTextColorClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowTextColorPalette(!showTextColorPalette);
+    setShowHighlighterPalette(false); // Close highlighter palette
+  };
+
+  const handleHighlightColorSelect = (color: string) => {
     setSelectedHighlightColor(color);
     handleHighlight(color);
     setShowHighlighterPalette(false);
   };
 
+  const handleTextColorSelect = (color: string) => {
+    setSelectedTextColor(color);
+    handleTextColor(color);
+    setShowTextColorPalette(false);
+  };
+
   // Modern floating toolbar with arrow
   return (
     <div
+      ref={menuRef}
       className="fixed z-50"
       style={{ left: position.x, top: position.y }}
       onMouseDown={e => e.preventDefault()}
@@ -270,72 +338,142 @@ const RichTextContextMenu = ({
         <button
           className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
           title="Heading 1"
-          onClick={() => { toggleMark(editor, 'fontSize', 'h1'); ReactEditor.focus(editor); onClose(); }}
+          onClick={() => handleFontSize('h1')}
           style={{lineHeight: 1}}
         >
           H1
-      </button>
-      <button
+        </button>
+        <button
           className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
           title="Heading 2"
-          onClick={() => { toggleMark(editor, 'fontSize', 'h2'); ReactEditor.focus(editor); onClose(); }}
+          onClick={() => handleFontSize('h2')}
           style={{lineHeight: 1}}
         >
           H2
-      </button>
-      <button
+        </button>
+        <button
           className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
           title="Heading 3"
-          onClick={() => { toggleMark(editor, 'fontSize', 'h3'); ReactEditor.focus(editor); onClose(); }}
+          onClick={() => handleFontSize('h3')}
           style={{lineHeight: 1}}
         >
           H3
-      </button>
-      
-      <button
-            className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
-            title="Bold"
-            onClick={() => handleMark('bold')}
-      >
-            {icons.bold}
-      </button>
-      <button
-            className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
-            title="Italic"
-            onClick={() => handleMark('italic')}
-      >
-            {icons.italic}
-      </button>
-      <button
-            className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
-            title="Underline"
-            onClick={() => handleMark('underline')}
-      >
-            {icons.underline}
-      </button>
-      <button
-            className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
-            title="Code Block"
-            onClick={handleCodeBlock}
-      >
-            {icons.code}
-      </button>
+        </button>
+        {/* Default button to revert to normal text */}
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Default"
+          onClick={() => handleFontSize('default')}
+          style={{lineHeight: 1}}
+        >
+          D
+        </button>
+        
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Bold"
+          onClick={() => handleMark('bold')}
+        >
+          {icons.bold}
+        </button>
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Italic"
+          onClick={() => handleMark('italic')}
+        >
+          {icons.italic}
+        </button>
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Underline"
+          onClick={() => handleMark('underline')}
+        >
+          {icons.underline}
+        </button>
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Code Block"
+          onClick={handleCodeBlock}
+        >
+          {icons.code}
+        </button>
+        
+        {/* Text Color with Color Palette */}
+        <div ref={textColorRef} className="relative">
+          <button
+            className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition relative"
+            title="Text Color"
+            onClick={handleTextColorClick}
+          >
+            {icons.textColor}
+            {/* Color indicator */}
+            <div 
+              className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-1 rounded-full"
+              style={{ backgroundColor: selectedTextColor }}
+            />
+          </button>
+          
+          {/* Sliding Color Palette */}
+          <div
+            className="absolute left-full ml-2 transition-all duration-300 ease-out"
+            style={{
+              width: showTextColorPalette ? '200px' : '0px',
+              opacity: showTextColorPalette ? 1 : 0,
+              background: '#111113',
+              borderRadius: 8,
+              minWidth: showTextColorPalette ? '200px' : '0px',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+              zIndex: 100,
+              alignItems: 'center',
+              display: showTextColorPalette ? 'flex' : 'none',
+              top: '50%',
+              transform: 'translateY(-50%)',
+            }}
+          >
+            <div
+              className="flex items-center gap-2 px-3 py-2 whitespace-nowrap w-full"
+              style={{
+                background: 'transparent',
+                borderRadius: 8,
+                minWidth: '200px',
+                height: '40px',
+              }}
+            >
+              {TEXT_COLORS.map((textColor, index) => (
+                <button
+                  key={index}
+                  className="w-6 h-6 rounded-full border-2 border-gray-600 hover:border-gray-400 transition-colors flex-shrink-0"
+                  style={{ backgroundColor: textColor.color }}
+                  title={textColor.name}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTextColorSelect(textColor.color);
+                  }}
+                >
+                  {selectedTextColor === textColor.color && (
+                    <div className="w-full h-full rounded-full border-2 border-white" />
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
         
         {/* Highlighter with Color Palette */}
         <div ref={highlighterRef} className="relative">
-      <button
-              className="p-1 text-gray-200 hover:bg-gray-700 rounded transition relative"
-              title="Highlight"
-              onClick={handleHighlighterClick}
+          <button
+            className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition relative"
+            title="Highlight"
+            onClick={handleHighlighterClick}
           >
-              {icons.highlight}
-              {/* Color indicator */}
-              <div 
-                className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-1 rounded-full"
-                style={{ backgroundColor: selectedHighlightColor }}
-              />
-      </button>
-      
+            {icons.highlight}
+            {/* Color indicator */}
+            <div 
+              className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-1 rounded-full"
+              style={{ backgroundColor: selectedHighlightColor }}
+            />
+          </button>
+          
           {/* Sliding Color Palette */}
           <div
             className="absolute left-full ml-2 transition-all duration-300 ease-out"
@@ -349,8 +487,8 @@ const RichTextContextMenu = ({
               zIndex: 100,
               alignItems: 'center',
               display: showHighlighterPalette ? 'flex' : 'none',
-              top: '50%', // vertically center with toolbar
-              transform: 'translateY(-50%)', // vertically center with toolbar
+              top: '50%',
+              transform: 'translateY(-50%)',
             }}
           >
             <div
@@ -363,20 +501,20 @@ const RichTextContextMenu = ({
               }}
             >
               {HIGHLIGHTER_COLORS.map((highlighter, index) => (
-      <button
+                <button
                   key={index}
                   className="w-6 h-6 rounded-full border-2 border-gray-600 hover:border-gray-400 transition-colors flex-shrink-0"
                   style={{ backgroundColor: highlighter.color }}
                   title={highlighter.name}
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleColorSelect(highlighter.color);
+                    handleHighlightColorSelect(highlighter.color);
                   }}
                 >
                   {selectedHighlightColor === highlighter.color && (
                     <div className="w-full h-full rounded-full border-2 border-white" />
                   )}
-      </button>
+                </button>
               ))}
             </div>
           </div>
@@ -547,15 +685,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
       setShowRichTextMenu(true);
     }
   };
-
-  // Close context menu when clicking outside
-  useEffect(() => {
-    const handleClick = () => setShowRichTextMenu(false);
-    if (showRichTextMenu) {
-      document.addEventListener('click', handleClick);
-      return () => document.removeEventListener('click', handleClick);
-    }
-  }, [showRichTextMenu]);
 
   // Auto-save functionality (debounced)
   useEffect(() => {
