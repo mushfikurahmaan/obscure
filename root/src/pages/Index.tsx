@@ -335,19 +335,19 @@ const Index = () => {
               </svg>
             </Button>
             {viewingArchived ? (
-              <span className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
+              <span className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
                 <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(35, 100%, 55%)', fill: 'hsl(35, 100%, 55%)' }} />
                 Archived Notes
               </span>
             ) : viewingDeleted ? (
-              <span className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
+              <span className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
                 <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(0, 100%, 60%)', fill: 'hsl(0, 100%, 60%)' }} />
                 Trashed Notes
               </span>
             ) : selectedNote && (
               <>
                 <span
-                  className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate cursor-pointer"
+                  className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate cursor-pointer"
                   style={{ minHeight: '2.25rem', maxWidth: '100%' }}
                   title={editorTitle}
                 >
@@ -362,15 +362,29 @@ const Index = () => {
                     }}
                   ></span>
                   {(() => {
-                    const words = (editorTitle || 'Untitled Note').trim().split(/\s+/);
-                    if (words.length > 7) {
-                      return words.slice(0, 7).join(' ') + '...';
-                    }
-                    return editorTitle || 'Untitled Note';
-                  })()}
+                        const MAX_WORDS = 7;
+                        const MAX_WORD_LENGTH = 20;
+                        const MAX_TOTAL_LENGTH = 80;
+
+                        let title = (editorTitle || 'Untitled Note').trim();
+
+                        let words = title.split(/\s+/).map(word =>
+                          word.length > MAX_WORD_LENGTH ? word.slice(0, MAX_WORD_LENGTH) + '…' : word
+                        );
+
+                        if (words.length > MAX_WORDS) {
+                          words = words.slice(0, MAX_WORDS);
+                          return words.join(' ') + '...';
+                        }
+
+                        const finalTitle = words.join(' ');
+                        return finalTitle.length > MAX_TOTAL_LENGTH
+                          ? finalTitle.slice(0, MAX_TOTAL_LENGTH) + '...'
+                          : finalTitle;
+                      })()}
                 </span>
                 <span
-                  className="ml-3 flex items-center px-3 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm"
+                  className="ml-3 flex items-center px-3 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm"
                   style={{ minHeight: '2.25rem' }}
                 >
                   <Loader2 className={`w-4 h-4 ${saving ? 'animate-spin text-blue-400' : 'text-gray-500 opacity-40'}`} />
@@ -384,7 +398,7 @@ const Index = () => {
               {/* Favorite Button with Dropdown Menu */}
               <DropdownMenu open={favoriteMenuOpen} onOpenChange={setFavoriteMenuOpen}>
                 <DropdownMenuTrigger asChild>
-                  <div className="flex items-center px-2 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer" style={{ minHeight: '2.25rem' }}>
+                  <div className="flex items-center px-2 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer" style={{ minHeight: '2.25rem' }}>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -404,7 +418,7 @@ const Index = () => {
                     </Button>
                   </div>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[340px] bg-background text-[hsl(var(--foreground))] rounded-2xl">
+                <DropdownMenuContent className="w-[340px] bg-background text-[hsl(var(--foreground))] rounded-lg">
                   <div className="px-4 py-2">
                     <div className="font-semibold text-base mb-1">Favorite Note</div>
                     <div className="text-[hsl(var(--muted-foreground))] mb-3">Add this note to your favorites and pick an emoji.</div>
@@ -463,7 +477,7 @@ const Index = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
               {/* End Favorite Button with Dropdown Menu */}
-              <div className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))]" style={{ minHeight: '2.25rem' }}>
+              <div className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))]" style={{ minHeight: '2.25rem', marginRight: '18px' }}>
                 <span className="mr-4">Words: {selectedNote.content ? selectedNote.content.trim().split(/\s+/).filter(Boolean).length : 0}</span>
                 <span className="mr-4">Chars: {selectedNote.content ? selectedNote.content.length : 0}</span>
                 <span>Lines: {selectedNote.content ? selectedNote.content.split(/\r?\n/).length : 0}</span>

@@ -926,15 +926,22 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
         className="flex-1 p-8 w-full"
         style={{ paddingLeft: alignLeft, paddingRight: alignLeft }}
       >
-        {/* Editable Title */}
-        <div className="relative mb-2">
+      {/* Editable Title */}
+      <div className="relative mb-2 w-full max-w-full overflow-hidden">
           <h1
             ref={titleRef}
-            className="text-4xl font-bold leading-tight outline-none bg-transparent text-[hsl(var(--foreground))] min-h-[48px]"
+            className="text-4xl font-bold leading-tight outline-none bg-transparent text-[hsl(var(--foreground))] min-h-[48px] w-full max-w-full break-words"
             contentEditable
             suppressContentEditableWarning
             spellCheck={false}
             dir="ltr"
+            style={{ 
+              wordBreak: 'break-word',
+              overflowWrap: 'break-word',
+              whiteSpace: 'pre-wrap',
+              maxWidth: '100%',
+              width: '100%'
+            }}
             onBlur={() => {
               const newTitle = titleRef.current ? titleRef.current.innerText : '';
               setTitle(newTitle);
@@ -946,16 +953,24 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
               setTitle(newTitle);
             }}
             onKeyDown={e => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 (e.target as HTMLElement).blur();
               }
+              // If Shift+Enter, do nothing (allow default: insert new line)
             }}
           />
           {(!title || title.trim() === '') && (
             <span
-              className="absolute left-0 top-0 text-4xl font-bold leading-tight text-[hsl(var(--muted-foreground))] pointer-events-none select-none"
-              style={{ userSelect: 'none' }}
+              className="absolute left-0 top-0 text-4xl font-bold leading-tight text-[hsl(var(--muted-foreground))] pointer-events-none select-none w-full max-w-full break-words"
+              style={{ 
+                userSelect: 'none',
+                wordBreak: 'break-word',
+                overflowWrap: 'break-word',
+                whiteSpace: 'pre-wrap',
+                maxWidth: '100%',
+                width: '100%'
+              }}
             >
               Untitled Note
             </span>
