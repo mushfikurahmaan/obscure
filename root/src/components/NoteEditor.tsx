@@ -253,14 +253,14 @@ const RichTextContextMenu = ({
         overflow: 'hidden',
         pointerEvents: 'none',
       }}>
-        <svg width="16" height="8"><polygon points="8,0 16,8 0,8" fill="#222"/></svg>
+        <svg width="16" height="8"><polygon points="8,0 16,8 0,8" fill="#111113"/></svg>
       </div>
       
       {/* Main Toolbar */}
       <div
         className="flex items-center gap-1 rounded-lg shadow-xl px-2 py-1 relative"
         style={{
-          background: 'rgba(34,34,34,0.98)',
+          background: '#111113',
           borderRadius: 8,
           boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
         }}
@@ -338,19 +338,28 @@ const RichTextContextMenu = ({
       
           {/* Sliding Color Palette */}
           <div
-            className="absolute left-full top-0 ml-2 overflow-hidden transition-all duration-300 ease-out"
+            className="absolute left-full ml-2 transition-all duration-300 ease-out"
             style={{
               width: showHighlighterPalette ? '200px' : '0px',
               opacity: showHighlighterPalette ? 1 : 0,
+              background: '#111113',
+              borderRadius: 8,
+              minWidth: showHighlighterPalette ? '200px' : '0px',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+              zIndex: 100,
+              alignItems: 'center',
+              display: showHighlighterPalette ? 'flex' : 'none',
+              top: '50%', // vertically center with toolbar
+              transform: 'translateY(-50%)', // vertically center with toolbar
             }}
           >
             <div
-              className="flex items-center gap-2 rounded-lg shadow-xl px-3 py-2 whitespace-nowrap"
+              className="flex items-center gap-2 px-3 py-2 whitespace-nowrap w-full"
               style={{
-                background: 'rgba(34,34,34,0.98)',
+                background: 'transparent',
                 borderRadius: 8,
-                boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
                 minWidth: '200px',
+                height: '40px',
               }}
             >
               {HIGHLIGHTER_COLORS.map((highlighter, index) => (
