@@ -8,6 +8,7 @@ import { ArchiveNotesGrid } from '../components/ArchiveNotesGrid';
 import "../styles/scroll-thumb-only.css";
 // ContextMenu import removed; only DropdownMenu is used for favorite button
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '../components/ui/dropdown-menu';
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export interface Note {
   id: string;
@@ -261,6 +262,26 @@ const Index = () => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [viewingArchived]);
 
+  let truncatedTitle = '';
+  if (selectedNote) {
+    const MAX_WORDS = 7;
+    const MAX_WORD_LENGTH = 20;
+    const MAX_TOTAL_LENGTH = 80;
+    let title = (editorTitle || 'Untitled Note').trim();
+    let words = title.split(/\s+/).map(word =>
+      word.length > MAX_WORD_LENGTH ? word.slice(0, MAX_WORD_LENGTH) + '…' : word
+    );
+    if (words.length > MAX_WORDS) {
+      words = words.slice(0, MAX_WORDS);
+      truncatedTitle = words.join(' ') + '...';
+    } else {
+      const finalTitle = words.join(' ');
+      truncatedTitle = finalTitle.length > MAX_TOTAL_LENGTH
+        ? finalTitle.slice(0, MAX_TOTAL_LENGTH) + '...'
+        : finalTitle;
+    }
+  }
+
   return (
     <div className="h-screen flex bg-background text-[hsl(var(--foreground))]" data-theme={theme}>
       {/* Sidebar */}
@@ -308,182 +329,178 @@ const Index = () => {
       />
       {/* Main Content Area */}
       <div className="flex-1 h-full flex flex-col bg-background text-[hsl(var(--foreground))]">
-        {/* Top tabs bar (fixed, always visible) */}
-        <div className="flex items-center px-6 py-2 justify-between bg-background text-[hsl(var(--foreground))]"
-          tabIndex={viewingDeleted || viewingArchived ? 0 : undefined}
-          onKeyDown={e => {
-            if (viewingDeleted && e.key === 'Escape') {
-              setViewingDeleted(false);
-            }
-            if (viewingArchived && e.key === 'Escape') {
-              setViewingArchived(false);
-            }
-          }}
-        >
-          {/* Top bar content (favorite, spinner, note info) */}
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="mr-3 text-gray-400 hover:text-[hsl(var(--foreground))] hover:bg-gray-700 border-none w-7 h-7"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        {/* Replace the top bar section with a relative wrapper and absolutely positioned window controls: */}
+        <div className="relative w-full">
+          {/* Window Controls: absolutely positioned at top right */}
+          <div className="absolute top-0 right-0 flex items-center gap-1 z-10" style={{ WebkitAppRegion: 'no-drag' }}>
+            <button
+              className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors select-none"
+              title="Minimize"
+              onClick={async () => { const window = getCurrentWindow(); await window.minimize(); }}
             >
-              {/* Hamburger icon for expand/collapse */}
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </Button>
-            {viewingArchived ? (
-              <span className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
-                <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(35, 100%, 55%)', fill: 'hsl(35, 100%, 55%)' }} />
-                Archived Notes
-              </span>
-            ) : viewingDeleted ? (
-              <span className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
-                <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(0, 100%, 60%)', fill: 'hsl(0, 100%, 60%)' }} />
-                Trashed Notes
-              </span>
-            ) : selectedNote && (
-              <>
-                <span
-                  className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate cursor-pointer"
-                  style={{ minHeight: '2.25rem', maxWidth: '100%' }}
-                  title={editorTitle}
-                >
-                  <span
-                    className="w-2 h-2 rounded-full mr-2"
-                    style={{
-                      backgroundColor: selectedNote.deleted
-                        ? 'hsl(0, 100%, 60%)' // Trash
-                        : selectedNote.archived
-                        ? 'hsl(35, 100%, 55%)' // Archive
-                        : 'rgb(34 197 94)', // Green for My Notes (tailwind green-500)
-                    }}
-                  ></span>
-                  {(() => {
-                        const MAX_WORDS = 7;
-                        const MAX_WORD_LENGTH = 20;
-                        const MAX_TOTAL_LENGTH = 80;
-
-                        let title = (editorTitle || 'Untitled Note').trim();
-
-                        let words = title.split(/\s+/).map(word =>
-                          word.length > MAX_WORD_LENGTH ? word.slice(0, MAX_WORD_LENGTH) + '…' : word
-                        );
-
-                        if (words.length > MAX_WORDS) {
-                          words = words.slice(0, MAX_WORDS);
-                          return words.join(' ') + '...';
-                        }
-
-                        const finalTitle = words.join(' ');
-                        return finalTitle.length > MAX_TOTAL_LENGTH
-                          ? finalTitle.slice(0, MAX_TOTAL_LENGTH) + '...'
-                          : finalTitle;
-                      })()}
-                </span>
-                <span
-                  className="ml-3 flex items-center px-3 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm"
-                  style={{ minHeight: '2.25rem' }}
-                >
-                  <Loader2 className={`w-4 h-4 ${saving ? 'animate-spin text-blue-400' : 'text-gray-500 opacity-40'}`} />
-                </span>
-              </>
-            )}
+              <svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="currentColor" /></svg>
+            </button>
+            <button
+              className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors select-none"
+              title="Maximize"
+              onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" /></svg>
+            </button>
+            <button
+              className="w-8 h-8 flex items-center justify-center hover:bg-red-500 hover:text-white rounded transition-colors select-none"
+              title="Close"
+              onClick={async () => { const window = getCurrentWindow(); await window.close(); }}
+            >
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" /><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" strokeWidth="1.5" /></svg>
+            </button>
           </div>
-          {/* Right side: favorite button card and stats card */}
-          {!viewingArchived && !viewingDeleted && selectedNote && (
-            <div className="flex items-center ml-4 gap-3">
-              {/* Favorite Button with Dropdown Menu */}
-              <DropdownMenu open={favoriteMenuOpen} onOpenChange={setFavoriteMenuOpen}>
-                <DropdownMenuTrigger asChild>
-                  <div className="flex items-center px-2 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer" style={{ minHeight: '2.25rem' }}>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-7 h-7 relative"
-                      aria-label="Favorite"
-                    >
-                      {selectedNote && selectedNote.isFavorite && selectedNote.favoriteEmoji ? (
-                        <img
-                          src={`${TWEMOJI_BASE}${selectedNote.favoriteEmoji}.svg`}
-                          alt="emoji"
-                          className="w-4 h-4"
-                          style={{ display: 'inline' }}
-                        />
-                      ) : (
-                        <Heart className="w-4 h-4" />
-                      )}
-                    </Button>
+          {/* Main Top Bar Content with pt-2 pb-2 */}
+          <div className="flex items-center w-full pt-2 pb-2" style={{ WebkitAppRegion: 'drag' }}>
+            {/* Left: Hamburger, Title, Spinner */}
+            <div className="flex items-center flex-shrink-0">
+              {/* Hamburger button (sidebar toggle) */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-6 mr-3 text-gray-400 hover:text-[hsl(var(--foreground))] hover:bg-gray-700 border-none w-7 h-7"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                style={{ WebkitAppRegion: 'no-drag' }}
+              >
+                {/* Hamburger icon for expand/collapse */}
+                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </Button>
+              {viewingArchived ? (
+                <span className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
+                  <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(35, 100%, 55%)', fill: 'hsl(35, 100%, 55%)' }} />
+                  Archived Notes
+                </span>
+              ) : viewingDeleted ? (
+                <span className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
+                  <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(0, 100%, 60%)', fill: 'hsl(0, 100%, 60%)' }} />
+                  Trashed Notes
+                </span>
+              ) : selectedNote && (
+                <>
+                  {/* Title and status dot */}
+                  <span
+                    className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate cursor-pointer"
+                    style={{ minHeight: '2.25rem', maxWidth: '100%' }}
+                    title={editorTitle}
+                  >
+                    <span
+                      className="w-2 h-2 rounded-full mr-2"
+                      style={{
+                        backgroundColor: selectedNote?.deleted
+                          ? 'hsl(0, 100%, 60%)' // Trash
+                          : selectedNote?.archived
+                          ? 'hsl(35, 100%, 55%)' // Archive
+                          : 'rgb(34 197 94)', // Green for My Notes (tailwind green-500)
+                      }}
+                    ></span>
+                    {truncatedTitle}
+                  </span>
+                  {/* Info Card */}
+                  <div className="flex items-center px-4 py-1 ml-3 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))]" style={{ minHeight: '2.25rem', marginRight: '0' }}>
+                    <span className="mr-4">Words: {selectedNote.content ? selectedNote.content.trim().split(/\s+/).filter(Boolean).length : 0}</span>
+                    <span className="mr-4">Chars: {selectedNote.content ? selectedNote.content.length : 0}</span>
+                    <span>Lines: {selectedNote.content ? selectedNote.content.split(/\r?\n/).length : 0}</span>
                   </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-[340px] bg-background text-[hsl(var(--foreground))] rounded-lg">
-                  <div className="px-4 py-2">
-                    <div className="font-semibold text-base mb-1">Favorite Note</div>
-                    <div className="text-[hsl(var(--muted-foreground))] mb-3">Add this note to your favorites and pick an emoji.</div>
-                    {/* Title removed as requested */}
-                    <div className="mb-3">
-                      <div
-                        className="flex flex-wrap gap-2"
-                        style={{ maxHeight: 180, overflowY: 'auto', minHeight: 40 }}
-                      >
-                        {EMOJI_LIST.map(code => (
-                          <button
-                            key={code}
-                            type="button"
-                            className={`rounded-md border ${favoriteEmoji === code ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
-                            onClick={() => setFavoriteEmoji(code)}
-                            style={{ background: 'none' }}
-                          >
-                            <img src={`${TWEMOJI_BASE}${code}.svg`} alt="emoji" style={{ width: 28, height: 28 }} />
-                          </button>
-                        ))}
+                  {/* Favorite Button with Dropdown Menu */}
+                  <DropdownMenu open={favoriteMenuOpen} onOpenChange={setFavoriteMenuOpen}>
+                    <DropdownMenuTrigger asChild>
+                      <div className="flex items-center px-2 py-1 ml-3 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer" style={{ minHeight: '2.25rem', WebkitAppRegion: 'no-drag' }}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-7 h-7 relative"
+                          aria-label="Favorite"
+                          style={{ WebkitAppRegion: 'no-drag' }}
+                        >
+                          {selectedNote && selectedNote.isFavorite && selectedNote.favoriteEmoji ? (
+                            <img
+                              src={`${TWEMOJI_BASE}${selectedNote.favoriteEmoji}.svg`}
+                              alt="emoji"
+                              className="w-4 h-4"
+                              style={{ display: 'inline' }}
+                            />
+                          ) : (
+                            <Heart className="w-4 h-4" />
+                          )}
+                        </Button>
                       </div>
-                    </div>
-                    <div className="flex justify-end gap-2 mt-4">
-                      <button
-                        type="button"
-                        className="bg-background text-[hsl(var(--muted-foreground))] border border-border rounded px-3 py-1"
-                        onClick={() => setFavoriteMenuOpen(false)}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="button"
-                        disabled={!favoriteEmoji}
-                        className={
-                          favoriteEmoji
-                            ? 'border-none rounded px-3 py-1 bg-white text-black dark:bg-[#18181b] dark:text-white'
-                            : 'bg-muted text-[hsl(var(--muted-foreground))] border-none rounded px-3 py-1'
-                        }
-                        onClick={() => {
-                          if (selectedNote) {
-                            setNotes(notes => {
-                              const updated = notes.map(note => note.id === selectedNote.id ? { ...note, isFavorite: true, favoriteEmoji } : note);
-                              // Also update selectedNote to keep UI in sync
-                              const updatedNote = updated.find(n => n.id === selectedNote.id);
-                              setSelectedNote(updatedNote ? { ...updatedNote } : null);
-                              return updated;
-                            });
-                          }
-                          setFavoriteEmoji('');
-                        }}
-                      >
-                        Save
-                      </button>
-                    </div>
-                  </div>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {/* End Favorite Button with Dropdown Menu */}
-              <div className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))]" style={{ minHeight: '2.25rem', marginRight: '18px' }}>
-                <span className="mr-4">Words: {selectedNote.content ? selectedNote.content.trim().split(/\s+/).filter(Boolean).length : 0}</span>
-                <span className="mr-4">Chars: {selectedNote.content ? selectedNote.content.length : 0}</span>
-                <span>Lines: {selectedNote.content ? selectedNote.content.split(/\r?\n/).length : 0}</span>
-              </div>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-[340px] bg-background text-[hsl(var(--foreground))] rounded-lg">
+                      <div className="px-4 py-2">
+                        <div className="font-semibold text-base mb-1">Favorite Note</div>
+                        <div className="text-[hsl(var(--muted-foreground))] mb-3">Add this note to your favorites and pick an emoji.</div>
+                        {/* Title removed as requested */}
+                        <div className="mb-3">
+                          <div
+                            className="flex flex-wrap gap-2"
+                            style={{ maxHeight: 180, overflowY: 'auto', minHeight: 40 }}
+                          >
+                            {EMOJI_LIST.map(code => (
+                              <button
+                                key={code}
+                                type="button"
+                                className={`rounded-md border ${favoriteEmoji === code ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
+                                onClick={() => setFavoriteEmoji(code)}
+                                style={{ background: 'none' }}
+                              >
+                                <img src={`${TWEMOJI_BASE}${code}.svg`} alt="emoji" style={{ width: 28, height: 28 }} />
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="flex justify-end gap-2 mt-4">
+                          <button
+                            type="button"
+                            className="bg-background text-[hsl(var(--muted-foreground))] border border-border rounded px-3 py-1"
+                            onClick={() => setFavoriteMenuOpen(false)}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            disabled={!favoriteEmoji}
+                            className={
+                              favoriteEmoji
+                                ? 'border-none rounded px-3 py-1 bg-white text-black dark:bg-[#18181b] dark:text-white'
+                                : 'bg-muted text-[hsl(var(--muted-foreground))] border-none rounded px-3 py-1'
+                            }
+                            onClick={() => {
+                              if (selectedNote) {
+                                setNotes(notes => {
+                                  const updated = notes.map(note => note.id === selectedNote.id ? { ...note, isFavorite: true, favoriteEmoji } : note);
+                                  // Also update selectedNote to keep UI in sync
+                                  const updatedNote = updated.find(n => n.id === selectedNote.id);
+                                  setSelectedNote(updatedNote ? { ...updatedNote } : null);
+                                  return updated;
+                                });
+                              }
+                              setFavoriteEmoji('');
+                            }}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      </div>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  {/* Spinner */}
+                  <span className="ml-3 flex items-center px-3 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm" style={{ minHeight: '2.25rem', WebkitAppRegion: 'no-drag' }}>
+                    <Loader2 className={`w-4 h-4 ${saving ? 'animate-spin text-blue-400' : 'text-gray-500 opacity-40'}`} />
+                  </span>
+                </>
+              )}
             </div>
-          )}
+            {/* Spacer to push window controls to the right */}
+            <div className="flex-1" />
+          </div>
         </div>
         {/* Main Editor Area (scrollable, with custom thumb) */}
         <div className="flex-1 overflow-auto custom-scroll-thumb bg-background text-[hsl(var(--foreground))]">
