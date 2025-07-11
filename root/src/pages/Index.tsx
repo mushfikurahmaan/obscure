@@ -23,48 +23,7 @@ export interface Note {
 }
 
 
-
-// Add Twemoji CDN for rendering SVGs
-const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/';
-
-const EMOJI_LIST = [
-  // Work, Code, Notes, Important, Relevant
-  '1f4dd', '1f4cb', '1f4c4', '1f4c3', '1f4d1', '1f4c8', '1f4c9', '1f4ca', '1f4bb',
-  '1f5a5', '1f4f1', '1f4e2', '1f4cc', '1f4cd', '1f512', '1f513', '1f4ac', '1f4ad',
-  '1f4a1', '1f4e3', '1f6e0', '2696', '1f4b8',
-
-  // Smileys & Emotion
-  '1f600', '1f603', '1f604', '1f601', '1f606', '1f605', '1f923', '1f602', '1f642', '1f643',
-  '1f609', '1f60a', '1f607', '1f60d', '1f929', '1f618', '1f617', '263a', '1f61a', '1f619',
-  '1f972', '1f60b', '1f61b', '1f61c', '1f92a', '1f61d', '1f911', '1f917', '1f92d', '1f92b',
-  '1f914', '1f910', '1f928', '1f610', '1f611', '1f636', '1f60f', '1f612', '1f644', '1f62c',
-  '1f925', '1f60c', '1f614', '1f62a', '1f924', '1f634', '1f637', '1f912', '1f915', '1f922',
-  '1f92e', '1f927', '1f975', '1f976', '1f974', '1f635', '1f92f', '1f920', '1f973', '1f60e',
-  '1f913',
-
-  // Hearts & Love
-  '1f970', '1f496', '1f495', '1f49e', '1f493', '1f497', '1f49f', '1f49c', '1f49b', '1f49a',
-  '1f499', '1f49d', '1f494',
-
-  // Gestures
-  '1f44d', '1f44e', '1f44c', '1f44a', '1f91b', '1f91c', '1f91e', '1f91f', '1f918', '1f919',
-  '1f590', '270b', '1f596', '1f44f',
-
-  // Party & Fun
-  '1f389', '1f973', '1f38a', '1f388', '1f381', '1f525', '1f4af', '1f4ab', '1f31f',
-
-  // Animals
-  '1f436', '1f431', '1f42d', '1f439', '1f430', '1f98a', '1f43b', '1f43c', '1f428',
-  '1f42f', '1f981', '1f42e',
-
-  // Food
-  '1f354', '1f35f', '1f355', '1f32e', '1f32d', '1f37f', '1f36a', '1f382', '1f370',
-  '1f36b', '1f36c', '1f36d',
-
-  // Miscellaneous
-  '1f680', '1f697', '1f3c1', '1f3c6', '1f947', '1f948', '1f949', '1f451', '1f48e',
-  '1f4b0', '1f381', '1f384'
-];
+const getLocalEmojiPath = (filename: string) => filename;
 
 declare module "react" {
   interface CSSProperties {
@@ -287,6 +246,13 @@ const Index = () => {
     }
   }
 
+  const [emojiList, setEmojiList] = useState<string[]>([]);
+  useEffect(() => {
+    fetch('/emoji-manifest.json')
+      .then(res => res.json())
+      .then((files: string[]) => setEmojiList(files.map(f => '/' + f)));
+  }, []);
+
   return (
     <div className="h-screen flex bg-background text-[hsl(var(--foreground))]" data-theme={theme}>
       {/* Sidebar */}
@@ -427,7 +393,7 @@ const Index = () => {
                         >
                           {selectedNote && selectedNote.isFavorite && selectedNote.favoriteEmoji ? (
                             <img
-                              src={`${TWEMOJI_BASE}${selectedNote.favoriteEmoji}.svg`}
+                              src={getLocalEmojiPath(selectedNote.favoriteEmoji)}
                               alt="emoji"
                               className="w-4 h-4"
                               style={{ display: 'inline' }}
@@ -442,21 +408,17 @@ const Index = () => {
                       <div className="px-4 py-2">
                         <div className="font-semibold text-base mb-1">Favorite Note</div>
                         <div className="text-[hsl(var(--muted-foreground))] mb-3">Add this note to your favorites and pick an emoji.</div>
-                        {/* Title removed as requested */}
                         <div className="mb-3">
-                          <div
-                            className="flex flex-wrap gap-2"
-                            style={{ maxHeight: 180, overflowY: 'auto', minHeight: 40 }}
-                          >
-                            {EMOJI_LIST.map(code => (
+                          <div className="flex flex-wrap gap-2" style={{ maxHeight: 180, overflowY: 'auto', minHeight: 40 }}>
+                            {emojiList.map(filename => (
                               <button
-                                key={code}
+                                key={filename}
                                 type="button"
-                                className={`rounded-md border ${favoriteEmoji === code ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
-                                onClick={() => setFavoriteEmoji(code)}
+                                className={`rounded-md border ${favoriteEmoji === filename ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
+                                onClick={() => setFavoriteEmoji(filename)}
                                 style={{ background: 'none' }}
                               >
-                                <img src={`${TWEMOJI_BASE}${code}.svg`} alt="emoji" style={{ width: 28, height: 28 }} />
+                                <img src={getLocalEmojiPath(filename)} alt="emoji" style={{ width: 28, height: 28 }} />
                               </button>
                             ))}
                           </div>

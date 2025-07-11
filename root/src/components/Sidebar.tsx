@@ -54,7 +54,7 @@ export const Sidebar = ({
 }: SidebarProps) => {
   const [, setHoveredNote] = useState<string | null>(null);
 
-
+  const getLocalEmojiPath = (filename: string) => filename || '';
 
   const menuItems = [
     { icon: NotebookPen, label: 'New Note', active: false, onClick: onCreateNote },
@@ -239,7 +239,7 @@ export const Sidebar = ({
                 >
                   {note.favoriteEmoji ? (
                     <img
-                      src={`https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${note.favoriteEmoji}.svg`}
+                      src={getLocalEmojiPath(note.favoriteEmoji)}
                       alt="emoji"
                       className="w-4 h-4 favorite-icon"
                       style={{ display: 'inline' }}
