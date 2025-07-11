@@ -28,7 +28,7 @@ type CustomText = {
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
-  fontSize?: 'small' | 'medium' | 'large';
+  fontSize?: 'small' | 'medium' | 'large' | 'h1' | 'h2' | 'h3';
   color?: string;
   highlight?: boolean;
   code?: boolean;
@@ -140,14 +140,34 @@ const RichTextContextMenu = ({
 }) => {
   if (!isVisible) return null;
 
-  const handleTextSize = (size: 'small' | 'medium' | 'large') => {
-    toggleMark(editor, 'fontSize', size);
+  // Icon SVGs (inline for simplicity)
+  const icons = {
+    bold: (
+      <svg width="16" height="16" fill="none" viewBox="0 0 20 20" className="w-4 h-4"><path stroke="currentColor" strokeWidth="2" d="M7 4h4a3 3 0 0 1 0 6H7zm0 6h5a3 3 0 1 1 0 6H7z"/></svg>
+    ),
+    italic: (
+      <svg width="16" height="16" fill="none" viewBox="0 0 20 20" className="w-4 h-4"><path stroke="currentColor" strokeWidth="2" d="M10 4h4M6 16h4m2-12-4 12"/></svg>
+    ),
+    underline: (
+      <svg width="16" height="16" fill="none" viewBox="0 0 20 20" className="w-4 h-4"><path stroke="currentColor" strokeWidth="2" d="M6 4v5a4 4 0 0 0 8 0V4M5 16h10"/></svg>
+    ),
+    code: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-code-icon w-4 h-4"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
+    ),
+    highlight: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-highlighter-icon w-4 h-4"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
+    ),
+  };
+
+  // Handlers for formatting
+  const handleMark = (format: string) => {
+    toggleMark(editor, format);
     ReactEditor.focus(editor);
     onClose();
   };
 
-  const handleTextColor = (color: string) => {
-    toggleMark(editor, 'color', color);
+  const handleCodeBlock = () => {
+    toggleMark(editor, 'code');
     ReactEditor.focus(editor);
     onClose();
   };
@@ -158,96 +178,98 @@ const RichTextContextMenu = ({
     onClose();
   };
 
-  const handleCodeBlock = () => {
-    toggleBlock(editor, 'code-block');
-    ReactEditor.focus(editor);
-    onClose();
-  };
-
+  // Modern floating toolbar with arrow
   return (
     <div
-      className="fixed z-50 min-w-[200px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg py-1"
-      style={{
-        left: position.x,
-        top: position.y,
-      }}
+      className="fixed z-50"
+      style={{ left: position.x, top: position.y }}
       onMouseDown={e => e.preventDefault()}
     >
-      {/* Text Size */}
-      <div className="px-3 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-        Text Size
+      {/* Arrow */}
+      <div style={{
+        position: 'absolute',
+        top: -8,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        width: 16,
+        height: 8,
+        overflow: 'hidden',
+        pointerEvents: 'none',
+      }}>
+        <svg width="16" height="8"><polygon points="8,0 16,8 0,8" fill="#222"/></svg>
       </div>
-      <button
-        className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-        onClick={() => handleTextSize('large')}
+      {/* Toolbar */}
+      <div
+        className="flex items-center gap-1 rounded-lg shadow-xl px-2 py-1"
+        style={{
+          background: 'rgba(34,34,34,0.98)',
+          borderRadius: 8,
+          boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+        }}
       >
-        Large
+        
+      {/* Text Size Buttons */}
+      <button
+        className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+        title="Heading 1"
+        onClick={() => { toggleMark(editor, 'fontSize', 'h1'); ReactEditor.focus(editor); onClose(); }}
+        style={{lineHeight: 1}}
+      >
+        H1
       </button>
       <button
-        className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-        onClick={() => handleTextSize('medium')}
+        className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+        title="Heading 2"
+        onClick={() => { toggleMark(editor, 'fontSize', 'h2'); ReactEditor.focus(editor); onClose(); }}
+        style={{lineHeight: 1}}
       >
-        Medium
+        H2
       </button>
       <button
-        className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-        onClick={() => handleTextSize('small')}
+        className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+        title="Heading 3"
+        onClick={() => { toggleMark(editor, 'fontSize', 'h3'); ReactEditor.focus(editor); onClose(); }}
+        style={{lineHeight: 1}}
       >
-        Small
-      </button>
-      
-      <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-      
-      {/* Text Color */}
-      <div className="px-3 py-1 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-        Text Color
-      </div>
-      <button
-        className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-red-600"
-        onClick={() => handleTextColor('#ef4444')}
-      >
-        Red
-      </button>
-      <button
-        className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-green-600"
-        onClick={() => handleTextColor('#22c55e')}
-      >
-        Green
-      </button>
-      <button
-        className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-blue-600"
-        onClick={() => handleTextColor('#3b82f6')}
-      >
-        Blue
-      </button>
-      <button
-        className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm text-purple-600"
-        onClick={() => handleTextColor('#a855f7')}
-      >
-        Purple
-      </button>
-      <button
-        className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-        onClick={() => handleTextColor('')}
-      >
-        Default
+        H3
       </button>
       
-      <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
-      
-      {/* Formatting Options */}
       <button
-        className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
+          className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
+          title="Bold"
+          onClick={() => handleMark('bold')}
+      >
+          {icons.bold}
+      </button>
+      <button
+          className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
+          title="Italic"
+          onClick={() => handleMark('italic')}
+      >
+          {icons.italic}
+      </button>
+      <button
+          className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
+          title="Underline"
+          onClick={() => handleMark('underline')}
+      >
+          {icons.underline}
+      </button>
+      <button
+          className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
+          title="Code Block"
+          onClick={handleCodeBlock}
+      >
+          {icons.code}
+      </button>
+      <button
+          className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
+          title="Highlight"
         onClick={handleHighlight}
       >
-        Toggle Highlight
+          {icons.highlight}
       </button>
-      <button
-        className="w-full px-3 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 text-sm"
-        onClick={handleCodeBlock}
-      >
-        Toggle Code Block
-      </button>
+      </div>
     </div>
   );
 };
@@ -302,22 +324,33 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
       children = <u>{children}</u>;
     }
     
+    // Inline code styling
     if (leaf.code) {
-      children = <code className="bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm font-mono">{children}</code>;
+      children = <code style={{
+        background: '#f4f4f5',
+        color: '#d7263d',
+        borderRadius: 4,
+        padding: '2px 6px',
+        fontFamily: 'monospace',
+        fontSize: '0.95em',
+      }}>{children}</code>;
     }
     
     const style: React.CSSProperties = {};
     
     if (leaf.fontSize) {
       switch (leaf.fontSize) {
-        case 'small':
-          style.fontSize = '0.875rem';
+        case 'h1':
+          style.fontSize = '2.5rem'; // 40px (text-4xl to text-6xl)
+          style.fontWeight = 700;
           break;
-        case 'medium':
-          style.fontSize = '1rem';
+        case 'h2':
+          style.fontSize = '2rem'; // 32px (text-2xl to text-4xl)
+          style.fontWeight = 700;
           break;
-        case 'large':
-          style.fontSize = '1.125rem';
+        case 'h3':
+          style.fontSize = '1.5rem'; // 24px (text-xl to text-2xl)
+          style.fontWeight = 700;
           break;
       }
     }
@@ -327,7 +360,8 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     }
     
     if (leaf.highlight) {
-      style.backgroundColor = '#fef08a';
+      style.backgroundColor = '#abff32';
+      style.color = "#000"
     }
     
     return (
