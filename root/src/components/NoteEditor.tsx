@@ -6,6 +6,7 @@ import type { Note } from '../pages/Index';
 import { formatRelativeDate } from '../lib/utils';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu';
 import { Box, Trash2, RotateCcw } from 'lucide-react';
+import { color } from 'd3-color';
 
 interface NoteEditorProps {
   note: Note;
@@ -36,7 +37,7 @@ type CustomText = {
 }
 
 type CustomElement =
-  | { type: 'paragraph' | 'code-block'; children: CustomText[] }
+  | { type: 'paragraph' | 'code-block'; alignment?: 'left' | 'center' | 'right' | 'justify'; children: CustomText[] }
   | { type: 'link'; url: string; children: CustomText[] }
   | { type: 'image'; url: string; children: CustomText[] };
 
@@ -167,10 +168,15 @@ const RichTextContextMenu = ({
   const highlighterRef = useRef<HTMLDivElement>(null);
   const textColorRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const [showFontSizeDropdown, setShowFontSizeDropdown] = useState(false);
 
   // --- NEW: Track menu and palette positions ---
   const [menuStyle, setMenuStyle] = useState<{ left: number; top: number } | null>(null);
   const [paletteDirection, setPaletteDirection] = useState<'right' | 'left'>('right');
+
+  // Add state for dropdown direction
+  const [fontSizeDropdownDirection, setFontSizeDropdownDirection] = useState<'down' | 'up'>('down');
+  const textDropdownButtonRef = useRef<HTMLButtonElement>(null);
 
   // Handle clicks outside the menu to close it
   useEffect(() => {
@@ -184,12 +190,15 @@ const RichTextContextMenu = ({
       if (textColorRef.current && !textColorRef.current.contains(e.target as Node)) {
         setShowTextColorPalette(false);
       }
+      if (showFontSizeDropdown && !menuRef.current?.contains(e.target as Node)) {
+        setShowFontSizeDropdown(false);
+      }
     };
     if (isVisible) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isVisible, onClose]);
+  }, [isVisible, onClose, showFontSizeDropdown]);
 
   // --- NEW: Reposition menu and palettes to stay in viewport ---
   useEffect(() => {
@@ -248,6 +257,18 @@ const RichTextContextMenu = ({
     ),
     image: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-image-icon w-4 h-4"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+    ),
+    alignLeft: (
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
+    ),
+    alignCenter: (
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="5" y="5" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="5" y="13" width="10" height="2" rx="1" fill="currentColor"/></svg>
+    ),
+    alignRight: (
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="7" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
+    ),
+    alignJustify: (
+      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
     ),
   };
 
@@ -377,6 +398,25 @@ const RichTextContextMenu = ({
     input.click();
   };
 
+  const getActiveAlignment = () => {
+    const { selection } = editor;
+    if (!selection) return 'left';
+    const [match] = Editor.nodes(editor, {
+      at: selection,
+      match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && 'alignment' in n,
+    });
+    const node = match ? match[0] : null;
+    return node && 'alignment' in node && node.alignment ? node.alignment : 'left';
+  };
+  const setAlignment = (alignment: 'left' | 'center' | 'right' | 'justify') => {
+    Transforms.setNodes(
+      editor,
+      { alignment },
+      { match: n => !Editor.isEditor(n) && SlateElement.isElement(n) }
+    );
+    ReactEditor.focus(editor);
+  };
+
   // Modern floating toolbar with arrow
   return (
     <div
@@ -409,40 +449,70 @@ const RichTextContextMenu = ({
         }}
       >
         
-        {/* Text Size Buttons */}
-        <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-          title="Heading 1"
-          onClick={() => handleFontSize('h1')}
-          style={{lineHeight: 1}}
-        >
-          H1
-        </button>
-        <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-          title="Heading 2"
-          onClick={() => handleFontSize('h2')}
-          style={{lineHeight: 1}}
-        >
-          H2
-        </button>
-        <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-          title="Heading 3"
-          onClick={() => handleFontSize('h3')}
-          style={{lineHeight: 1}}
-        >
-          H3
-        </button>
-        {/* Default button to revert to normal text */}
-        <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-          title="Default"
-          onClick={() => handleFontSize('default')}
-          style={{lineHeight: 1}}
-        >
-          D
-        </button>
+        {/* Text Size Buttons (replace with dropdown) */}
+        <div className="relative" style={{ marginRight: 4 }}>
+          <button
+            className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-16 h-8 flex items-center justify-center gap-1"
+            title="Text style"
+            onClick={e => {
+              e.stopPropagation();
+              setShowFontSizeDropdown(v => {
+                const next = !v;
+                if (next && textDropdownButtonRef.current) {
+                  const rect = textDropdownButtonRef.current.getBoundingClientRect();
+                  const dropdownHeight = 176; // 4 options * 44px each (approx)
+                  const spaceBelow = window.innerHeight - rect.bottom;
+                  const spaceAbove = rect.top;
+                  if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+                    setFontSizeDropdownDirection('up');
+                  } else {
+                    setFontSizeDropdownDirection('down');
+                  }
+                }
+                setShowHighlighterPalette(false);
+                setShowTextColorPalette(false);
+                return next;
+              });
+            }}
+            ref={textDropdownButtonRef}
+            style={{ lineHeight: 1 }}
+          >
+            Text
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="ml-1"><path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+          {/* Dropdown menu */}
+          {showFontSizeDropdown && (
+            <div
+              className="absolute w-32 bg-[#111113] rounded-lg shadow-xl z-50 border border-gray-700"
+              style={{
+                minWidth: 120,
+                left: 0,
+                marginTop: fontSizeDropdownDirection === 'down' ? '0.25rem' : undefined,
+                bottom: fontSizeDropdownDirection === 'up' ? '100%' : undefined,
+                marginBottom: fontSizeDropdownDirection === 'up' ? '0.25rem' : undefined
+              }}
+              onMouseDown={e => e.preventDefault()}
+            >
+              <button
+                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-t-lg"
+                onClick={() => { handleFontSize('h1'); setShowFontSizeDropdown(false); }}
+              >Heading 1</button>
+              <button
+                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700"
+                onClick={() => { handleFontSize('h2'); setShowFontSizeDropdown(false); }}
+              >Heading 2</button>
+              <button
+                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700"
+                onClick={() => { handleFontSize('h3'); setShowFontSizeDropdown(false); }}
+              >Heading 3</button>
+              <button
+                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-b-lg"
+                onClick={() => { handleFontSize('default'); setShowFontSizeDropdown(false); }}
+              >Normal</button>
+            </div>
+          )}
+        </div>
+        {/* End of Text Size Dropdown */}
         
         <button
           className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
@@ -464,6 +534,34 @@ const RichTextContextMenu = ({
           onClick={() => handleMark('underline')}
         >
           {icons.underline}
+        </button>
+        <button
+          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'left' ? ' bg-gray-700' : ''}`}
+          title="Align Left"
+          onClick={() => setAlignment('left')}
+        >
+          {icons.alignLeft}
+        </button>
+        <button
+          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'center' ? ' bg-gray-700' : ''}`}
+          title="Align Center"
+          onClick={() => setAlignment('center')}
+        >
+          {icons.alignCenter}
+        </button>
+        <button
+          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'right' ? ' bg-gray-700' : ''}`}
+          title="Align Right"
+          onClick={() => setAlignment('right')}
+        >
+          {icons.alignRight}
+        </button>
+        <button
+          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'justify' ? ' bg-gray-700' : ''}`}
+          title="Justify"
+          onClick={() => setAlignment('justify')}
+        >
+          {icons.alignJustify}
         </button>
         <button
           className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
@@ -653,36 +751,29 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
 
   // Custom render functions for Slate
   const renderElement = useCallback((props: any) => {
+    const alignment = props.element.alignment || 'left';
     switch (props.element.type) {
       case 'code-block':
         return (
-          <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm my-2" {...props.attributes}>
+          <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm my-2" {...props.attributes} style={{ textAlign: alignment }}>
             <code>{props.children}</code>
           </pre>
         );
       case 'link':
         return (
-          <a
-            {...props.attributes}
-            href={props.element.url}
-            style={{ color: '#2563eb', textDecoration: 'underline', cursor: 'pointer' }}
-            onClick={e => {
-              e.preventDefault();
-              open(props.element.url);
-            }}
-          >
+          <a {...props.attributes} href={props.element.url} target="_blank" rel="noopener noreferrer" style={{ color: '#2563eb', textDecoration: 'underline', cursor: 'pointer', textAlign: alignment }}>
             {props.children}
           </a>
         );
       case 'image':
         return (
-          <div {...props.attributes}>
+          <div {...props.attributes} style={{ textAlign: alignment }}>
             <img src={props.element.url} alt="" style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 8, margin: '12px 0' }} />
             {props.children}
           </div>
         );
       default:
-        return <p {...props.attributes}>{props.children}</p>;
+        return <p {...props.attributes} style={{ textAlign: alignment }}>{props.children}</p>;
     }
   }, []);
 

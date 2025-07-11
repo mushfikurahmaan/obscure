@@ -57,8 +57,8 @@ All colors MUST be HSL.
     --sidebar-hover: 0 0% 90%; /* light gray for sidebar hover in light mode */
     --topbar-background: 0 0% 89.8%; /* #f1f5f9 for light mode */
 
-    --code-block-background: 0, 0%, 96%;
-    --code-block-text: 0, 0%, 20%;
+    --code-block-background: 0, 0%, 85%;
+    --code-block-text: 0, 0%, 16%;
 
   }
 
@@ -104,7 +104,6 @@ All colors MUST be HSL.
 
     --code-block-background: 0, 0%, 18%;
     --code-block-text: 60, 30%, 96%;
-
   }
 }
 
