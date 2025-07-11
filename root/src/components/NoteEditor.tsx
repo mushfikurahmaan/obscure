@@ -28,17 +28,17 @@ type CustomText = {
   bold?: boolean;
   italic?: boolean;
   underline?: boolean;
-  fontSize?: 'small' | 'medium' | 'large' | 'h1' | 'h2' | 'h3';
+  fontSize?: 'h1' | 'h2' | 'h3';
   color?: string;
   highlight?: boolean;
   highlightColor?: string;
   code?: boolean;
 }
 
-type CustomElement = {
-  type: 'paragraph' | 'code-block';
-  children: CustomText[];
-}
+type CustomElement =
+  | { type: 'paragraph' | 'code-block'; children: CustomText[] }
+  | { type: 'link'; url: string; children: CustomText[] }
+  | { type: 'image'; url: string; children: CustomText[] };
 
 declare module 'slate' {
   interface CustomTypes {
@@ -168,15 +168,16 @@ const RichTextContextMenu = ({
   const textColorRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  // --- NEW: Track menu and palette positions ---
+  const [menuStyle, setMenuStyle] = useState<{ left: number; top: number } | null>(null);
+  const [paletteDirection, setPaletteDirection] = useState<'right' | 'left'>('right');
+
   // Handle clicks outside the menu to close it
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      // Check if click is outside the entire menu system
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         onClose();
       }
-      
-      // Handle palette-specific clicks
       if (highlighterRef.current && !highlighterRef.current.contains(e.target as Node)) {
         setShowHighlighterPalette(false);
       }
@@ -184,12 +185,41 @@ const RichTextContextMenu = ({
         setShowTextColorPalette(false);
       }
     };
-
     if (isVisible) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isVisible, onClose]);
+
+  // --- NEW: Reposition menu and palettes to stay in viewport ---
+  useEffect(() => {
+    if (!isVisible) return;
+    const reposition = () => {
+      if (!menuRef.current) return;
+      const menuRect = menuRef.current.getBoundingClientRect();
+      let left = position.x;
+      let top = position.y;
+      // Shift left if overflowing right
+      if (left + menuRect.width > window.innerWidth) {
+        left = Math.max(8, window.innerWidth - menuRect.width - 8);
+      }
+      // Shift up if overflowing bottom
+      if (top + menuRect.height > window.innerHeight) {
+        top = Math.max(8, window.innerHeight - menuRect.height - 8);
+      }
+      setMenuStyle({ left, top });
+      // Decide palette direction (right or left)
+      // Assume palette width is 200px
+      const paletteWidth = 200;
+      if (left + menuRect.width + paletteWidth > window.innerWidth) {
+        setPaletteDirection('left');
+      } else {
+        setPaletteDirection('right');
+      }
+    };
+    // Timeout to allow menu to render and get dimensions
+    setTimeout(reposition, 0);
+  }, [isVisible, position.x, position.y]);
 
   if (!isVisible) return null;
 
@@ -212,6 +242,12 @@ const RichTextContextMenu = ({
     ),
     textColor: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-type-icon w-4 h-4"><polyline points="4,7 4,4 20,4 20,7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
+    ),
+    link: (
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+    ),
+    image: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-image-icon w-4 h-4"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
     ),
   };
 
@@ -302,12 +338,51 @@ const RichTextContextMenu = ({
     setShowTextColorPalette(false);
   };
 
+  const insertLink = () => {
+    const url = window.prompt('Enter the URL for the link:');
+    if (!url) return;
+    if (editor.selection && !Range.isCollapsed(editor.selection)) {
+      Transforms.wrapNodes(
+        editor,
+        { type: 'link', url, children: [] },
+        { split: true, at: editor.selection }
+      );
+    }
+    ReactEditor.focus(editor);
+  };
+  const removeLink = () => {
+    Transforms.unwrapNodes(editor, { match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link' });
+    ReactEditor.focus(editor);
+  };
+  const isLinkActive = () => {
+    const [match] = Editor.nodes(editor, { match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link' });
+    return !!match;
+  };
+  const insertImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      if (input.files && input.files[0]) {
+        const file = input.files[0];
+        const reader = new FileReader();
+        reader.onload = () => {
+          const url = reader.result as string;
+          Transforms.insertNodes(editor, { type: 'image', url, children: [{ text: '' }] });
+          ReactEditor.focus(editor);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
+  };
+
   // Modern floating toolbar with arrow
   return (
     <div
       ref={menuRef}
       className="fixed z-50"
-      style={{ left: position.x, top: position.y }}
+      style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
       onMouseDown={e => e.preventDefault()}
     >
       {/* Arrow */}
@@ -415,8 +490,12 @@ const RichTextContextMenu = ({
           
           {/* Sliding Color Palette */}
           <div
-            className="absolute left-full ml-2 transition-all duration-300 ease-out"
+            className="absolute transition-all duration-300 ease-out"
             style={{
+              left: paletteDirection === 'right' ? '100%' : undefined,
+              right: paletteDirection === 'left' ? '100%' : undefined,
+              marginLeft: paletteDirection === 'right' ? '8px' : undefined,
+              marginRight: paletteDirection === 'left' ? '8px' : undefined,
               width: showTextColorPalette ? '200px' : '0px',
               opacity: showTextColorPalette ? 1 : 0,
               background: '#111113',
@@ -476,8 +555,12 @@ const RichTextContextMenu = ({
           
           {/* Sliding Color Palette */}
           <div
-            className="absolute left-full ml-2 transition-all duration-300 ease-out"
+            className="absolute transition-all duration-300 ease-out"
             style={{
+              left: paletteDirection === 'right' ? '100%' : undefined,
+              right: paletteDirection === 'left' ? '100%' : undefined,
+              marginLeft: paletteDirection === 'right' ? '8px' : undefined,
+              marginRight: paletteDirection === 'left' ? '8px' : undefined,
               width: showHighlighterPalette ? '200px' : '0px',
               opacity: showHighlighterPalette ? 1 : 0,
               background: '#111113',
@@ -519,9 +602,32 @@ const RichTextContextMenu = ({
             </div>
           </div>
         </div>
+
+        {/* Link and Image Buttons */}
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Link"
+          onClick={() => (isLinkActive() ? removeLink() : insertLink())}
+        >
+          {icons.link}
+        </button>
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Image"
+          onClick={insertImage}
+        >
+          {icons.image}
+        </button>
       </div>
     </div>
   );
+};
+
+// Add withLinks plugin to treat 'link' as inline
+const withLinks = (editor: ReactEditor) => {
+  const { isInline } = editor;
+  editor.isInline = element => element.type === 'link' ? true : isInline(element);
+  return editor;
 };
 
 export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClose, setSaving, contextType, onRemoveFromArchive, onRestore, onDeletePermanently }: NoteEditorProps) => {
@@ -539,9 +645,9 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   
   // Slate editor setup - create new editor for each note
   const editor = useMemo(() => {
-    const newEditor = withHistory(withReact(createEditor()));
-    editorRef.current = newEditor;
-    return newEditor;
+    const e = withLinks(withHistory(withReact(createEditor())));
+    editorRef.current = e;
+    return e;
   }, [note.id]);
   const [slateValue, setSlateValue] = useState<Descendant[]>(() => contentToSlateValue(note.content));
 
@@ -553,6 +659,27 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
           <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm my-2" {...props.attributes}>
             <code>{props.children}</code>
           </pre>
+        );
+      case 'link':
+        return (
+          <a
+            {...props.attributes}
+            href={props.element.url}
+            style={{ color: '#2563eb', textDecoration: 'underline', cursor: 'pointer' }}
+            onClick={e => {
+              e.preventDefault();
+              open(props.element.url);
+            }}
+          >
+            {props.children}
+          </a>
+        );
+      case 'image':
+        return (
+          <div {...props.attributes}>
+            <img src={props.element.url} alt="" style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 8, margin: '12px 0' }} />
+            {props.children}
+          </div>
         );
       default:
         return <p {...props.attributes}>{props.children}</p>;
@@ -577,9 +704,9 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     // Inline code styling
     if (leaf.code) {
       children = <code style={{
-        background: '#f4f4f5',
-        color: '#d7263d',
-        borderRadius: 4,
+        background: 'hsl(var(--code-block-background))',
+        color: 'hsl(var(--code-block-text))',
+        borderRadius: 2,
         padding: '2px 6px',
         fontFamily: 'monospace',
         fontSize: '0.95em',

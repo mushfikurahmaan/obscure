@@ -56,6 +56,10 @@ All colors MUST be HSL.
     --sidebar-ring: 217.2 91.2% 59.8%;
     --sidebar-hover: 0 0% 90%; /* light gray for sidebar hover in light mode */
     --topbar-background: 0 0% 89.8%; /* #f1f5f9 for light mode */
+
+    --code-block-background: 0, 0%, 96%;
+    --code-block-text: 0, 0%, 20%;
+
   }
 
   .dark {
@@ -97,6 +101,10 @@ All colors MUST be HSL.
     --sidebar-hover: 220 9% 20%; /* dark gray for sidebar hover in dark mode */
     --context-menu-border: 220 9% 34%; /* #4b5563 for dark mode */
     --topbar-background: 220 4% 15%; /* match dark bg or pick a suitable dark shade */
+
+    --code-block-background: 0, 0%, 18%;
+    --code-block-text: 60, 30%, 96%;
+
   }
 }
 
@@ -122,22 +130,10 @@ body {
   height: 0;
 }
 
-/* Show scrollbars for Radix ScrollArea
-[data-radix-scroll-area-viewport] {
-  scrollbar-width: thin !important;
-}
-[data-radix-scroll-area-viewport]::-webkit-scrollbar {
-  width: 8px !important;
-  height: 8px !important;
-  background: transparent;
-}
-[data-radix-scroll-area-viewport]::-webkit-scrollbar-thumb {
-  background: #444;
-  border-radius: 4px;
-} */
 
 .favorite-icon, .note-icon {
   image-rendering: crisp-edges;
   filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
   shape-rendering: geometricPrecision;
 }
+
