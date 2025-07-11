@@ -6,7 +6,6 @@ import type { Note } from '../pages/Index';
 import { formatRelativeDate } from '../lib/utils';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu';
 import { Box, Trash2, RotateCcw } from 'lucide-react';
-import { color } from 'd3-color';
 
 interface NoteEditorProps {
   note: Note;
@@ -65,29 +64,7 @@ const toggleMark = (editor: Editor, format: string, value?: any) => {
   }
 };
 
-const isBlockActive = (editor: Editor, format: string) => {
-  const { selection } = editor;
-  if (!selection) return false;
 
-  const [match] = Array.from(
-    Editor.nodes(editor, {
-      at: Editor.unhangRange(editor, selection),
-      match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === format,
-    })
-  );
-
-  return !!match;
-};
-
-const toggleBlock = (editor: Editor, format: string) => {
-  const isActive = isBlockActive(editor, format);
-  
-  Transforms.setNodes(
-    editor,
-    { type: isActive ? 'paragraph' : format as 'paragraph' | 'code-block' },
-    { match: n => !Editor.isEditor(n) && SlateElement.isElement(n) }
-  );
-};
 
 // Convert content to Slate value - handles both plain text and rich text JSON
 const contentToSlateValue = (content: string): Descendant[] => {
@@ -137,17 +114,15 @@ const HIGHLIGHTER_COLORS = [
   { name: 'Blue', color: '#87CEEB', darkColor: '#00BFFF' },
   { name: 'Purple', color: '#DDA0DD', darkColor: '#BA55D3' },
 ];
-
 // Text colors
 const TEXT_COLORS = [
-  { name: 'Black', color: '#000000' },
-  { name: 'Blue', color: '#0000FF' },
-  { name: 'Red', color: '#FF0000' },
-  { name: 'Green', color: '#008000' },
-  { name: 'Purple', color: '#800080' },
-  { name: 'Orange', color: '#FFA500' },
+  { name: 'Charcoal', color: '#2E2E2E' },       // Elegant, readable dark gray
+  { name: 'Indigo', color: '#4B4BFF' },          // Calm, modern blue-violet
+  { name: 'Crimson', color: '#DC143C' },         // Bold, vibrant red
+  { name: 'Emerald', color: '#10B981' },         // Popular green with a modern tint
+  { name: 'Royal Purple', color: '#7C3AED' },    // Vivid but not overwhelming
+  { name: 'Amber', color: '#F59E0B' },           // Warm and eye-catching gold-orange
 ];
-
 
 // Rich text context menu component
 const RichTextContextMenu = ({ 
@@ -277,7 +252,42 @@ const RichTextContextMenu = ({
   };
 
   const handleCodeBlock = () => {
-    toggleMark(editor, 'code');
+    const { selection } = editor;
+    if (!selection) return;
+
+    // Check if selection is already inside a code-block
+    const [match] = Editor.nodes(editor, {
+      at: selection,
+      match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'code-block',
+    });
+
+    if (match) {
+      // If already in a code-block, unwrap it
+      Transforms.unwrapNodes(editor, {
+        match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'code-block',
+        split: true,
+        at: selection,
+      });
+    } else {
+      // Otherwise, wrap the selected blocks in a single code-block
+      Transforms.wrapNodes(
+        editor,
+        { type: 'code-block', children: [] },
+        { split: true, at: selection }
+      );
+      // Optionally, set all selected nodes to be type 'paragraph' (or leave as is)
+      Transforms.setNodes(
+        editor,
+        { type: 'paragraph' },
+        {
+          at: selection,
+          match: n =>
+            !Editor.isEditor(n) &&
+            SlateElement.isElement(n) &&
+            n.type !== 'code-block',
+        }
+      );
+    }
     ReactEditor.focus(editor);
     // DON'T close the menu
   };
@@ -727,7 +737,18 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     switch (props.element.type) {
       case 'code-block':
         return (
-          <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md font-mono text-sm my-2" {...props.attributes} style={{ textAlign: alignment }}>
+          <pre
+            className="p-3 rounded-md font-mono text-sm my-2"
+            {...props.attributes}
+            style={{
+              textAlign: alignment,
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+              overflowX: 'auto',
+              background: 'hsl(var(--code-block-background))',
+              color: 'hsl(var(--code-block-text))',
+            }}
+          >
             <code>{props.children}</code>
           </pre>
         );
@@ -964,6 +985,29 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
               spellCheck={true}
               onContextMenu={handleContextMenu}
               onBlur={handleSlateBlur}
+              onKeyDown={event => {
+                if (event.key === 'Enter' && event.shiftKey) {
+                  const { selection } = editor;
+                  if (selection) {
+                    // Check if selection is inside a code-block
+                    const [codeBlockNode, codeBlockPath] = Editor.nodes(editor, {
+                      at: selection,
+                      match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'code-block',
+                    }).next().value || [];
+                    if (codeBlockNode && codeBlockPath) {
+                      event.preventDefault();
+                      // Insert a new paragraph after the code block
+                      const newPath = [...codeBlockPath.slice(0, -1), codeBlockPath[codeBlockPath.length - 1] + 1];
+                      Transforms.insertNodes(
+                        editor,
+                        { type: 'paragraph', children: [{ text: '' }] },
+                        { at: newPath, select: true }
+                      );
+                      return;
+                    }
+                  }
+                }
+              }}
             />
           </Slate>
           
