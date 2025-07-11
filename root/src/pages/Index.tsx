@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import {Plus, Edit, Heart, Loader2, Circle} from 'lucide-react';
+import {Plus, Edit, Bookmark, Loader2, Circle} from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
 import { Button } from '../components/ui/button';
@@ -66,6 +66,11 @@ const EMOJI_LIST = [
   '1f4b0', '1f381', '1f384'
 ];
 
+declare module "react" {
+  interface CSSProperties {
+    WebkitAppRegion?: "drag" | "no-drag";
+  }
+}
 
 
 const Index = () => {
@@ -332,27 +337,27 @@ const Index = () => {
         {/* Replace the top bar section with a relative wrapper and absolutely positioned window controls: */}
         <div className="relative w-full">
           {/* Window Controls: absolutely positioned at top right */}
-          <div className="absolute top-0 right-0 flex items-center gap-1 z-10" style={{ WebkitAppRegion: 'no-drag' }}>
+          <div className="absolute top-0 right-0 flex items-center gap-1 z-10" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
             <button
-              className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors select-none"
+              className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none"
               title="Minimize"
               onClick={async () => { const window = getCurrentWindow(); await window.minimize(); }}
             >
-              <svg width="12" height="2" viewBox="0 0 12 2" fill="none"><rect width="12" height="2" rx="1" fill="currentColor" /></svg>
+              <svg width="12" height="2" viewBox="0 0 12 2" fill="none" style={{ display: 'block', margin: 'auto' }}><rect width="12" height="2" rx="1" fill="currentColor" /></svg>
             </button>
             <button
-              className="w-8 h-8 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors select-none"
+              className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none"
               title="Maximize"
               onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" /></svg>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ display: 'block', margin: 'auto' }}><rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" /></svg>
             </button>
             <button
-              className="w-8 h-8 flex items-center justify-center hover:bg-red-500 hover:text-white rounded transition-colors select-none"
+              className="w-10 h-10 px-0 flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors select-none"
               title="Close"
               onClick={async () => { const window = getCurrentWindow(); await window.close(); }}
             >
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" /><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" strokeWidth="1.5" /></svg>
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ display: 'block', margin: 'auto' }}><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" /><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" strokeWidth="1.5" /></svg>
             </button>
           </div>
           {/* Main Top Bar Content with pt-2 pb-2 */}
@@ -416,7 +421,7 @@ const Index = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-gray-400 hover:text-red-500 hover:bg-gray-700 border-none w-7 h-7 relative"
+                          className="text-gray-400 hover:text-green-500 hover:bg-gray-700 border-none w-7 h-7 relative"
                           aria-label="Favorite"
                           style={{ WebkitAppRegion: 'no-drag' }}
                         >
@@ -428,7 +433,7 @@ const Index = () => {
                               style={{ display: 'inline' }}
                             />
                           ) : (
-                            <Heart className="w-4 h-4" />
+                            <Bookmark className="w-4 h-4" />
                           )}
                         </Button>
                       </div>
