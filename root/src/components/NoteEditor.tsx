@@ -31,6 +31,7 @@ type CustomText = {
   fontSize?: 'small' | 'medium' | 'large' | 'h1' | 'h2' | 'h3';
   color?: string;
   highlight?: boolean;
+  highlightColor?: string;
   code?: boolean;
 }
 
@@ -126,6 +127,16 @@ const slateValueToJSON = (value: Descendant[]): string => {
   return JSON.stringify(value);
 };
 
+// Highlighter colors
+const HIGHLIGHTER_COLORS = [
+  { name: 'Yellow', color: '#FFFF00', darkColor: '#FFD700' },
+  { name: 'Green', color: '#00FF7F', darkColor: '#32CD32' },
+  { name: 'Pink', color: '#FF69B4', darkColor: '#FF1493' },
+  { name: 'Orange', color: '#FF8C00', darkColor: '#FF6347' },
+  { name: 'Blue', color: '#87CEEB', darkColor: '#00BFFF' },
+  { name: 'Purple', color: '#DDA0DD', darkColor: '#BA55D3' },
+];
+
 // Rich text context menu component
 const RichTextContextMenu = ({ 
   editor, 
@@ -138,6 +149,24 @@ const RichTextContextMenu = ({
   position: { x: number; y: number };
   onClose: () => void;
 }) => {
+  const [showHighlighterPalette, setShowHighlighterPalette] = useState(false);
+  const [selectedHighlightColor, setSelectedHighlightColor] = useState(HIGHLIGHTER_COLORS[0].color);
+  const highlighterRef = useRef<HTMLDivElement>(null);
+
+  // Fix: Always call useEffect, but handle the conditional logic inside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (highlighterRef.current && !highlighterRef.current.contains(e.target as Node)) {
+        setShowHighlighterPalette(false);
+      }
+    };
+
+    if (showHighlighterPalette) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showHighlighterPalette]);
+
   if (!isVisible) return null;
 
   // Icon SVGs (inline for simplicity)
@@ -172,10 +201,38 @@ const RichTextContextMenu = ({
     onClose();
   };
 
-  const handleHighlight = () => {
-    toggleMark(editor, 'highlight');
+  const handleHighlight = (color?: string) => {
+    const colorToUse = color || selectedHighlightColor;
+    
+    // Check if already highlighted
+    const marks = Editor.marks(editor);
+    const isHighlighted = marks?.highlight;
+    
+    if (isHighlighted) {
+      // Remove highlight
+      Editor.removeMark(editor, 'highlight');
+      Editor.removeMark(editor, 'highlightColor');
+    } else {
+      // Add highlight with color
+      Editor.addMark(editor, 'highlight', true);
+      Editor.addMark(editor, 'highlightColor', colorToUse);
+    }
+    
     ReactEditor.focus(editor);
+    if (!color) { // Only close if not selecting a color
     onClose();
+    }
+  };
+
+  const handleHighlighterClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowHighlighterPalette(!showHighlighterPalette);
+  };
+
+  const handleColorSelect = (color: string) => {
+    setSelectedHighlightColor(color);
+    handleHighlight(color);
+    setShowHighlighterPalette(false);
   };
 
   // Modern floating toolbar with arrow
@@ -198,9 +255,10 @@ const RichTextContextMenu = ({
       }}>
         <svg width="16" height="8"><polygon points="8,0 16,8 0,8" fill="#222"/></svg>
       </div>
-      {/* Toolbar */}
+      
+      {/* Main Toolbar */}
       <div
-        className="flex items-center gap-1 rounded-lg shadow-xl px-2 py-1"
+        className="flex items-center gap-1 rounded-lg shadow-xl px-2 py-1 relative"
         style={{
           background: 'rgba(34,34,34,0.98)',
           borderRadius: 8,
@@ -208,67 +266,112 @@ const RichTextContextMenu = ({
         }}
       >
         
-      {/* Text Size Buttons */}
-      <button
-        className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-        title="Heading 1"
-        onClick={() => { toggleMark(editor, 'fontSize', 'h1'); ReactEditor.focus(editor); onClose(); }}
-        style={{lineHeight: 1}}
-      >
-        H1
+        {/* Text Size Buttons */}
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Heading 1"
+          onClick={() => { toggleMark(editor, 'fontSize', 'h1'); ReactEditor.focus(editor); onClose(); }}
+          style={{lineHeight: 1}}
+        >
+          H1
       </button>
       <button
-        className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-        title="Heading 2"
-        onClick={() => { toggleMark(editor, 'fontSize', 'h2'); ReactEditor.focus(editor); onClose(); }}
-        style={{lineHeight: 1}}
-      >
-        H2
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Heading 2"
+          onClick={() => { toggleMark(editor, 'fontSize', 'h2'); ReactEditor.focus(editor); onClose(); }}
+          style={{lineHeight: 1}}
+        >
+          H2
       </button>
       <button
-        className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-        title="Heading 3"
-        onClick={() => { toggleMark(editor, 'fontSize', 'h3'); ReactEditor.focus(editor); onClose(); }}
-        style={{lineHeight: 1}}
-      >
-        H3
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Heading 3"
+          onClick={() => { toggleMark(editor, 'fontSize', 'h3'); ReactEditor.focus(editor); onClose(); }}
+          style={{lineHeight: 1}}
+        >
+          H3
       </button>
       
       <button
-          className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
-          title="Bold"
-          onClick={() => handleMark('bold')}
+            className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
+            title="Bold"
+            onClick={() => handleMark('bold')}
       >
-          {icons.bold}
+            {icons.bold}
       </button>
       <button
-          className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
-          title="Italic"
-          onClick={() => handleMark('italic')}
+            className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
+            title="Italic"
+            onClick={() => handleMark('italic')}
       >
-          {icons.italic}
+            {icons.italic}
       </button>
       <button
-          className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
-          title="Underline"
-          onClick={() => handleMark('underline')}
+            className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
+            title="Underline"
+            onClick={() => handleMark('underline')}
       >
-          {icons.underline}
+            {icons.underline}
       </button>
       <button
-          className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
-          title="Code Block"
-          onClick={handleCodeBlock}
+            className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
+            title="Code Block"
+            onClick={handleCodeBlock}
       >
-          {icons.code}
+            {icons.code}
       </button>
+        
+        {/* Highlighter with Color Palette */}
+        <div ref={highlighterRef} className="relative">
       <button
-          className="p-1 text-gray-200 hover:bg-gray-700 rounded transition"
-          title="Highlight"
-        onClick={handleHighlight}
-      >
-          {icons.highlight}
+              className="p-1 text-gray-200 hover:bg-gray-700 rounded transition relative"
+              title="Highlight"
+              onClick={handleHighlighterClick}
+          >
+              {icons.highlight}
+              {/* Color indicator */}
+              <div 
+                className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-1 rounded-full"
+                style={{ backgroundColor: selectedHighlightColor }}
+              />
       </button>
+      
+          {/* Sliding Color Palette */}
+          <div
+            className="absolute left-full top-0 ml-2 overflow-hidden transition-all duration-300 ease-out"
+            style={{
+              width: showHighlighterPalette ? '200px' : '0px',
+              opacity: showHighlighterPalette ? 1 : 0,
+            }}
+          >
+            <div
+              className="flex items-center gap-2 rounded-lg shadow-xl px-3 py-2 whitespace-nowrap"
+              style={{
+                background: 'rgba(34,34,34,0.98)',
+                borderRadius: 8,
+                boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+                minWidth: '200px',
+              }}
+            >
+              {HIGHLIGHTER_COLORS.map((highlighter, index) => (
+      <button
+                  key={index}
+                  className="w-6 h-6 rounded-full border-2 border-gray-600 hover:border-gray-400 transition-colors flex-shrink-0"
+                  style={{ backgroundColor: highlighter.color }}
+                  title={highlighter.name}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleColorSelect(highlighter.color);
+                  }}
+                >
+                  {selectedHighlightColor === highlighter.color && (
+                    <div className="w-full h-full rounded-full border-2 border-white" />
+                  )}
+      </button>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -360,8 +463,9 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     }
     
     if (leaf.highlight) {
-      style.backgroundColor = '#abff32';
-      style.color = "#000"
+      // Use the custom highlight color if available, otherwise fall back to default
+      style.backgroundColor = leaf.highlightColor || '#FFFF00';
+      style.color = "#000";
     }
     
     return (
