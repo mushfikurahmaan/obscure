@@ -3,20 +3,11 @@ import {Plus, Edit, Heart, Loader2, Circle} from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
 import { Button } from '../components/ui/button';
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
 import { DeletedNotesGrid } from '../components/DeletedNotesGrid';
 import { ArchiveNotesGrid } from '../components/ArchiveNotesGrid';
 import "../styles/scroll-thumb-only.css";
+// ContextMenu import removed; only DropdownMenu is used for favorite button
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '../components/ui/dropdown-menu';
 
 export interface Note {
   id: string;
@@ -34,28 +25,47 @@ export interface Note {
 
 // Add Twemoji CDN for rendering SVGs
 const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/';
+
 const EMOJI_LIST = [
-  '1f60d', // 😍
-  '1f60a', // 😊
-  '1f609', // 😉
-  '1f618', // 😘
-  '1f970', // 🥰
-  '1f60e', // 😎
-  '1f44d', // 👍
-  '1f389', // 🎉
-  '1f525', // 🔥
-  '1f499', // 💙
-  '1f49a', // 💚
-  '1f49b', // 💛
-  '1f49c', // 💜
-  '1f494', // 💔
-  '1f44f', // 👏
-  '1f604', // 😄
-  '1f622', // 😢
-  '1f62d', // 😭
-  '1f631', // 😱
-  '1f62e', // 😮
+  // Work, Code, Notes, Important, Relevant
+  '1f4dd', '1f4cb', '1f4c4', '1f4c3', '1f4d1', '1f4c8', '1f4c9', '1f4ca', '1f4bb',
+  '1f5a5', '1f4f1', '1f4e2', '1f4cc', '1f4cd', '1f512', '1f513', '1f4ac', '1f4ad',
+  '1f4a1', '1f4e3', '1f6e0', '2696', '1f4b8',
+
+  // Smileys & Emotion
+  '1f600', '1f603', '1f604', '1f601', '1f606', '1f605', '1f923', '1f602', '1f642', '1f643',
+  '1f609', '1f60a', '1f607', '1f60d', '1f929', '1f618', '1f617', '263a', '1f61a', '1f619',
+  '1f972', '1f60b', '1f61b', '1f61c', '1f92a', '1f61d', '1f911', '1f917', '1f92d', '1f92b',
+  '1f914', '1f910', '1f928', '1f610', '1f611', '1f636', '1f60f', '1f612', '1f644', '1f62c',
+  '1f925', '1f60c', '1f614', '1f62a', '1f924', '1f634', '1f637', '1f912', '1f915', '1f922',
+  '1f92e', '1f927', '1f975', '1f976', '1f974', '1f635', '1f92f', '1f920', '1f973', '1f60e',
+  '1f913',
+
+  // Hearts & Love
+  '1f970', '1f496', '1f495', '1f49e', '1f493', '1f497', '1f49f', '1f49c', '1f49b', '1f49a',
+  '1f499', '1f49d', '1f494',
+
+  // Gestures
+  '1f44d', '1f44e', '1f44c', '1f44a', '1f91b', '1f91c', '1f91e', '1f91f', '1f918', '1f919',
+  '1f590', '270b', '1f596', '1f44f',
+
+  // Party & Fun
+  '1f389', '1f973', '1f38a', '1f388', '1f381', '1f525', '1f4af', '1f4ab', '1f31f',
+
+  // Animals
+  '1f436', '1f431', '1f42d', '1f439', '1f430', '1f98a', '1f43b', '1f43c', '1f428',
+  '1f42f', '1f981', '1f42e',
+
+  // Food
+  '1f354', '1f35f', '1f355', '1f32e', '1f32d', '1f37f', '1f36a', '1f382', '1f370',
+  '1f36b', '1f36c', '1f36d',
+
+  // Miscellaneous
+  '1f680', '1f697', '1f3c1', '1f3c6', '1f947', '1f948', '1f949', '1f451', '1f48e',
+  '1f4b0', '1f381', '1f384'
 ];
+
+
 
 const Index = () => {
   const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
@@ -115,12 +125,15 @@ const Index = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [favoriteDialogOpen, setFavoriteDialogOpen] = useState(false);
+  const [] = useState(false);
   const [favoriteEmoji, setFavoriteEmoji] = useState('');
   const [] = useState<{ id: string; title: string; emoji: string }[]>([]);
 
   const [viewingDeleted, setViewingDeleted] = useState(false);
   const [viewingArchived, setViewingArchived] = useState(false);
+
+  // Control open state for favorite dropdown menu
+  const [favoriteMenuOpen, setFavoriteMenuOpen] = useState(false);
 
   // Sync editorTitle with selectedNote when switching notes
   useEffect(() => {
@@ -368,8 +381,9 @@ const Index = () => {
           {/* Right side: favorite button card and stats card */}
           {!viewingArchived && !viewingDeleted && selectedNote && (
             <div className="flex items-center ml-4 gap-3">
-              <Dialog open={favoriteDialogOpen} onOpenChange={setFavoriteDialogOpen}>
-                <DialogTrigger asChild>
+              {/* Favorite Button with Dropdown Menu */}
+              <DropdownMenu open={favoriteMenuOpen} onOpenChange={setFavoriteMenuOpen}>
+                <DropdownMenuTrigger asChild>
                   <div className="flex items-center px-2 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer" style={{ minHeight: '2.25rem' }}>
                     <Button
                       variant="ghost"
@@ -389,62 +403,46 @@ const Index = () => {
                       )}
                     </Button>
                   </div>
-                </DialogTrigger>
-                {selectedNote && (
-                  <DialogContent className="sm:max-w-[340px] bg-background text-[hsl(var(--foreground))]"
-                    data-theme={theme}
-                  >
-                    <DialogHeader>
-                      <DialogTitle className="text-[hsl(var(--foreground))]">Favorite Note</DialogTitle>
-                      <DialogDescription className="text-[hsl(var(--muted-foreground))]">
-                        Add this note to your favorites and pick an emoji.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4">
-                      <div className="grid gap-2">
-                        <div className="flex items-center gap-2">
-                          <Label className="text-[hsl(var(--muted-foreground))]" style={{ minWidth: 40 }}>Title:</Label>
-                          <span
-                            className="font-medium text-base"
-                            style={{
-                              color: '#fff',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              maxWidth: 180,
-                              display: 'inline-block',
-                            }}
-                            title={selectedNote.title || 'Untitled Note'}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-[340px] bg-background text-[hsl(var(--foreground))] rounded-2xl">
+                  <div className="px-4 py-2">
+                    <div className="font-semibold text-base mb-1">Favorite Note</div>
+                    <div className="text-[hsl(var(--muted-foreground))] mb-3">Add this note to your favorites and pick an emoji.</div>
+                    {/* Title removed as requested */}
+                    <div className="mb-3">
+                      <div
+                        className="flex flex-wrap gap-2"
+                        style={{ maxHeight: 180, overflowY: 'auto', minHeight: 40 }}
+                      >
+                        {EMOJI_LIST.map(code => (
+                          <button
+                            key={code}
+                            type="button"
+                            className={`rounded-md border ${favoriteEmoji === code ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
+                            onClick={() => setFavoriteEmoji(code)}
+                            style={{ background: 'none' }}
                           >
-                            {selectedNote.title || 'Untitled Note'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="grid gap-2">
-                        <Label style={{ color: '#bbb' }}>Pick an emoji</Label>
-                        <div className="flex flex-wrap gap-2">
-                          {EMOJI_LIST.map(code => (
-                            <button
-                              key={code}
-                              type="button"
-                              className={`rounded-md border ${favoriteEmoji === code ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
-                              onClick={() => setFavoriteEmoji(code)}
-                              style={{ background: 'none' }}
-                            >
-                              <img src={`${TWEMOJI_BASE}${code}.svg`} alt="emoji" style={{ width: 28, height: 28 }} />
-                            </button>
-                          ))}
-                        </div>
+                            <img src={`${TWEMOJI_BASE}${code}.svg`} alt="emoji" style={{ width: 28, height: 28 }} />
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    <DialogFooter>
-                      <DialogClose asChild>
-                        <Button variant="outline" type="button" className="bg-background text-[hsl(var(--muted-foreground))] border border-border" onClick={() => setFavoriteEmoji('')}>Cancel</Button>
-                      </DialogClose>
-                      <Button
+                    <div className="flex justify-end gap-2 mt-4">
+                      <button
+                        type="button"
+                        className="bg-background text-[hsl(var(--muted-foreground))] border border-border rounded px-3 py-1"
+                        onClick={() => setFavoriteMenuOpen(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
                         type="button"
                         disabled={!favoriteEmoji}
-                        className={favoriteEmoji ? 'bg-orange-600 text-white border-none' : 'bg-muted text-[hsl(var(--muted-foreground))] border-none'}
+                        className={
+                          favoriteEmoji
+                            ? 'border-none rounded px-3 py-1 bg-white text-black dark:bg-[#18181b] dark:text-white'
+                            : 'bg-muted text-[hsl(var(--muted-foreground))] border-none rounded px-3 py-1'
+                        }
                         onClick={() => {
                           if (selectedNote) {
                             setNotes(notes => {
@@ -455,16 +453,16 @@ const Index = () => {
                               return updated;
                             });
                           }
-                          setFavoriteDialogOpen(false);
                           setFavoriteEmoji('');
                         }}
                       >
                         Save
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                )}
-              </Dialog>
+                      </button>
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {/* End Favorite Button with Dropdown Menu */}
               <div className="flex items-center px-4 py-1 rounded-xl bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))]" style={{ minHeight: '2.25rem' }}>
                 <span className="mr-4">Words: {selectedNote.content ? selectedNote.content.trim().split(/\s+/).filter(Boolean).length : 0}</span>
                 <span className="mr-4">Chars: {selectedNote.content ? selectedNote.content.length : 0}</span>

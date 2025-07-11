@@ -255,9 +255,6 @@ const RichTextContextMenu = ({
     link: (
       <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
     ),
-    image: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-image-icon w-4 h-4"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-    ),
     alignLeft: (
       <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
     ),
@@ -378,24 +375,6 @@ const RichTextContextMenu = ({
   const isLinkActive = () => {
     const [match] = Editor.nodes(editor, { match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link' });
     return !!match;
-  };
-  const insertImage = () => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = async () => {
-      if (input.files && input.files[0]) {
-        const file = input.files[0];
-        const reader = new FileReader();
-        reader.onload = () => {
-          const url = reader.result as string;
-          Transforms.insertNodes(editor, { type: 'image', url, children: [{ text: '' }] });
-          ReactEditor.focus(editor);
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-    input.click();
   };
 
   const getActiveAlignment = () => {
@@ -701,20 +680,13 @@ const RichTextContextMenu = ({
           </div>
         </div>
 
-        {/* Link and Image Buttons */}
+        {/* Link Button */}
         <button
           className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
           title="Link"
           onClick={() => (isLinkActive() ? removeLink() : insertLink())}
         >
           {icons.link}
-        </button>
-        <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-          title="Image"
-          onClick={insertImage}
-        >
-          {icons.image}
         </button>
       </div>
     </div>
