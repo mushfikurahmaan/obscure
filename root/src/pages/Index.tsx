@@ -423,42 +423,17 @@ const Index = () => {
                     Trashed Notes
                   </span>
                   {/* Empty Trash Button */}
-                  <AlertDialog open={emptyTrashDialogOpen} onOpenChange={setEmptyTrashDialogOpen}>
-                    <AlertDialogTrigger asChild>
-                      <div className="px-2 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm flex items-center" style={{ minHeight: '2.25rem' }}>
-                        <button
-                          className="flex items-center justify-center rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors p-1"
-                          title="Empty Trash"
-                          style={{ WebkitAppRegion: 'no-drag' }}
-                          aria-label="Empty Trash"
-                          disabled={deletedNotes.length === 0}
-                        >
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </button>
-                      </div>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Empty Trash?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to empty your trash? This will permanently delete all notes in the trash. This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          className="bg-red-600 hover:bg-red-700 text-white"
-                          onClick={() => {
-                            setNotes(notes.filter(note => !note.deleted));
-                            setSelectedNote(null);
-                            setEmptyTrashDialogOpen(false);
-                          }}
-                        >
-                          Empty Trash
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900 border-none w-7 h-7"
+                    onClick={() => setEmptyTrashDialogOpen(true)}
+                    title="Empty Trash"
+                    aria-label="Empty Trash"
+                    disabled={deletedNotes.length === 0}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
                 </div>
               ) : selectedNote && (
                 <>
@@ -649,6 +624,33 @@ const Index = () => {
           )}
         </div>
       </div>
+      {/* Replace the AlertDialog for empty trash with a styled popup */}
+      {emptyTrashDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+            <div className="text-2xl font-bold mb-2 text-center">Empty Trash?</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">Are you sure you want to empty your trash? This will permanently delete all notes in the trash. This action cannot be undone.</div>
+            <div className="flex flex-col w-full gap-3 mt-2">
+              <button
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60"
+                onClick={() => setEmptyTrashDialogOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-red-700 transition disabled:opacity-60 bg-red-600 text-white"
+                onClick={() => {
+                  setNotes(notes.filter(note => !note.deleted));
+                  setSelectedNote(null);
+                  setEmptyTrashDialogOpen(false);
+                }}
+              >
+                Empty Trash
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

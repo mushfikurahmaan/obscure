@@ -90,10 +90,6 @@ const Login = ({ onLogin }: LoginProps) => {
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ display: 'block', margin: 'auto' }}><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" /><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" strokeWidth="1.5" /></svg>
         </button>
       </div>
-      {/* Left: Image/Illustration */}
-      <div className="hidden md:flex h-full w-[50vw] max-w-[720px] min-w-[320px] flex-none items-stretch justify-stretch p-0 m-0" style={{ WebkitAppRegion: 'drag' }}>
-        <img src={notesImg} alt="Welcome" className="w-full h-full object-cover" style={{ WebkitAppRegion: 'drag' }} />
-      </div>
       {/* Right: Login Card */}
       <div className="flex-1 h-full flex items-center justify-center p-6 bg-white dark:bg-background" style={{ WebkitAppRegion: 'drag' }}>
         <form

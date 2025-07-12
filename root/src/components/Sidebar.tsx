@@ -273,6 +273,32 @@ export const Sidebar = ({
     }
   };
 
+  // Helper to reset all change password dialog fields
+  const resetChangePwDialog = () => {
+    setCurrentPw('');
+    setNewPw('');
+    setConfirmNewPw('');
+    setChangePwError('');
+    setShowCurrentPw(false);
+    setShowNewPw(false);
+    setShowConfirmNewPw(false);
+  };
+
+  // Helper to reset import dialog fields
+  const resetImportDialog = () => {
+    setImportFile(null);
+    setImportPassword('');
+    setImportError('');
+    setImportLoading(false);
+  };
+  // Helper to reset export dialog fields
+  const resetExportDialog = () => {
+    setExportJsonPassword('');
+    setExportJsonError('');
+    setShowPassword(false);
+    setExportingType(null);
+  };
+
   return (
     <div 
       ref={sidebarRef} // <-- Attach ref to sidebar container
@@ -607,13 +633,23 @@ export const Sidebar = ({
       </div>
       {/* Confirm dialog for clear all data */}
       {confirmClearOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-background rounded-lg shadow-lg p-6 w-80 flex flex-col items-center">
-            <div className="text-lg font-semibold mb-2">Delete all data?</div>
-            <div className="text-sm text-muted-foreground mb-4 text-center">This will permanently delete all your notes and settings from this device. This action cannot be undone.</div>
-            <div className="flex gap-3 mt-2">
-              <button className="px-4 py-1 rounded bg-muted text-foreground" onClick={() => setConfirmClearOpen(false)}>Cancel</button>
-              <button className="px-4 py-1 rounded bg-red-600 text-white" onClick={handleClearAllData}>Delete</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+            <div className="text-2xl font-bold mb-2 text-center">Delete all data?</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">This will permanently delete all your notes and settings from this device. This action cannot be undone.</div>
+            <div className="flex flex-col w-full gap-3 mt-2">
+              <button
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60"
+                onClick={() => setConfirmClearOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-red-700 transition disabled:opacity-60 bg-red-600 text-white"
+                onClick={handleClearAllData}
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
@@ -711,7 +747,7 @@ export const Sidebar = ({
               </button>
               {exportJsonError && <div className="text-red-500 text-xs mt-1 text-center">{exportJsonError}</div>}
             </div>
-            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => setExportDialogOpen(false)} disabled={exportingType !== null}>Cancel</button>
+            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setExportDialogOpen(false); resetExportDialog(); }} disabled={exportingType !== null}>Cancel</button>
           </div>
         </div>
       )}
@@ -767,7 +803,7 @@ export const Sidebar = ({
                 </>
               )}
             </button>
-            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => setImportDialogOpen(false)} disabled={importLoading}>Cancel</button>
+            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setImportDialogOpen(false); resetImportDialog(); }} disabled={importLoading}>Cancel</button>
           </div>
         </div>
       )}
@@ -877,7 +913,7 @@ export const Sidebar = ({
                 <>Change Password</>
               )}
             </button>
-            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => setChangePwDialogOpen(false)} disabled={changePwLoading}>Cancel</button>
+            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setChangePwDialogOpen(false); resetChangePwDialog(); }} disabled={changePwLoading}>Cancel</button>
           </div>
         </div>
       )}
