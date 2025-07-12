@@ -9,6 +9,9 @@ module.exports = {
         colors: {
           background: 'hsl(var(--background))',
           foreground: 'hsl(var(--foreground))',
+          windowgray: '#333333',
+          windowred : '#e81123',
+          windowlight: '#e5e5e5',
         },
         borderColor: {
           border: 'hsl(var(--border))',

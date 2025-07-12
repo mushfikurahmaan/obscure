@@ -328,21 +328,21 @@ const Index = () => {
           {/* Window Controls: absolutely positioned at top right */}
           <div className="absolute top-0 right-0 flex items-center gap-1 z-10" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
             <button
-              className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none"
+              className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
               title="Minimize"
               onClick={async () => { const window = getCurrentWindow(); await window.minimize(); }}
             >
               <svg width="12" height="2" viewBox="0 0 12 2" fill="none" style={{ display: 'block', margin: 'auto' }}><rect width="12" height="2" rx="1" fill="currentColor" /></svg>
             </button>
             <button
-              className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors select-none"
+              className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
               title="Maximize"
               onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ display: 'block', margin: 'auto' }}><rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" /></svg>
             </button>
             <button
-              className="w-10 h-10 px-0 flex items-center justify-center hover:bg-red-600 hover:text-white transition-colors select-none"
+              className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowred hover:text-white transition-colors select-none"
               title="Close"
               onClick={async () => { const window = getCurrentWindow(); await window.close(); }}
             >
