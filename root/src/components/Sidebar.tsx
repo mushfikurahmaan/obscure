@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, Plus, Trash2, Settings, NotebookText, Archive, NotebookPen, Sun, Moon, Laptop, Lock, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, FileLock, FileDown} from 'lucide-react';
 import { Button } from './ui/button';
 import type { Note } from '../pages/Index';
@@ -53,19 +53,65 @@ export const Sidebar = ({
   setTheme,
 }: SidebarProps) => {
   const [, setHoveredNote] = useState<string | null>(null);
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null); // <-- Add ref for sidebar
 
   const getLocalEmojiPath = (filename: string) => filename || '';
 
+  // Handle search activation
+  const handleSearchClick = () => {
+    setIsSearchActive(true);
+    // Focus the input after the animation completes
+    setTimeout(() => {
+      if (searchInputRef.current) {
+        searchInputRef.current.focus();
+      }
+    }, 250);
+  };
+
+  // Handle click outside to close search (now checks for sidebar, not just input)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isSearchActive &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node)
+      ) {
+        setIsSearchActive(false);
+        setSearchQuery('');
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSearchActive]);
+
+  // Handle Escape key to close search
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isSearchActive) {
+        setIsSearchActive(false);
+        setSearchQuery('');
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isSearchActive]);
+
   const menuItems = [
     { icon: NotebookPen, label: 'New Note', active: false, onClick: onCreateNote },
-    { icon: Search, label: 'Search', active: false },
   ];
-
-
-  // Remove any useEffect or event listeners related to keyboard shortcuts
 
   return (
     <div 
+      ref={sidebarRef} // <-- Attach ref to sidebar container
       className={`flex flex-col h-screen min-h-0 transition-all duration-200 ${collapsed ? 'w-0 overflow-hidden' : 'w-64'} overflow-hidden bg-[hsl(var(--sidebar-background))] text-[hsl(var(--foreground))] border-r-[1.5px] border-r-[hsl(var(--sidebar-border))]`}
     >
       {/* Top Menu Section */}
@@ -83,6 +129,48 @@ export const Sidebar = ({
               </div>
             </div>
           ))}
+
+          {/* Search with Smooth Transition */}
+          <div className="relative overflow-hidden">
+            <div
+              className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+              onClick={!isSearchActive ? handleSearchClick : undefined}
+            >
+              <div className="flex items-center w-full relative">
+                {/* Search Icon - Always Fixed */}
+                <Search className="w-4 h-4 flex-shrink-0 z-20 relative" />
+                
+                {/* Container for sliding elements */}
+                <div className="flex-1 ml-3 relative h-5 overflow-hidden">
+                  {/* Search Label - Slides out to left */}
+                  <span 
+                    className={`font-normal absolute left-0 top-0 whitespace-nowrap transition-all duration-300 ease-in-out ${
+                      isSearchActive 
+                        ? 'transform -translate-x-full opacity-0' 
+                        : 'transform translate-x-0 opacity-100'
+                    }`}
+                  >
+                    Search
+                  </span>
+                  
+                  {/* Search Input - Slides in from right */}
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className={`absolute left-0 top-0 w-full bg-transparent border-none outline-none text-[hsl(var(--sidebar-foreground))] placeholder-[hsl(var(--sidebar-foreground))] placeholder-opacity-60 transition-all duration-300 ease-in-out ${
+                      isSearchActive 
+                        ? 'transform translate-x-0 opacity-100 pointer-events-auto' 
+                        : 'transform translate-x-full opacity-0 pointer-events-none'
+                    }`}
+                    placeholder="Search notes..."
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Archive Button (main menu) */}
           <div
             className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
@@ -283,14 +371,27 @@ export const Sidebar = ({
           </Button>
         </div>
         <div className="space-y-1 flex-1 min-h-0 overflow-y-auto">
-          {notes.filter(note => !note.deleted && !note.archived).map((note) => (
+          {notes
+            .filter(note => !note.deleted && !note.archived)
+            .filter(note => {
+              // Filter by search query if search is active
+              if (isSearchActive && searchQuery) {
+                return note.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                       note.content?.toLowerCase().includes(searchQuery.toLowerCase());
+              }
+              return true;
+            })
+            .map((note) => (
             <ContextMenu key={note.id}>
               <ContextMenuTrigger asChild>
                 <div
                   className={`flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
                     selectedNote && note.id === selectedNote.id ? 'bg-gray-700 text-[hsl(var(--foreground))]' : 'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]'
                   }`}
-                  onClick={() => onNoteSelect(note)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onNoteSelect(note);
+                  }}
                   onMouseEnter={() => setHoveredNote(note.id)}
                   onMouseLeave={() => setHoveredNote(null)}
                 >
@@ -317,7 +418,10 @@ export const Sidebar = ({
                 </ContextMenuSub>
                 {/* Archive Item */}
                 <ContextMenuItem
-                  onClick={() => onArchiveNote(note.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onArchiveNote(note.id);
+                  }}
                   className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-yellow-500 hover:text-yellow-400 hover:bg-[hsl(var(--sidebar-hover))]"
                 >
                   <Archive className="w-4 h-4 mr-2" />
@@ -325,7 +429,10 @@ export const Sidebar = ({
                 </ContextMenuItem>
                 {/* Trash Item */}
                 <ContextMenuItem
-                  onClick={() => onDeleteNote(note.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeleteNote(note.id);
+                  }}
                   className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-red-400 hover:text-red-300 hover:bg-[hsl(var(--sidebar-hover))]"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
