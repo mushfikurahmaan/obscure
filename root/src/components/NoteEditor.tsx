@@ -978,7 +978,7 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
         </div>
 
         {/* Metadata */}
-        <div className="flex items-center space-x-4 mb-4 text-sm text-[hsl(var(--muted-foreground))">
+        <div className="flex items-center space-x-2 mb-4 text-sm text-[hsl(var(--muted-foreground))">
           <span>Created {formatRelativeDate(note.createdAt)}</span>
           <span className="text-[hsl(var(--muted-foreground))]">•</span>
           <span>Last modified {formatRelativeDate(note.updatedAt)}</span>
