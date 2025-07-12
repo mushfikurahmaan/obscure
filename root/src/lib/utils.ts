@@ -52,3 +52,7 @@ export async function importData(fileContent: string): Promise<void> {
 export async function hasDataFile(): Promise<boolean> {
   return await invoke<boolean>('has_data_file');
 }
+
+export async function clearDataFile(): Promise<void> {
+  await invoke('clear_data_file');
+}

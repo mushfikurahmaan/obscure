@@ -12,6 +12,7 @@ const Login = ({ onLogin }: LoginProps) => {
   const navigate = useNavigate();
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('theme');
@@ -46,13 +47,16 @@ const Login = ({ onLogin }: LoginProps) => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setVerifying(true);
+    setError('');
     try {
       await loadData(password);
-      setError('');
-      sessionStorage.setItem('masterPassword', password); // Store for main app
+      sessionStorage.setItem('masterPassword', password);
+      setVerifying(false);
       if (onLogin) onLogin();
       else navigate('/');
     } catch {
+      setVerifying(false);
       setError('Incorrect password.');
     }
   };
@@ -97,8 +101,18 @@ const Login = ({ onLogin }: LoginProps) => {
           onChange={e => setPassword(e.target.value)}
         />
         {error && <div className="text-red-500 text-xs mb-1 w-full">{error}</div>}
-        <Button type="submit" className="w-full h-8 text-sm bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:bg-[hsl(var(--foreground))]/90">
-          Unlock
+        <Button type="submit" className="w-full h-8 text-sm bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:bg-[hsl(var(--foreground))]/90" disabled={verifying}>
+          {verifying ? (
+            <span className="flex items-center justify-center gap-2">
+              <svg className="animate-spin h-4 w-4 mr-1 text-blue-500" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+              Verifying…
+            </span>
+          ) : (
+            'Unlock'
+          )}
         </Button>
       </form>
     </div>

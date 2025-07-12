@@ -36,6 +36,7 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
   const [manualImportFile, setManualImportFile] = useState<File | null>(null);
   const [manualImportPassword, setManualImportPassword] = useState('');
   const [manualImportError, setManualImportError] = useState('');
+  const [manualImportLoading, setManualImportLoading] = useState(false);
 
   // Password validation helpers
   const validatePassword = (pw: string) => {
@@ -86,6 +87,7 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
       return;
     }
     setManualImportError('');
+    setManualImportLoading(true);
     try {
       // Read file as text
       const fileContent = await manualImportFile.text();
@@ -95,9 +97,11 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
       setShowImportManualDialog(false);
       setManualImportFile(null);
       setManualImportPassword('');
+      setManualImportLoading(false);
       if (onSetupComplete) onSetupComplete();
-      else navigate('/');
+      else navigate('/login');
     } catch (e) {
+      setManualImportLoading(false);
       setManualImportError('Failed to decrypt file. Check your password or file.');
     }
   };
@@ -185,9 +189,10 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
               value={importPassword}
               onChange={e => setImportPassword(e.target.value)}
             />
-            <Button variant="outline" className="w-full h-8 text-sm mb-3 bg-black text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 border-none" onClick={() => { setShowImportAuto(false); handleImportAuto(); }} disabled={!importPassword}>
+            {/* Remove the auto import button and logic */}
+            {/* <Button variant="outline" className="w-full h-8 text-sm mb-3 bg-black text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 border-none" onClick={() => { setShowImportAuto(false); handleImportAuto(); }} disabled={!importPassword}>
               Let the App Find Automatically
-            </Button>
+            </Button> */}
             <div className="flex items-center my-2">
               <div className="flex-grow border-t border-border" />
               <span className="mx-2 text-xs text-muted-foreground">or</span>
@@ -233,10 +238,20 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
               <AlertDialogCancel className="text-xs">Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={handleImportManual}
-                disabled={!manualImportFile || !manualImportPassword}
-                className="text-xs cursor-pointer"
+                disabled={!manualImportFile || !manualImportPassword || manualImportLoading}
+                className="text-xs cursor-pointer flex items-center justify-center"
               >
-                Import and Unlock
+                {manualImportLoading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4 mr-1 text-blue-500" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                    Importing…
+                  </span>
+                ) : (
+                  'Import and Unlock'
+                )}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import {Plus, Edit, Bookmark, Loader2, Circle, Trash2} from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import {Plus, Edit, Bookmark, Loader2, Circle, Trash2, Lock} from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
 import { Button } from '../components/ui/button';
@@ -24,6 +24,7 @@ import {
 import { loadData, saveData } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../lib/theme';
+import { Progress } from '../components/ui/progress';
 
 export interface Note {
   id: string;
@@ -55,15 +56,33 @@ const Index = () => {
   const [masterPassword, setMasterPassword] = useState<string | null>(() => sessionStorage.getItem('masterPassword'));
   const navigate = useNavigate();
 
-  // Load notes from secure storage
+  // Debounced save state
+  const [saving, setSaving] = useState(false);
+  const saveTimeout = useRef<NodeJS.Timeout | null>(null);
+  const isFirstLoad = useRef(true);
+  const [loading, setLoading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [notes, setNotes] = useState<Note[]>([]);
+
+  // Load notes from secure storage
   useEffect(() => {
     if (!masterPassword) {
       navigate('/login');
       return;
     }
+    setLoading(true);
+    setProgress(0);
+    // Animate progress bar up to 90% while loading
+    let fakeProgress = 0;
+    const interval = setInterval(() => {
+      fakeProgress = Math.min(fakeProgress + Math.random() * 10, 90);
+      setProgress(fakeProgress);
+    }, 120);
     loadData(masterPassword)
       .then(data => {
+        clearInterval(interval);
+        setProgress(100);
+        setTimeout(() => setLoading(false), 250); // brief pause at 100%
         try {
           const parsed = JSON.parse(data);
           if (Array.isArray(parsed.notes)) {
@@ -78,29 +97,39 @@ const Index = () => {
         } catch {
           setNotes([]);
         }
+        isFirstLoad.current = false;
       })
       .catch(() => {
-        // If decryption fails, force logout
-        sessionStorage.removeItem('masterPassword');
-        navigate('/login');
+        clearInterval(interval);
+        setProgress(100);
+        setTimeout(() => {
+          setLoading(false);
+          sessionStorage.removeItem('masterPassword');
+          navigate('/login', { state: { error: 'Incorrect password.' } });
+        }, 400);
       });
+    return () => clearInterval(interval);
   }, [masterPassword, navigate]);
 
-  // Save notes to secure storage whenever notes change
+  // Debounced save to secure storage whenever notes change (but not on initial load)
   useEffect(() => {
-    if (!masterPassword) return;
-    saveData(masterPassword, JSON.stringify({ notes }))
-      .catch(() => {/* Optionally show error */});
+    if (!masterPassword || isFirstLoad.current) return;
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    setSaving(true);
+    saveTimeout.current = setTimeout(() => {
+      saveData(masterPassword, JSON.stringify({ notes }))
+        .catch(() => {/* Optionally show error */})
+        .finally(() => setSaving(false));
+    }, 500);
+    return () => {
+      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    };
   }, [notes, masterPassword]);
 
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [editorTitle, setEditorTitle] = useState(selectedNote ? selectedNote.title : '');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const [] = useState(false);
   const [favoriteEmoji, setFavoriteEmoji] = useState('');
-  const [] = useState<{ id: string; title: string; emoji: string }[]>([]);
 
   const [viewingDeleted, setViewingDeleted] = useState(false);
   const [viewingArchived, setViewingArchived] = useState(false);
@@ -214,6 +243,13 @@ const Index = () => {
     });
   };
 
+  const handleLock = () => {
+    sessionStorage.removeItem('masterPassword');
+    setNotes([]);
+    setSelectedNote(null);
+    navigate('/login');
+  };
+
   useEffect(() => {
     if (!viewingDeleted) return;
     const handleEsc = (e: KeyboardEvent) => {
@@ -267,6 +303,22 @@ const Index = () => {
     filename.toLowerCase().includes(emojiSearch.toLowerCase())
   );
 
+  if (loading) {
+    return (
+      <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-[hsl(var(--foreground))]">
+        <div className="flex flex-col items-center gap-6">
+          <div className="flex flex-col items-center gap-2">
+            <Lock className="w-10 h-10 text-blue-500 animate-pulse" />
+            <span className="text-xl font-semibold tracking-wide">Decrypting your notes…</span>
+            <span className="text-sm text-muted-foreground">Your data is being securely unlocked</span>
+          </div>
+          <Progress value={progress} className="w-[320px] h-4 bg-secondary" />
+          <span className="text-xs text-muted-foreground mt-2">{Math.round(progress)}%</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex bg-background text-[hsl(var(--foreground))]" data-theme={theme}>
       {/* Sidebar */}
@@ -275,7 +327,7 @@ const Index = () => {
         selectedNote={selectedNote}
         collapsed={sidebarCollapsed}
         isDark={theme === 'dark'}
-        onNoteSelect={note => {
+        onNoteSelect={(note: Note) => {
           setSelectedNote(note);
           setViewingDeleted(false);
           setViewingArchived(false);
@@ -307,6 +359,7 @@ const Index = () => {
           setViewingDeleted(false);
           setSelectedNote(null);
         }}
+        onLock={handleLock}
         deletedCount={deletedNotes.length}
         archivedCount={archivedNotes.length}
         theme={theme}

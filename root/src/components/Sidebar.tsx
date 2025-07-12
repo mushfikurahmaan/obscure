@@ -15,6 +15,7 @@ import {
   ContextMenuRadioItem
 } from './ui/context-menu';
 import { useNavigate } from 'react-router-dom';
+import { clearDataFile, exportData, loadData } from '../lib/utils';
 
 interface SidebarProps {
   notes: Note[];
@@ -35,6 +36,7 @@ interface SidebarProps {
   onArchiveNote: (noteId: string) => void;
   theme: 'light' | 'dark' | 'system';
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
+  onLock: () => void;
 }
 
 export const Sidebar = ({
@@ -52,6 +54,7 @@ export const Sidebar = ({
   onArchiveNote,
   theme,
   setTheme,
+  onLock,
 }: SidebarProps) => {
   const [, setHoveredNote] = useState<string | null>(null);
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -60,6 +63,11 @@ export const Sidebar = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null); // <-- Add ref for sidebar
   const navigate = useNavigate();
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportJsonPassword, setExportJsonPassword] = useState('');
+  const [exportJsonError, setExportJsonError] = useState('');
+  const [exporting, setExporting] = useState(false);
 
   const getLocalEmojiPath = (filename: string) => filename || '';
 
@@ -112,6 +120,60 @@ export const Sidebar = ({
   const menuItems = [
     { icon: NotebookPen, label: 'New Note', active: false, onClick: onCreateNote },
   ];
+
+  const handleClearAllData = async () => {
+    setConfirmClearOpen(false);
+    await clearDataFile();
+    sessionStorage.removeItem('masterPassword');
+    sessionStorage.removeItem('loggedIn');
+    window.location.href = '/'; // reload to onboarding/FirstSetup
+  };
+
+  const handleExportDat = async () => {
+    setExporting(true);
+    try {
+      const fileContent = await exportData();
+      const blob = new Blob([fileContent], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'vault.dat';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      setExportDialogOpen(false);
+    } catch (e) {
+      alert('Failed to export encrypted file.');
+    }
+    setExporting(false);
+  };
+
+  const handleExportJson = async () => {
+    setExporting(true);
+    setExportJsonError('');
+    try {
+      const data = await loadData(exportJsonPassword);
+      const blob = new Blob([data], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'notes.json';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+      setExportDialogOpen(false);
+      setExportJsonPassword('');
+    } catch (e) {
+      setExportJsonError('Incorrect password or corrupt data.');
+    }
+    setExporting(false);
+  };
 
   return (
     <div 
@@ -235,7 +297,7 @@ export const Sidebar = ({
               <ContextMenuSub>
                 <ContextMenuSubTrigger>Security & Privacy</ContextMenuSubTrigger>
                 <ContextMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
-                  <ContextMenuItem onClick={() => { sessionStorage.removeItem('loggedIn'); setTimeout(() => navigate('/'), 10); }}>
+                  <ContextMenuItem onClick={onLock}>
                     <Lock className="mr-2 h-4 w-4" />
                     Lock App
                   </ContextMenuItem>
@@ -244,7 +306,7 @@ export const Sidebar = ({
                     Change master password
                   </ContextMenuItem>
                   <ContextMenuSeparator className='border-t border-[hsl(var(--context-menu-border))]'/>
-                  <ContextMenuItem variant="destructive">
+                  <ContextMenuItem variant="destructive" onClick={() => setConfirmClearOpen(true)}>
                     <Trash className="mr-2 h-4 w-4" />
                     Clear all data
                   </ContextMenuItem>
@@ -254,7 +316,7 @@ export const Sidebar = ({
               <ContextMenuSub>
                 <ContextMenuSubTrigger>Advanced</ContextMenuSubTrigger>
                 <ContextMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
-                  <ContextMenuItem>
+                  <ContextMenuItem onClick={() => setExportDialogOpen(true)}>
                     <Upload className="mr-2 h-4 w-4" />
                     Export notes
                   </ContextMenuItem>
@@ -445,6 +507,56 @@ export const Sidebar = ({
           ))}
         </div>
       </div>
+      {/* Confirm dialog for clear all data */}
+      {confirmClearOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-background rounded-lg shadow-lg p-6 w-80 flex flex-col items-center">
+            <div className="text-lg font-semibold mb-2">Delete all data?</div>
+            <div className="text-sm text-muted-foreground mb-4 text-center">This will permanently delete all your notes and settings from this device. This action cannot be undone.</div>
+            <div className="flex gap-3 mt-2">
+              <button className="px-4 py-1 rounded bg-muted text-foreground" onClick={() => setConfirmClearOpen(false)}>Cancel</button>
+              <button className="px-4 py-1 rounded bg-red-600 text-white" onClick={handleClearAllData}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Export Dialog */}
+      {exportDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-background rounded-lg shadow-lg p-6 w-80 flex flex-col items-center">
+            <div className="text-lg font-semibold mb-2">Export Notes</div>
+            <div className="flex flex-col gap-3 w-full">
+              <button
+                className="w-full px-4 py-2 rounded bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-60"
+                onClick={handleExportDat}
+                disabled={exporting}
+              >
+                {exporting ? 'Exporting…' : 'Export Encrypted (.dat)'}
+              </button>
+              <div className="text-xs text-muted-foreground text-center">or</div>
+              <div className="flex flex-col gap-2">
+                <input
+                  type="password"
+                  className="w-full border rounded px-2 py-1 text-sm"
+                  placeholder="Enter master password for JSON export"
+                  value={exportJsonPassword}
+                  onChange={e => setExportJsonPassword(e.target.value)}
+                  disabled={exporting}
+                />
+                <button
+                  className="w-full px-4 py-2 rounded bg-secondary text-foreground font-medium hover:bg-secondary/80 disabled:opacity-60"
+                  onClick={handleExportJson}
+                  disabled={!exportJsonPassword || exporting}
+                >
+                  {exporting ? 'Exporting…' : 'Export Decrypted (.json)'}
+                </button>
+                {exportJsonError && <div className="text-red-500 text-xs mt-1">{exportJsonError}</div>}
+              </div>
+            </div>
+            <button className="mt-4 text-xs text-muted-foreground hover:underline" onClick={() => setExportDialogOpen(false)} disabled={exporting}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
