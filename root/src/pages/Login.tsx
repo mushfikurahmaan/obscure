@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { loadData } from '../lib/utils';
 import { Eye, EyeOff } from 'lucide-react';
-import notesImg from '../assets/notes.jpg';
+import notesImg from '../assets/notes.png';
 
 interface LoginProps {
   onLogin?: () => void;
@@ -91,14 +91,14 @@ const Login = ({ onLogin }: LoginProps) => {
         </button>
       </div>
       {/* Left: Image/Illustration */}
-      <div className="hidden md:flex h-full aspect-[720/680] max-w-[720px] min-w-[320px] flex-none items-center justify-center" style={{ WebkitAppRegion: 'drag' }}>
-        <img src={notesImg} alt="Welcome" className="w-full h-full object-contain" style={{ WebkitAppRegion: 'drag' }} />
+      <div className="hidden md:flex h-full w-[50vw] max-w-[720px] min-w-[320px] flex-none items-stretch justify-stretch p-0 m-0" style={{ WebkitAppRegion: 'drag' }}>
+        <img src={notesImg} alt="Welcome" className="w-full h-full object-cover" style={{ WebkitAppRegion: 'drag' }} />
       </div>
       {/* Right: Login Card */}
-      <div className="flex-1 h-full flex items-center justify-center p-6 bg-white dark:bg-[#18181b]" style={{ WebkitAppRegion: 'drag' }}>
+      <div className="flex-1 h-full flex items-center justify-center p-6 bg-white dark:bg-background" style={{ WebkitAppRegion: 'drag' }}>
         <form
           onSubmit={handleLogin}
-          className="w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6 bg-white dark:bg-[#18181b]"
+          className="w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6 bg-white dark:bg-background"
           style={{ WebkitAppRegion: 'no-drag' }}
         >
           <div className="flex flex-col items-center gap-2">
@@ -133,23 +133,35 @@ const Login = ({ onLogin }: LoginProps) => {
             </div>
           </div>
           {error && <div className="text-red-500 text-xs text-center -mt-4">{error}</div>}
-          <Button
-            type="submit"
-            className="w-full h-10 text-base font-semibold rounded-lg bg-foreground text-background hover:bg-primary/90 transition"
-            disabled={verifying}
-          >
-            {verifying ? (
-              <span className="flex items-center justify-center gap-2">
-                <svg className="animate-spin h-5 w-5 mr-1 text-blue-500" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                </svg>
-                Signing in…
-              </span>
-            ) : (
-              'Sign In'
-            )}
-          </Button>
+          {verifying ? (
+            <button
+              type="button"
+              className="w-full h-10 flex items-center justify-center text-base font-semibold rounded-lg bg-indigo-500 text-white cursor-not-allowed"
+              disabled
+            >
+              <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="white"
+                  strokeWidth="4"
+                  fill="none"
+                  strokeDasharray="60"
+                  strokeDashoffset="20"
+                />
+              </svg>
+              Verifying…
+            </button>
+          ) : (
+            <Button
+              type="submit"
+              className="w-full h-10 text-base font-semibold rounded-lg bg-foreground text-background hover:bg-primary/90 transition"
+              disabled={verifying}
+            >
+              Sign In
+            </Button>
+          )}
           <div className="flex flex-col items-center gap-2 mt-2">
             <button
               type="button"

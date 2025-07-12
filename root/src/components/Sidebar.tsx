@@ -15,7 +15,7 @@ import {
   ContextMenuRadioItem
 } from './ui/context-menu';
 import { useNavigate } from 'react-router-dom';
-import { clearDataFile, exportData, loadData } from '../lib/utils';
+import { clearDataFile, exportData, loadData, importData } from '../lib/utils';
 import { useTheme } from '../lib/theme';
 
 interface SidebarProps {
@@ -68,8 +68,14 @@ export const Sidebar = ({
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportJsonPassword, setExportJsonPassword] = useState('');
   const [exportJsonError, setExportJsonError] = useState('');
-  const [exporting, setExporting] = useState(false);
+  const [exportingType, setExportingType] = useState<null | 'dat' | 'json'>(null);
   const [showPassword, setShowPassword] = useState(false);
+  // Add import dialog state and related states
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importPassword, setImportPassword] = useState('');
+  const [importError, setImportError] = useState('');
+  const [importLoading, setImportLoading] = useState(false);
 
   const getLocalEmojiPath = (filename: string) => filename || '';
 
@@ -132,7 +138,7 @@ export const Sidebar = ({
   };
 
   const handleExportDat = async () => {
-    setExporting(true);
+    setExportingType('dat');
     try {
       const fileContent = await exportData();
       const blob = new Blob([fileContent], { type: 'application/octet-stream' });
@@ -150,11 +156,11 @@ export const Sidebar = ({
     } catch (e) {
       alert('Failed to export encrypted file.');
     }
-    setExporting(false);
+    setExportingType(null);
   };
 
   const handleExportJson = async () => {
-    setExporting(true);
+    setExportingType('json');
     setExportJsonError('');
     try {
       const data = await loadData(exportJsonPassword);
@@ -174,7 +180,7 @@ export const Sidebar = ({
     } catch (e) {
       setExportJsonError('Incorrect password or corrupt data.');
     }
-    setExporting(false);
+    setExportingType(null);
   };
 
   useEffect(() => {
@@ -183,6 +189,33 @@ export const Sidebar = ({
       return () => clearTimeout(timer);
     }
   }, [exportJsonError]);
+
+  // Add import handler
+  const handleImportNotes = async () => {
+    setImportError('');
+    if (!importFile) {
+      setImportError('Please select a file.');
+      return;
+    }
+    if (!importPassword) {
+      setImportError('Please enter your password.');
+      return;
+    }
+    setImportLoading(true);
+    try {
+      const fileContent = await importFile.text();
+      await importData(fileContent);
+      await loadData(importPassword); // Will throw if password is wrong
+      setImportDialogOpen(false);
+      setImportFile(null);
+      setImportPassword('');
+      setTimeout(() => window.location.reload(), 500); // Reload to reflect imported notes
+    } catch (e) {
+      setImportError('Failed to import. Check your password or file.');
+    } finally {
+      setImportLoading(false);
+    }
+  };
 
   return (
     <div 
@@ -329,7 +362,7 @@ export const Sidebar = ({
                     <Upload className="mr-2 h-4 w-4" />
                     Export notes
                   </ContextMenuItem>
-                  <ContextMenuItem>
+                  <ContextMenuItem onClick={() => setImportDialogOpen(true)}>
                     <Download className="mr-2 h-4 w-4" />
                     Import notes
                   </ContextMenuItem>
@@ -536,12 +569,33 @@ export const Sidebar = ({
             <div className="text-2xl font-bold mb-2 text-center">Export Notes</div>
             <div className="text-sm text-muted-foreground mb-6 text-center">Backup your notes securely or export as readable JSON.</div>
             <button
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-foreground text-background font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-4"
+              className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-4
+                ${exportingType === 'dat' ? 'bg-indigo-500 text-white' : 'bg-foreground text-background'}`}
               onClick={handleExportDat}
-              disabled={exporting}
+              disabled={exportingType !== null}
             >
-              <Lock className="w-5 h-5" />
-              {exporting ? 'Exporting…' : 'Export Encrypted (.dat)'}
+              {exportingType === 'dat' ? (
+                <>
+                  <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="4"
+                      fill="none"
+                      strokeDasharray="60"
+                      strokeDashoffset="20"
+                    />
+                  </svg>
+                  Exporting…
+                </>
+              ) : (
+                <>
+                  <Lock className="w-5 h-5" />
+                  Export Encrypted (.dat)
+                </>
+              )}
             </button>
             <div className="flex items-center w-full my-2">
               <div className="flex-grow border-t border-border" />
@@ -556,7 +610,7 @@ export const Sidebar = ({
                   placeholder="Master password for JSON export"
                   value={exportJsonPassword}
                   onChange={e => setExportJsonPassword(e.target.value)}
-                  disabled={exporting}
+                  disabled={exportingType !== null}
                   autoComplete="current-password"
                 />
                 <button
@@ -564,7 +618,7 @@ export const Sidebar = ({
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                   tabIndex={-1}
                   onClick={() => setShowPassword(v => !v)}
-                  disabled={exporting}
+                  disabled={exportingType !== null}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
@@ -572,16 +626,92 @@ export const Sidebar = ({
               </div>
               <button
                 className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-secondary/80 transition disabled:opacity-60
-    ${theme === 'dark' ? 'bg-foreground text-background' : 'bg-foreground text-background'}`}
+    ${exportingType === 'json' ? 'bg-indigo-500 text-white' : theme === 'dark' ? 'bg-foreground text-background' : 'bg-foreground text-background'}`}
                 onClick={handleExportJson}
-                disabled={!exportJsonPassword || exporting}
+                disabled={!exportJsonPassword || exportingType !== null}
               >
-                <LockOpen className="w-5 h-5" />
-                {exporting ? 'Exporting…' : 'Export Decrypted (.json)'}
+                {exportingType === 'json' ? (
+                  <>
+                    <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="4"
+                        fill="none"
+                        strokeDasharray="60"
+                        strokeDashoffset="20"
+                      />
+                    </svg>
+                    Exporting…
+                  </>
+                ) : (
+                  <>
+                    <LockOpen className="w-5 h-5" />
+                    Export Decrypted (.json)
+                  </>
+                )}
               </button>
               {exportJsonError && <div className="text-red-500 text-xs mt-1 text-center">{exportJsonError}</div>}
             </div>
-            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => setExportDialogOpen(false)} disabled={exporting}>Cancel</button>
+            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => setExportDialogOpen(false)} disabled={exportingType !== null}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {/* Import Dialog */}
+      {importDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+            <div className="text-2xl font-bold mb-2 text-center">Import Notes</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">Restore your notes from a backup file.</div>
+            <input
+              type="file"
+              accept=".dat,.json"
+              className="w-full border rounded-lg px-3 py-2 text-base mb-4 bg-[hsl(var(--background))]"
+              onChange={e => setImportFile(e.target.files?.[0] || null)}
+              disabled={importLoading}
+            />
+            <input
+              type="password"
+              className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
+              placeholder="Master password to decrypt"
+              value={importPassword}
+              onChange={e => setImportPassword(e.target.value)}
+              disabled={importLoading}
+              autoComplete="current-password"
+            />
+            {importError && <div className="text-red-500 text-xs mb-2 text-center">{importError}</div>}
+            <button
+              className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2
+                ${importLoading ? 'bg-indigo-500 text-white' : 'bg-foreground text-background'}`}
+              onClick={handleImportNotes}
+              disabled={!importFile || !importPassword || importLoading}
+            >
+              {importLoading ? (
+                <>
+                  <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="4"
+                      fill="none"
+                      strokeDasharray="60"
+                      strokeDashoffset="20"
+                    />
+                  </svg>
+                  Importing…
+                </>
+              ) : (
+                <>
+                  <Download className="w-5 h-5" />
+                  Import Notes
+                </>
+              )}
+            </button>
+            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => setImportDialogOpen(false)} disabled={importLoading}>Cancel</button>
           </div>
         </div>
       )}
