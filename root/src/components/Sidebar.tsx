@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Trash2, Settings, NotebookText, Archive, NotebookPen, Sun, Moon, Laptop, Lock, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, FileLock, FileDown} from 'lucide-react';
+import { Search, Plus, Trash, Settings, NotebookText, Archive, NotebookPen, Sun, Moon, Laptop, Lock, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, FileLock, FileDown} from 'lucide-react';
 import { Button } from './ui/button';
 import type { Note } from '../pages/Index';
 import {
@@ -55,6 +55,7 @@ export const Sidebar = ({
   const [, setHoveredNote] = useState<string | null>(null);
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeSection, setActiveSection] = useState<string>('notes'); // Track active sidebar section
   const searchInputRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null); // <-- Add ref for sidebar
 
@@ -63,6 +64,7 @@ export const Sidebar = ({
   // Handle search activation
   const handleSearchClick = () => {
     setIsSearchActive(true);
+    setActiveSection('search');
     // Focus the input after the animation completes
     setTimeout(() => {
       if (searchInputRef.current) {
@@ -117,23 +119,20 @@ export const Sidebar = ({
       {/* Top Menu Section */}
       <div className="px-3 py-2">
         <div className="space-y-1">
-          {menuItems.map((item) => (
-            <div
-              key={item.label}
-              className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
-              onClick={item.onClick}
-            >
-              <div className="flex items-center space-x-3">
-                <item.icon className="w-4 h-4" />
-                <span className="font-normal">{item.label}</span>
-              </div>
+          {/* New Note Button */}
+          <div
+            className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'new' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+            onClick={() => { onCreateNote(); setActiveSection('new'); }}
+          >
+            <div className="flex items-center space-x-3">
+              <NotebookPen className="w-4 h-4" />
+              <span className="font-normal">New Note</span>
             </div>
-          ))}
-
+          </div>
           {/* Search with Smooth Transition */}
           <div className="relative overflow-hidden">
             <div
-              className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+              className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'search' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
               onClick={!isSearchActive ? handleSearchClick : undefined}
             >
               <div className="flex items-center w-full relative">
@@ -170,11 +169,10 @@ export const Sidebar = ({
               </div>
             </div>
           </div>
-
           {/* Archive Button (main menu) */}
           <div
-            className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
-            onClick={onArchivedClick}
+            className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'archive' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+            onClick={() => { onArchivedClick(); setActiveSection('archive'); }}
           >
             <div className="flex items-center space-x-3">
               <Archive className="w-4 h-4" />
@@ -194,7 +192,8 @@ export const Sidebar = ({
           <ContextMenu>
             <ContextMenuTrigger asChild>
             <div
-              className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+              className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'settings' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+              onClick={() => setActiveSection('settings')}
             >
               <div className="flex items-center space-x-3">
                   <Settings className="w-4 h-4" />
@@ -244,7 +243,7 @@ export const Sidebar = ({
                   </ContextMenuItem>
                   <ContextMenuSeparator className='border-t border-[hsl(var(--context-menu-border))]'/>
                   <ContextMenuItem variant="destructive">
-                    <Trash2 className="mr-2 h-4 w-4" />
+                    <Trash className="mr-2 h-4 w-4" />
                     Clear all data
                   </ContextMenuItem>
                 </ContextMenuSubContent>
@@ -293,11 +292,11 @@ export const Sidebar = ({
           </ContextMenu>
           {/* Trash Button (unchanged) */}
           <div
-            className="flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
-            onClick={onDeletedClick}
+            className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'trash' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+            onClick={() => { onDeletedClick(); setActiveSection('trash'); }}
           >
             <div className="flex items-center space-x-3">
-              <Trash2 className="w-4 h-4" />
+              <Trash className="w-4 h-4" />
               <span className="font-normal">Trash</span>
             </div>
             {deletedCount !== undefined && (
@@ -322,8 +321,8 @@ export const Sidebar = ({
             <ContextMenu key={note.id}>
               <ContextMenuTrigger asChild>
                 <div
-                  className="flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
-                  onClick={() => onNoteSelect(note)}
+                  className={`flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === `favorite-${note.id}` ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+                  onClick={() => { onNoteSelect(note); setActiveSection(`favorite-${note.id}`); }}
                 >
                   {note.favoriteEmoji ? (
                     <img
@@ -343,7 +342,7 @@ export const Sidebar = ({
                   onClick={() => onRemoveFavorite(note.id)}
                   className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
                 >
-                  <Trash2 className="w-4 h-4 text-red-400" />
+                  <Trash className="w-4 h-4 text-red-400" />
                   <span className="font-normal text-red-400">Remove</span>
               </ContextMenuItem>
               </ContextMenuContent>
@@ -386,11 +385,12 @@ export const Sidebar = ({
               <ContextMenuTrigger asChild>
                 <div
                   className={`flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
-                    selectedNote && note.id === selectedNote.id ? 'bg-gray-700 text-[hsl(var(--foreground))]' : 'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]'
+                    selectedNote && note.id === selectedNote.id ? 'bg-[hsl(var(--sidebar-active))] text-[hsl(var(--foreground))]' : 'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]'
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
                     onNoteSelect(note);
+                    setActiveSection(`note-${note.id}`);
                   }}
                   onMouseEnter={() => setHoveredNote(note.id)}
                   onMouseLeave={() => setHoveredNote(null)}
@@ -435,7 +435,7 @@ export const Sidebar = ({
                   }}
                   className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-red-400 hover:text-red-300 hover:bg-[hsl(var(--sidebar-hover))]"
                 >
-                  <Trash2 className="w-4 h-4 mr-2" />
+                  <Trash className="w-4 h-4 mr-2" />
                   Trash
                 </ContextMenuItem>
               </ContextMenuContent>
