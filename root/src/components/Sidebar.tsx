@@ -241,7 +241,7 @@ export const Sidebar = ({
                     <img
                       src={getLocalEmojiPath(note.favoriteEmoji)}
                       alt="emoji"
-                      className="w-4 h-4 favorite-icon"
+                      className="w-5 h-5 favorite-icon"
                       style={{ display: 'inline' }}
                     />
                   ) : (

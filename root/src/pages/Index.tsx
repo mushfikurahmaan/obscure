@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import {Plus, Edit, Bookmark, Loader2, Circle} from 'lucide-react';
+import {Plus, Edit, Bookmark, Loader2, Circle, Trash2} from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
 import { Button } from '../components/ui/button';
@@ -9,6 +9,18 @@ import "../styles/scroll-thumb-only.css";
 // ContextMenu import removed; only DropdownMenu is used for favorite button
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '../components/ui/dropdown-menu';
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { FixedSizeGrid as Grid } from 'react-window';
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '../components/ui/alert-dialog';
 
 export interface Note {
   id: string;
@@ -99,6 +111,9 @@ const Index = () => {
 
   // Control open state for favorite dropdown menu
   const [favoriteMenuOpen, setFavoriteMenuOpen] = useState(false);
+
+  // Add state for empty trash dialog
+  const [emptyTrashDialogOpen, setEmptyTrashDialogOpen] = useState(false);
 
   // Sync editorTitle with selectedNote when switching notes
   useEffect(() => {
@@ -253,6 +268,14 @@ const Index = () => {
       .then((files: string[]) => setEmojiList(files.map(f => '/' + f)));
   }, []);
 
+  // Add state for emoji search
+  const [emojiSearch, setEmojiSearch] = useState('');
+
+  // Filtered emoji list based on search
+  const filteredEmojis = emojiList.filter(filename =>
+    filename.toLowerCase().includes(emojiSearch.toLowerCase())
+  );
+
   return (
     <div className="h-screen flex bg-background text-[hsl(var(--foreground))]" data-theme={theme}>
       {/* Sidebar */}
@@ -350,10 +373,49 @@ const Index = () => {
                   Archived Notes
                 </span>
               ) : viewingDeleted ? (
-                <span className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
-                  <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(0, 100%, 60%)', fill: 'hsl(0, 100%, 60%)' }} />
-                  Trashed Notes
-                </span>
+                <div className="flex items-center justify-between w-full px-0">
+                  <span className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>
+                    <Circle className="w-3 h-3 mr-2" style={{ color: 'hsl(0, 100%, 60%)', fill: 'hsl(0, 100%, 60%)' }} />
+                    Trashed Notes
+                  </span>
+                  {/* Empty Trash Button */}
+                  <AlertDialog open={emptyTrashDialogOpen} onOpenChange={setEmptyTrashDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <div className="px-2 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm flex items-center" style={{ minHeight: '2.25rem' }}>
+                        <button
+                          className="flex items-center justify-center rounded hover:bg-red-100 dark:hover:bg-red-900 transition-colors p-1"
+                          title="Empty Trash"
+                          style={{ WebkitAppRegion: 'no-drag' }}
+                          aria-label="Empty Trash"
+                          disabled={deletedNotes.length === 0}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </button>
+                      </div>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Empty Trash?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to empty your trash? This will permanently delete all notes in the trash. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                          onClick={() => {
+                            setNotes(notes.filter(note => !note.deleted));
+                            setSelectedNote(null);
+                            setEmptyTrashDialogOpen(false);
+                          }}
+                        >
+                          Empty Trash
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
               ) : selectedNote && (
                 <>
                   {/* Title and status dot */}
@@ -374,12 +436,6 @@ const Index = () => {
                     ></span>
                     {truncatedTitle}
                   </span>
-                  {/* Info Card */}
-                  <div className="flex items-center px-4 py-1 ml-3 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))]" style={{ minHeight: '2.25rem', marginRight: '0' }}>
-                    <span className="mr-4">Words: {selectedNote.content ? selectedNote.content.trim().split(/\s+/).filter(Boolean).length : 0}</span>
-                    <span className="mr-4">Chars: {selectedNote.content ? selectedNote.content.length : 0}</span>
-                    <span>Lines: {selectedNote.content ? selectedNote.content.split(/\r?\n/).length : 0}</span>
-                  </div>
                   {/* Favorite Button with Dropdown Menu */}
                   <DropdownMenu open={favoriteMenuOpen} onOpenChange={setFavoriteMenuOpen}>
                     <DropdownMenuTrigger asChild>
@@ -395,7 +451,7 @@ const Index = () => {
                             <img
                               src={getLocalEmojiPath(selectedNote.favoriteEmoji)}
                               alt="emoji"
-                              className="w-4 h-4"
+                              className="w-6 h-6"
                               style={{ display: 'inline' }}
                             />
                           ) : (
@@ -409,19 +465,43 @@ const Index = () => {
                         <div className="font-semibold text-base mb-1">Favorite Note</div>
                         <div className="text-[hsl(var(--muted-foreground))] mb-3">Add this note to your favorites and pick an emoji.</div>
                         <div className="mb-3">
-                          <div className="flex flex-wrap gap-2" style={{ maxHeight: 180, overflowY: 'auto', minHeight: 40 }}>
-                            {emojiList.map(filename => (
-                              <button
-                                key={filename}
-                                type="button"
-                                className={`rounded-md border ${favoriteEmoji === filename ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
-                                onClick={() => setFavoriteEmoji(filename)}
-                                style={{ background: 'none' }}
-                              >
-                                <img src={getLocalEmojiPath(filename)} alt="emoji" style={{ width: 28, height: 28 }} />
-                              </button>
-                            ))}
-                          </div>
+                          <input
+                            type="text"
+                            value={emojiSearch}
+                            onChange={e => setEmojiSearch(e.target.value)}
+                            placeholder="Search emojis..."
+                            className="w-full mb-2 px-3 py-1 rounded border border-border bg-background text-[hsl(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-blue-200"
+                            style={{ fontSize: 14 }}
+                          />
+                          {filteredEmojis.length === 0 ? (
+                            <div className="w-full text-center text-[hsl(var(--muted-foreground))] py-4">No emojis found</div>
+                          ) : (
+                            <Grid
+                              columnCount={8}
+                              columnWidth={36}
+                              height={180}
+                              rowCount={Math.ceil(filteredEmojis.length / 8)}
+                              rowHeight={36}
+                              width={304}
+                            >
+                              {({ columnIndex, rowIndex, style }) => {
+                                const idx = rowIndex * 8 + columnIndex;
+                                if (idx >= filteredEmojis.length) return null;
+                                const filename = filteredEmojis[idx];
+                                return (
+                                  <button
+                                    key={filename}
+                                    type="button"
+                                    className={`rounded-md border ${favoriteEmoji === filename ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
+                                    onClick={() => setFavoriteEmoji(filename)}
+                                    style={{ ...style, background: 'none', margin: 0 }}
+                                  >
+                                    <img src={getLocalEmojiPath(filename)} alt="emoji" style={{ width: 28, height: 28 }} loading="lazy" />
+                                  </button>
+                                );
+                              }}
+                            </Grid>
+                          )}
                         </div>
                         <div className="flex justify-end gap-2 mt-4">
                           <button
@@ -436,7 +516,7 @@ const Index = () => {
                             disabled={!favoriteEmoji}
                             className={
                               favoriteEmoji
-                                ? 'border-none rounded px-3 py-1 bg-white text-black dark:bg-[#18181b] dark:text-white'
+                                ? 'border-none rounded px-3 py-1 bg-[hsl(var(--foreground))] text-[hsl(var(--background))]'
                                 : 'bg-muted text-[hsl(var(--muted-foreground))] border-none rounded px-3 py-1'
                             }
                             onClick={() => {
