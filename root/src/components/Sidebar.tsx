@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Trash, Settings, NotebookText, Archive, NotebookPen, Sun, Moon, Laptop, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, Lock, FileDown, Eye, EyeOff, LockOpen, X} from 'lucide-react';
+import { Search, Plus, Trash, Settings, NotebookText, Archive, NotebookPen, Sun, Moon, Laptop, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, Lock, FileDown, Eye, EyeOff, LockOpen, FileCode2} from 'lucide-react';
 import { Button } from './ui/button';
 import type { Note } from '../pages/Index';
 import {
@@ -599,8 +599,8 @@ export const Sidebar = ({
                       PDF
                     </ContextMenuItem>
                     <ContextMenuItem className="flex items-center px-3 py-1.5 rounded-md text-xs w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]">
-                      <Lock className="w-4 h-4 mr-2" />
-                      Encrypted
+                      <FileCode2 className="w-4 h-4 mr-2" />
+                      Markdown
                     </ContextMenuItem>
                   </ContextMenuSubContent>
                 </ContextMenuSub>
@@ -610,9 +610,10 @@ export const Sidebar = ({
                     e.stopPropagation();
                     onArchiveNote(note.id);
                   }}
-                  className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-yellow-500 hover:text-yellow-400 hover:bg-[hsl(var(--sidebar-hover))]"
+                  className={`flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors
+    ${theme === 'dark' ? 'text-yellow-400 hover:text-yellow-300' : 'text-yellow-600 hover:text-yellow-700'} hover:bg-[hsl(var(--sidebar-hover))}`}
                 >
-                  <Archive className="w-4 h-4 mr-2" />
+                  <Archive className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'}`} />
                   Archive
                 </ContextMenuItem>
                 {/* Trash Item */}
@@ -621,9 +622,10 @@ export const Sidebar = ({
                     e.stopPropagation();
                     onDeleteNote(note.id);
                   }}
-                  className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-red-400 hover:text-red-300 hover:bg-[hsl(var(--sidebar-hover))]"
+                  className={`flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors
+    ${theme === 'dark' ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-700'} hover:bg-[hsl(var(--sidebar-hover))}`}
                 >
-                  <Trash className="w-4 h-4 mr-2" />
+                  <Trash className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`} />
                   Trash
                 </ContextMenuItem>
               </ContextMenuContent>
