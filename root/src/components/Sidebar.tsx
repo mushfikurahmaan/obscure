@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Trash, Settings, NotebookText, Archive, NotebookPen, Sun, Moon, Laptop, Lock, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, FileLock, FileDown} from 'lucide-react';
+import { Search, Plus, Trash, Settings, NotebookText, Archive, NotebookPen, Sun, Moon, Laptop, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, Lock, FileDown, Eye, EyeOff, LockOpen, X} from 'lucide-react';
 import { Button } from './ui/button';
 import type { Note } from '../pages/Index';
 import {
@@ -16,6 +16,7 @@ import {
 } from './ui/context-menu';
 import { useNavigate } from 'react-router-dom';
 import { clearDataFile, exportData, loadData } from '../lib/utils';
+import { useTheme } from '../lib/theme';
 
 interface SidebarProps {
   notes: Note[];
@@ -68,6 +69,7 @@ export const Sidebar = ({
   const [exportJsonPassword, setExportJsonPassword] = useState('');
   const [exportJsonError, setExportJsonError] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const getLocalEmojiPath = (filename: string) => filename || '';
 
@@ -174,6 +176,13 @@ export const Sidebar = ({
     }
     setExporting(false);
   };
+
+  useEffect(() => {
+    if (exportJsonError) {
+      const timer = setTimeout(() => setExportJsonError(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [exportJsonError]);
 
   return (
     <div 
@@ -475,7 +484,7 @@ export const Sidebar = ({
                       PDF
                     </ContextMenuItem>
                     <ContextMenuItem className="flex items-center px-3 py-1.5 rounded-md text-xs w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]">
-                      <FileLock className="w-4 h-4 mr-2" />
+                      <Lock className="w-4 h-4 mr-2" />
                       Encrypted
                     </ContextMenuItem>
                   </ContextMenuSubContent>
@@ -522,38 +531,57 @@ export const Sidebar = ({
       )}
       {/* Export Dialog */}
       {exportDialogOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-background rounded-lg shadow-lg p-6 w-80 flex flex-col items-center">
-            <div className="text-lg font-semibold mb-2">Export Notes</div>
-            <div className="flex flex-col gap-3 w-full">
-              <button
-                className="w-full px-4 py-2 rounded bg-primary text-primary-foreground font-medium hover:bg-primary/90 disabled:opacity-60"
-                onClick={handleExportDat}
-                disabled={exporting}
-              >
-                {exporting ? 'Exporting…' : 'Export Encrypted (.dat)'}
-              </button>
-              <div className="text-xs text-muted-foreground text-center">or</div>
-              <div className="flex flex-col gap-2">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+            <div className="text-2xl font-bold mb-2 text-center">Export Notes</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">Backup your notes securely or export as readable JSON.</div>
+            <button
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-foreground text-background font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-4"
+              onClick={handleExportDat}
+              disabled={exporting}
+            >
+              <Lock className="w-5 h-5" />
+              {exporting ? 'Exporting…' : 'Export Encrypted (.dat)'}
+            </button>
+            <div className="flex items-center w-full my-2">
+              <div className="flex-grow border-t border-border" />
+              <span className="mx-3 text-xs text-muted-foreground font-medium">or</span>
+              <div className="flex-grow border-t border-border" />
+            </div>
+            <div className="w-full flex flex-col gap-2 mb-2">
+              <div className="relative">
                 <input
-                  type="password"
-                  className="w-full border rounded px-2 py-1 text-sm"
-                  placeholder="Enter master password for JSON export"
+                  type={showPassword ? 'text' : 'password'}
+                  className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
+                  placeholder="Master password for JSON export"
                   value={exportJsonPassword}
                   onChange={e => setExportJsonPassword(e.target.value)}
                   disabled={exporting}
+                  autoComplete="current-password"
                 />
                 <button
-                  className="w-full px-4 py-2 rounded bg-secondary text-foreground font-medium hover:bg-secondary/80 disabled:opacity-60"
-                  onClick={handleExportJson}
-                  disabled={!exportJsonPassword || exporting}
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                  onClick={() => setShowPassword(v => !v)}
+                  disabled={exporting}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {exporting ? 'Exporting…' : 'Export Decrypted (.json)'}
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
-                {exportJsonError && <div className="text-red-500 text-xs mt-1">{exportJsonError}</div>}
               </div>
+              <button
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-secondary/80 transition disabled:opacity-60
+    ${theme === 'dark' ? 'bg-foreground text-background' : 'bg-foreground text-background'}`}
+                onClick={handleExportJson}
+                disabled={!exportJsonPassword || exporting}
+              >
+                <LockOpen className="w-5 h-5" />
+                {exporting ? 'Exporting…' : 'Export Decrypted (.json)'}
+              </button>
+              {exportJsonError && <div className="text-red-500 text-xs mt-1 text-center">{exportJsonError}</div>}
             </div>
-            <button className="mt-4 text-xs text-muted-foreground hover:underline" onClick={() => setExportDialogOpen(false)} disabled={exporting}>Cancel</button>
+            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => setExportDialogOpen(false)} disabled={exporting}>Cancel</button>
           </div>
         </div>
       )}

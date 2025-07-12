@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { loadData } from '../lib/utils';
+import { Eye, EyeOff } from 'lucide-react';
+import notesImg from '../assets/notes.jpg';
 
 interface LoginProps {
   onLogin?: () => void;
@@ -13,6 +15,7 @@ const Login = ({ onLogin }: LoginProps) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('theme');
@@ -62,59 +65,103 @@ const Login = ({ onLogin }: LoginProps) => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background transition-colors text-[hsl(var(--foreground))]" style={{ WebkitAppRegion: 'drag', backgroundColor: 'hsl(var(--background))' }}>
+    <div className="h-screen min-h-0 flex flex-row bg-white dark:bg-[#18181b] transition-colors relative" style={{ WebkitAppRegion: 'drag' }}>
       {/* Window Controls */}
-      <div className="absolute top-0 right-0 flex items-center gap-1 z-10" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
+      <div className="absolute top-0 right-0 flex items-center gap-1 z-20 p-2" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
         <button
-          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
+          className="w-10 h-10 px-0 flex items-center justify-center rounded hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
           title="Minimize"
           onClick={async () => { const window = getCurrentWindow(); await window.minimize(); }}
         >
           <svg width="12" height="2" viewBox="0 0 12 2" fill="none" style={{ display: 'block', margin: 'auto' }}><rect width="12" height="2" rx="1" fill="currentColor" /></svg>
         </button>
         <button
-          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
+          className="w-10 h-10 px-0 flex items-center justify-center rounded hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
           title="Maximize"
           onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ display: 'block', margin: 'auto' }}><rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" /></svg>
         </button>
         <button
-          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowred hover:text-white transition-colors select-none"
+          className="w-10 h-10 px-0 flex items-center justify-center rounded hover:bg-windowred hover:text-white transition-colors select-none"
           title="Close"
           onClick={async () => { const window = getCurrentWindow(); await window.close(); }}
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ display: 'block', margin: 'auto' }}><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" /><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" strokeWidth="1.5" /></svg>
         </button>
       </div>
-      <form
-        onSubmit={handleLogin}
-        className="flex flex-col items-center w-full max-w-xs gap-2"
-        style={{ WebkitAppRegion: 'no-drag' }}
-      >
-        <h1 className="text-xl font-bold mb-1 text-center">Unlock Obscure</h1>
-        <input
-          type="password"
-          className="w-full border rounded px-2 py-1 mb-1 text-sm bg-[hsl(var(--backgroud))]"
-          placeholder="Enter master password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-        />
-        {error && <div className="text-red-500 text-xs mb-1 w-full">{error}</div>}
-        <Button type="submit" className="w-full h-8 text-sm bg-[hsl(var(--foreground))] text-[hsl(var(--background))] hover:bg-[hsl(var(--foreground))]/90" disabled={verifying}>
-          {verifying ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin h-4 w-4 mr-1 text-blue-500" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-              </svg>
-              Verifying…
-            </span>
-          ) : (
-            'Unlock'
-          )}
-        </Button>
-      </form>
+      {/* Left: Image/Illustration */}
+      <div className="hidden md:flex h-full aspect-[720/680] max-w-[720px] min-w-[320px] flex-none items-center justify-center" style={{ WebkitAppRegion: 'drag' }}>
+        <img src={notesImg} alt="Welcome" className="w-full h-full object-contain" style={{ WebkitAppRegion: 'drag' }} />
+      </div>
+      {/* Right: Login Card */}
+      <div className="flex-1 h-full flex items-center justify-center p-6 bg-white dark:bg-[#18181b]" style={{ WebkitAppRegion: 'drag' }}>
+        <form
+          onSubmit={handleLogin}
+          className="w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6 bg-white dark:bg-[#18181b]"
+          style={{ WebkitAppRegion: 'no-drag' }}
+        >
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-2xl font-bold tracking-tight">Obscure</span>
+            <span className="text-sm text-muted-foreground">Sign in to your account</span>
+          </div>
+          {/* Password input */}
+          <div className="flex flex-col gap-2">
+            <label htmlFor="password" className="text-sm font-medium">Master Password</label>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
+                placeholder="Enter your master password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                autoFocus
+                autoComplete="current-password"
+                disabled={verifying}
+              />
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                tabIndex={-1}
+                onClick={() => setShowPassword(v => !v)}
+                disabled={verifying}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+          {error && <div className="text-red-500 text-xs text-center -mt-4">{error}</div>}
+          <Button
+            type="submit"
+            className="w-full h-10 text-base font-semibold rounded-lg bg-foreground text-background hover:bg-primary/90 transition"
+            disabled={verifying}
+          >
+            {verifying ? (
+              <span className="flex items-center justify-center gap-2">
+                <svg className="animate-spin h-5 w-5 mr-1 text-blue-500" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                </svg>
+                Signing in…
+              </span>
+            ) : (
+              'Sign In'
+            )}
+          </Button>
+          <div className="flex flex-col items-center gap-2 mt-2">
+            <button
+              type="button"
+              className="text-xs text-muted-foreground hover:underline focus:outline-none"
+              tabIndex={-1}
+              onClick={() => alert('Forgot password flow coming soon!')}
+            >
+              Forgot password?
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
