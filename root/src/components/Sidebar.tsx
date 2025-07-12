@@ -17,6 +17,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { clearDataFile, exportData, loadData, importData, saveData } from '../lib/utils';
 import { useTheme } from '../lib/theme';
+import jsPDF from 'jspdf';
+import { slateToHtml } from '../lib/slateToHtml';
+import { slateToMarkdown } from '../lib/slateToMarkdown';
+import { contentToSlateValue } from './NoteEditor';
 
 interface SidebarProps {
   notes: Note[];
@@ -88,6 +92,9 @@ export const Sidebar = ({
   const [showConfirmNewPw, setShowConfirmNewPw] = useState(false);
   // Add state for password change confirmation popup
   const [showPwChangeSuccess, setShowPwChangeSuccess] = useState(false);
+  // Add state for clear data success popup and countdown
+  const [showClearDataSuccess, setShowClearDataSuccess] = useState(false);
+  const [clearDataCountdown, setClearDataCountdown] = useState(5);
 
   const getLocalEmojiPath = (filename: string) => filename || '';
 
@@ -146,7 +153,8 @@ export const Sidebar = ({
     await clearDataFile();
     sessionStorage.removeItem('masterPassword');
     sessionStorage.removeItem('loggedIn');
-    window.location.href = '/'; // reload to onboarding/FirstSetup
+    setShowClearDataSuccess(true);
+    setClearDataCountdown(5);
   };
 
   const handleExportDat = async () => {
@@ -298,6 +306,57 @@ export const Sidebar = ({
     setShowPassword(false);
     setExportingType(null);
   };
+
+  // Add export as PDF and Markdown handlers
+  const handleExportNotePdf = async (note: Note) => {
+    try {
+      const slateValue = contentToSlateValue(note.content);
+      const html = slateToHtml(slateValue);
+      const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+      await doc.html(`<div style='font-family: sans-serif; font-size: 14px;'>${html}</div>`, {
+        callback: function (doc) {
+          doc.save(`${note.title || 'note'}.pdf`);
+        },
+        x: 24,
+        y: 24,
+        width: 550,
+        windowWidth: 800
+      });
+    } catch (e) {
+      alert('Failed to export as PDF.');
+    }
+  };
+
+  const handleExportNoteMarkdown = (note: Note) => {
+    try {
+      const slateValue = contentToSlateValue(note.content);
+      const md = slateToMarkdown(slateValue);
+      const blob = new Blob([md], { type: 'text/markdown' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${note.title || 'note'}.md`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    } catch (e) {
+      alert('Failed to export as Markdown.');
+    }
+  };
+
+  // Add countdown effect for clear data popup
+  useEffect(() => {
+    if (!showClearDataSuccess) return;
+    if (clearDataCountdown === 0) {
+      window.location.href = '/';
+      return;
+    }
+    const timer = setTimeout(() => setClearDataCountdown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [showClearDataSuccess, clearDataCountdown]);
 
   return (
     <div 
@@ -594,11 +653,17 @@ export const Sidebar = ({
                     Export As
                   </ContextMenuSubTrigger>
                   <ContextMenuSubContent className="w-40 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))] rounded-md p-1">
-                    <ContextMenuItem className="flex items-center px-3 py-1.5 rounded-md text-xs w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]">
+                    <ContextMenuItem
+                      className="flex items-center px-3 py-1.5 rounded-md text-xs w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+                      onClick={() => handleExportNotePdf(note)}
+                    >
                       <FileDown className="w-4 h-4 mr-2" />
                       PDF
                     </ContextMenuItem>
-                    <ContextMenuItem className="flex items-center px-3 py-1.5 rounded-md text-xs w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]">
+                    <ContextMenuItem
+                      className="flex items-center px-3 py-1.5 rounded-md text-xs w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+                      onClick={() => handleExportNoteMarkdown(note)}
+                    >
                       <FileCode2 className="w-4 h-4 mr-2" />
                       Markdown
                     </ContextMenuItem>
@@ -934,6 +999,22 @@ export const Sidebar = ({
               }}
             >
               Re-login
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Clear Data Success Popup */}
+      {showClearDataSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+            <div className="text-2xl font-bold mb-2 text-center">All Data Deleted</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">Your data has been deleted. Please create a new account or import an existing one if available.</div>
+            <div className="text-base font-semibold text-center mb-4">Redirecting in {clearDataCountdown}…</div>
+            <button
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2 bg-foreground text-background"
+              onClick={() => { setShowClearDataSuccess(false); window.location.href = '/'; }}
+            >
+              Go to Setup Now
             </button>
           </div>
         </div>

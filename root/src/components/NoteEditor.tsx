@@ -67,7 +67,7 @@ const toggleMark = (editor: Editor, format: string, value?: any) => {
 
 
 // Convert content to Slate value - handles both plain text and rich text JSON
-const contentToSlateValue = (content: string): Descendant[] => {
+export const contentToSlateValue = (content: string): Descendant[] => {
   if (!content || content.trim() === '') {
     return [{ type: 'paragraph', children: [{ text: '' }] }];
   }
