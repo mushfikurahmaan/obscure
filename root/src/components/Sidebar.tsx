@@ -14,6 +14,7 @@ import {
   ContextMenuRadioGroup,
   ContextMenuRadioItem
 } from './ui/context-menu';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
   notes: Note[];
@@ -58,6 +59,7 @@ export const Sidebar = ({
   const [activeSection, setActiveSection] = useState<string>('notes'); // Track active sidebar section
   const searchInputRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null); // <-- Add ref for sidebar
+  const navigate = useNavigate();
 
   const getLocalEmojiPath = (filename: string) => filename || '';
 
@@ -233,7 +235,7 @@ export const Sidebar = ({
               <ContextMenuSub>
                 <ContextMenuSubTrigger>Security & Privacy</ContextMenuSubTrigger>
                 <ContextMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
-                  <ContextMenuItem>
+                  <ContextMenuItem onClick={() => { sessionStorage.removeItem('loggedIn'); setTimeout(() => navigate('/'), 10); }}>
                     <Lock className="mr-2 h-4 w-4" />
                     Lock App
                   </ContextMenuItem>

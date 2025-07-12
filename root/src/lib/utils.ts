@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { invoke } from '@tauri-apps/api/core';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -30,4 +31,24 @@ export function formatRelativeDate(dateInput: Date | string | number): string {
   if (isYesterday) return `Yesterday ${time}`;
   if (diffDays >= 2 && diffDays <= 5) return `${diffDays} days ago`;
   return `${date.getDate()} ${date.toLocaleString('default', { month: 'long' })}`;
+}
+
+export async function saveData(masterPassword: string, data: string): Promise<void> {
+  await invoke('save_data', { masterPassword, data });
+}
+
+export async function loadData(masterPassword: string): Promise<string> {
+  return await invoke<string>('load_data', { masterPassword });
+}
+
+export async function exportData(): Promise<string> {
+  return await invoke<string>('export_data');
+}
+
+export async function importData(fileContent: string): Promise<void> {
+  await invoke('import_data', { fileContent });
+}
+
+export async function hasDataFile(): Promise<boolean> {
+  return await invoke<boolean>('has_data_file');
 }

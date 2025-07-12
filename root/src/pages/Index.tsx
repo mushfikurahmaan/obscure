@@ -21,6 +21,9 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '../components/ui/alert-dialog';
+import { loadData, saveData } from '../lib/utils';
+import { useNavigate } from 'react-router-dom';
+import { useTheme } from '../lib/theme';
 
 export interface Note {
   id: string;
@@ -45,57 +48,50 @@ declare module "react" {
 
 
 const Index = () => {
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>(() => {
-    const stored = localStorage.getItem('theme');
-    return stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
-  });
+  const { theme, setTheme } = useTheme();
 
-  // Listen for system theme changes if theme is 'system'
-  useEffect(() => {
-    if (theme !== 'system') return;
-    const mql = window.matchMedia('(prefers-color-scheme: dark)');
-    const applySystemTheme = () => {
-      if (mql.matches) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    };
-    applySystemTheme();
-    mql.addEventListener('change', applySystemTheme);
-    return () => mql.removeEventListener('change', applySystemTheme);
-  }, [theme]);
+  // --- Secure storage integration ---
+  // Get master password from sessionStorage (set on login)
+  const [masterPassword, setMasterPassword] = useState<string | null>(() => sessionStorage.getItem('masterPassword'));
+  const navigate = useNavigate();
 
-  // Apply theme class to <html>
+  // Load notes from secure storage
+  const [notes, setNotes] = useState<Note[]>([]);
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else if (theme === 'light') {
-      document.documentElement.classList.remove('dark');
-    } else {
-      // handled by system effect above
+    if (!masterPassword) {
+      navigate('/login');
+      return;
     }
-    localStorage.setItem('theme', theme);
-  }, [theme]);
-
-  // Load notes from localStorage if available
-  const [notes, setNotes] = useState<Note[]>(() => {
-    const stored = localStorage.getItem('notes');
-    if (stored) {
-      try {
-        // Parse and revive Date objects
-        return JSON.parse(stored, (key, value) => {
-          if ((key === 'createdAt' || key === 'updatedAt') && typeof value === 'string') {
-            return new Date(value);
+    loadData(masterPassword)
+      .then(data => {
+        try {
+          const parsed = JSON.parse(data);
+          if (Array.isArray(parsed.notes)) {
+            setNotes(parsed.notes.map((n: any) => ({
+              ...n,
+              createdAt: new Date(n.createdAt),
+              updatedAt: new Date(n.updatedAt),
+            })));
+          } else {
+            setNotes([]);
           }
-          return value;
-        });
-      } catch {
-        return [];
-      }
-    }
-    return [];
-  });
+        } catch {
+          setNotes([]);
+        }
+      })
+      .catch(() => {
+        // If decryption fails, force logout
+        sessionStorage.removeItem('masterPassword');
+        navigate('/login');
+      });
+  }, [masterPassword, navigate]);
+
+  // Save notes to secure storage whenever notes change
+  useEffect(() => {
+    if (!masterPassword) return;
+    saveData(masterPassword, JSON.stringify({ notes }))
+      .catch(() => {/* Optionally show error */});
+  }, [notes, masterPassword]);
 
   const [selectedNote, setSelectedNote] = useState<Note | null>(null);
   const [editorTitle, setEditorTitle] = useState(selectedNote ? selectedNote.title : '');
@@ -119,11 +115,6 @@ const Index = () => {
   useEffect(() => {
     setEditorTitle(selectedNote ? selectedNote.title : '');
   }, [selectedNote]);
-
-  // Save notes to localStorage whenever notes change
-  useEffect(() => {
-    localStorage.setItem('notes', JSON.stringify(notes));
-  }, [notes]);
 
   // Filter for My Notes (not deleted)
   // Filter for Deleted Notes
@@ -592,13 +583,12 @@ const Index = () => {
                 <div className="w-24 h-24 bg-gray-700 rounded-xl flex items-center justify-center mx-auto mb-6">
                   <Edit className="w-12 h-12 text-gray-500" />
                 </div>
-                <h2 className="text-2xl font-medium text-[hsl(var(--foreground))] mb-3">Start writing</h2>
-                <p className="text-[hsl(var(--muted-foreground))] mb-6 text-base">Select a note from the sidebar or create a new one</p>
+                <h2 className="text-2xl font-medium text-[hsl(var(--foreground))] mb-3">Empty page, endless possibilities</h2>
+                <p className="text-[hsl(var(--muted-foreground))] mb-6 text-base">This space is yours. Select or start a note</p>
                 <Button
                   onClick={handleCreateNote}
-                  className="bg-orange-600 text-white hover:bg-orange-700 border-none"
+                  className="bg-[hsl(var(--foreground))] text-[hsl(var(--background))] border-none"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
                   Create New Note
                 </Button>
               </div>
