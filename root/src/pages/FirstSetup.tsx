@@ -1,20 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from '../components/ui/alert-dialog';
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { X } from 'lucide-react';
 import { saveData, importData, loadData } from '../lib/utils';
+import notesImg from '../assets/onboarding_screen.jpg';
 
 interface FirstSetupProps {
   onSetupComplete?: () => void;
@@ -37,6 +27,10 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
   const [manualImportPassword, setManualImportPassword] = useState('');
   const [manualImportError, setManualImportError] = useState('');
   const [manualImportLoading, setManualImportLoading] = useState(false);
+  // Add state for import and create success popups and countdown
+  const [showImportSuccess, setShowImportSuccess] = useState(false);
+  const [showCreateSuccess, setShowCreateSuccess] = useState(false);
+  const [successCountdown, setSuccessCountdown] = useState(3);
 
   // Password validation helpers
   const validatePassword = (pw: string) => {
@@ -60,8 +54,8 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
       setShowCreatePassword(false);
       setMasterPassword('');
       setRetypePassword('');
-      if (onSetupComplete) onSetupComplete();
-      else navigate('/login');
+      setShowCreateSuccess(true);
+      setSuccessCountdown(3);
     } catch (e) {
       // Optionally show error
       alert('Failed to initialize secure storage.');
@@ -98,8 +92,8 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
       setManualImportFile(null);
       setManualImportPassword('');
       setManualImportLoading(false);
-      if (onSetupComplete) onSetupComplete();
-      else navigate('/login');
+      setShowImportSuccess(true);
+      setSuccessCountdown(3);
     } catch (e) {
       setManualImportLoading(false);
       setManualImportError('Failed to decrypt file. Check your password or file.');
@@ -107,31 +101,31 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
   };
 
   useEffect(() => {
-    const stored = localStorage.getItem('theme');
-    const theme = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
-    if (theme !== 'system') {
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    } else {
-      const mql = window.matchMedia('(prefers-color-scheme: dark)');
-      const applySystemTheme = () => {
-        if (mql.matches) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      };
-      applySystemTheme();
-      mql.addEventListener('change', applySystemTheme);
-      return () => mql.removeEventListener('change', applySystemTheme);
-    }
+    // Force light mode for first setup
+    document.documentElement.classList.remove('dark');
+    document.body.style.background = '#fff';
+    document.body.style.color = '#111';
+    return () => {
+      document.body.style.background = '';
+      document.body.style.color = '';
+    };
   }, []);
 
+  // Countdown effect for success popups
+  useEffect(() => {
+    if (!showImportSuccess && !showCreateSuccess) return;
+    if (successCountdown === 0) {
+      setShowImportSuccess(false);
+      setShowCreateSuccess(false);
+      window.location.href = '/login';
+      return;
+    }
+    const timer = setTimeout(() => setSuccessCountdown(c => c - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [showImportSuccess, showCreateSuccess, successCountdown]);
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[hsl(var(--background))] text-[hsl(var(--foreground))]" style={{ WebkitAppRegion: 'drag' }}>
+    <div className="min-h-screen flex items-center justify-center bg-white text-black" style={{ WebkitAppRegion: 'drag' }}>
       {/* Window Controls */}
       <div className="absolute top-0 right-0 flex items-center gap-1 z-10" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
         <button
@@ -156,159 +150,171 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ display: 'block', margin: 'auto' }}><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" /><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" strokeWidth="1.5" /></svg>
         </button>
       </div>
-      <div className="flex flex-col items-center w-full max-w-xs gap-4" style={{ WebkitAppRegion: 'no-drag' }}>
-        <h1 className="text-xl font-bold mb-2 text-center">Welcome to Obscure</h1>
-        <Button className="w-full h-10 text-base bg-black text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200" onClick={() => setShowCreatePassword(true)}>
-          Get Started from Scratch
-        </Button>
-        <Button className="w-full h-10 text-base bg-black text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200" onClick={() => setShowImportAuto(true)}>
-          Import Existing Account
-        </Button>
-        {/* Import Existing Account Dialog */}
-        <AlertDialog open={showImportAuto} onOpenChange={setShowImportAuto}>
-          <AlertDialogContent className="max-w-xs p-4">
-            <AlertDialogDescription className="sr-only">Import your encrypted data file and enter your master password to unlock your account.</AlertDialogDescription>
-            <div className="flex justify-between items-center mb-2">
-              <AlertDialogTitle className="text-base">Import Existing Account</AlertDialogTitle>
-              <button
-                className="p-1 rounded hover:bg-muted"
-                style={{ WebkitAppRegion: 'no-drag' }}
-                onClick={() => setShowImportAuto(false)}
-                type="button"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="mb-2 text-xs text-left">
-              Enter your master password to scan for existing data, or import manually from a file.
-            </div>
-            <input
-              type="password"
-              className="w-full border rounded px-2 py-1 mb-2 text-sm bg-[hsl(var(--backgroud))]"
-              placeholder="Enter master password"
-              value={importPassword}
-              onChange={e => setImportPassword(e.target.value)}
-            />
-            {/* Remove the auto import button and logic */}
-            {/* <Button variant="outline" className="w-full h-8 text-sm mb-3 bg-black text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 border-none" onClick={() => { setShowImportAuto(false); handleImportAuto(); }} disabled={!importPassword}>
-              Let the App Find Automatically
-            </Button> */}
-            <div className="flex items-center my-2">
-              <div className="flex-grow border-t border-border" />
-              <span className="mx-2 text-xs text-muted-foreground">or</span>
-              <div className="flex-grow border-t border-border" />
-            </div>
-            <Button variant="outline" className="w-full h-8 text-sm bg-black text-white dark:bg-white dark:text-black hover:bg-neutral-800 dark:hover:bg-neutral-200 border-none" onClick={() => { setShowImportAuto(false); setShowImportManualDialog(true); }}>
-              Import Manually (Choose File)
+      <div className="flex flex-col md:flex-row items-center w-full max-w-6xl gap-4 md:gap-8 p-4" style={{ WebkitAppRegion: 'no-drag' }}>
+        {/* Image section */}
+        <div className="flex justify-start items-center w-full md:w-auto md:flex-1 md:pl-4 mb-6 md:mb-0">
+          <img src={notesImg} alt="Welcome" className="w-48 h-48 md:w-[520px] md:h-[520px] max-w-full max-h-[40vh] md:max-w-[54vw] md:max-h-[80vh] object-contain rounded-2xl" />
+        </div>
+        {/* Main content section */}
+        <div className="flex flex-col items-center justify-between flex-1 w-full max-w-xs h-auto md:h-[520px]">
+          <div className="flex flex-col w-full items-center gap-2 mt-0 mb-16">
+            <h1 className="text-2xl font-bold text-center">Obscure</h1>
+            <p className="text-base text-center text-muted-foreground">A secure, modern note-taking app for privacy-focused users.</p>
+          </div>
+          <div className="flex flex-col w-full gap-2 mt-auto mb-0">
+            <Button className="w-full h-10 text-lg bg-black text-white hover:bg-neutral-800" onClick={() => setShowCreatePassword(true)}>
+              Get Started from Scratch
             </Button>
-          </AlertDialogContent>
-        </AlertDialog>
-        {/* Manual Import Dialog */}
-        <AlertDialog open={showImportManualDialog} onOpenChange={setShowImportManualDialog}>
-          <AlertDialogContent className="max-w-xs p-4">
-            <AlertDialogDescription className="sr-only">Import your encrypted data file and enter your master password to unlock your account.</AlertDialogDescription>
-            <div className="flex justify-between items-center mb-2">
-              <AlertDialogTitle className="text-base">Import Manually</AlertDialogTitle>
-              <button
-                className="p-1 rounded hover:bg-muted"
-                style={{ WebkitAppRegion: 'no-drag' }}
-                onClick={() => setShowImportManualDialog(false)}
-                type="button"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <AlertDialogDescription className="mb-2 text-xs">
-              Select your encrypted data file and enter your master password to decrypt.
-            </AlertDialogDescription>
-            <input
-              type="file"
-              className="w-full border rounded px-2 py-1 mb-2 text-xs"
-              onChange={e => setManualImportFile(e.target.files?.[0] || null)}
-            />
-            <input
-              type="password"
-              className="w-full border rounded px-2 py-1 mb-2 text-xs bg-[hsl(var(--backgroud))]"
-              placeholder="Enter master password"
-              value={manualImportPassword}
-              onChange={e => setManualImportPassword(e.target.value)}
-            />
-            {manualImportError && <div className="text-red-500 text-xs mb-1">{manualImportError}</div>}
-            <AlertDialogFooter>
-              <AlertDialogCancel className="text-xs">Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleImportManual}
-                disabled={!manualImportFile || !manualImportPassword || manualImportLoading}
-                className="text-xs cursor-pointer flex items-center justify-center"
-              >
-                {manualImportLoading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4 mr-1 text-blue-500" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                    </svg>
-                    Importing…
-                  </span>
-                ) : (
-                  'Import and Unlock'
+            <Button className="w-full h-10 text-lg bg-black text-white hover:bg-neutral-800" onClick={() => setShowImportManualDialog(true)}>
+              Import Existing Account
+            </Button>
+          </div>
+          {/* Import Existing Account Dialog */}
+          {showCreatePassword && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-xl font-bold mb-2 text-center">Create Master Password</div>
+                <div className="text-sm text-muted-foreground mb-4 text-center">Set a strong password to secure your account. You will need this password to unlock the app.</div>
+                <input
+                  type="password"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
+                  placeholder="Enter master password"
+                  value={masterPassword}
+                  onChange={e => setMasterPassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+                <input
+                  type="password"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
+                  placeholder="Retype master password"
+                  value={retypePassword}
+                  onChange={e => setRetypePassword(e.target.value)}
+                  autoComplete="new-password"
+                />
+                {/* Real-time feedback */}
+                {masterPassword && passwordValidation && (
+                  <div className="text-red-500 text-xs mb-1">{passwordValidation}</div>
                 )}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        {/* Create Master Password Dialog */}
-        <AlertDialog open={showCreatePassword} onOpenChange={setShowCreatePassword}>
-          <AlertDialogContent className="max-w-xs p-4">
-            <AlertDialogDescription className="sr-only">Set a strong password to secure your account. You will need this password to unlock the app.</AlertDialogDescription>
-            <div className="flex justify-between items-center mb-2">
-              <AlertDialogTitle className="text-base">Create Master Password</AlertDialogTitle>
-              <button
-                className="p-1 rounded hover:bg-muted"
-                style={{ WebkitAppRegion: 'no-drag' }}
-                onClick={() => { setShowCreatePassword(false); setMasterPassword(''); setRetypePassword(''); }}
-                type="button"
-              >
-                <X className="w-4 h-4" />
-              </button>
+                {masterPassword && !passwordValidation && retypePassword && !passwordsMatch && (
+                  <div className="text-red-500 text-xs mb-1">Passwords do not match.</div>
+                )}
+                <div className="flex flex-col w-full gap-2 mt-4">
+                  <button
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60"
+                    onClick={() => { setShowCreatePassword(false); setMasterPassword(''); setRetypePassword(''); }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 ${showCreateSuccess ? 'bg-indigo-500 text-white' : 'bg-black text-white'}`}
+                    onClick={handleCreatePassword}
+                    disabled={!!passwordValidation || !passwordsMatch || showCreateSuccess}
+                  >
+                    {showCreateSuccess ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="white"
+                            strokeWidth="4"
+                            fill="none"
+                            strokeDasharray="60"
+                            strokeDashoffset="20"
+                          />
+                        </svg>
+                        Creating…
+                      </span>
+                    ) : (
+                      'Set Password'
+                    )}
+                  </button>
+                </div>
+              </div>
             </div>
-            <AlertDialogDescription className="mb-2 text-xs">
-              Set a strong password to secure your account. You will need this password to unlock the app.
-            </AlertDialogDescription>
-            <input
-              type="password"
-              className="w-full border rounded px-2 py-1 mb-1 text-sm  bg-[hsl(var(--backgroud))]"
-              placeholder="Enter master password"
-              value={masterPassword}
-              onChange={e => setMasterPassword(e.target.value)}
-              autoComplete="new-password"
-            />
-            <input
-              type="password"
-              className="w-full border rounded px-2 py-1 mb-1 text-sm bg-[hsl(var(--backgroud))]"
-              placeholder="Retype master password"
-              value={retypePassword}
-              onChange={e => setRetypePassword(e.target.value)}
-              autoComplete="new-password"
-            />
-            {/* Real-time feedback */}
-            {masterPassword && passwordValidation && (
-              <div className="text-red-500 text-xs mb-1">{passwordValidation}</div>
-            )}
-            {masterPassword && !passwordValidation && retypePassword && !passwordsMatch && (
-              <div className="text-red-500 text-xs mb-1">Passwords do not match.</div>
-            )}
-            <AlertDialogFooter>
-              <AlertDialogCancel className="text-xs">Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleCreatePassword}
-                disabled={!!passwordValidation || !passwordsMatch}
-                className="text-xs cursor-pointer"
-              >
-                Set Password
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+          )}
+          {showImportManualDialog && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-xl font-bold mb-2 text-center">Import Manually</div>
+                <div className="text-sm text-muted-foreground mb-4 text-center">Select your encrypted data file and enter your master password to decrypt.</div>
+                <input
+                  type="file"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2"
+                  onChange={e => setManualImportFile(e.target.files?.[0] || null)}
+                />
+                <input
+                  type="password"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
+                  placeholder="Enter master password"
+                  value={manualImportPassword}
+                  onChange={e => setManualImportPassword(e.target.value)}
+                />
+                {manualImportError && <div className="text-red-500 text-xs mb-1">{manualImportError}</div>}
+                <div className="flex flex-col w-full gap-2 mt-4">
+                  <button
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60"
+                    onClick={() => {
+                      setShowImportManualDialog(false);
+                      setManualImportFile(null);
+                      setManualImportPassword('');
+                      setManualImportError('');
+                      setManualImportLoading(false);
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 ${manualImportLoading ? 'bg-indigo-500 text-white' : 'bg-black text-white'}`}
+                    onClick={handleImportManual}
+                    disabled={!manualImportFile || !manualImportPassword || manualImportLoading}
+                  >
+                    {manualImportLoading ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="white"
+                            strokeWidth="4"
+                            fill="none"
+                            strokeDasharray="60"
+                            strokeDashoffset="20"
+                          />
+                        </svg>
+                        Importing…
+                      </span>
+                    ) : (
+                      'Import and Unlock'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Import Success Popup */}
+          {showImportSuccess && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-2xl font-bold mb-2 text-center">Import Successful!</div>
+                <div className="text-sm text-muted-foreground mb-4 text-center">Redirecting to login…</div>
+                <div className="text-base font-semibold text-center mb-2">{successCountdown}</div>
+              </div>
+            </div>
+          )}
+          {/* Create Success Popup */}
+          {showCreateSuccess && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-2xl font-bold mb-2 text-center">Account Created!</div>
+                <div className="text-sm text-muted-foreground mb-4 text-center">Redirecting to login…</div>
+                <div className="text-base font-semibold text-center mb-2">{successCountdown}</div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

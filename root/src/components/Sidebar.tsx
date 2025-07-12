@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Trash, Settings, NotebookText, Archive, NotebookPen, Sun, Moon, Laptop, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, Lock, FileDown, Eye, EyeOff, LockOpen, FileCode2} from 'lucide-react';
+import { Search, Plus, Trash, Settings, Archive, NotebookPen, Sun, Moon, Laptop, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, Lock, FileDown, Eye, EyeOff, LockOpen, FileCode2, Scale } from 'lucide-react';
 import { Button } from './ui/button';
 import type { Note } from '../pages/Index';
 import {
@@ -530,7 +530,7 @@ export const Sidebar = ({
                     Contact support
                   </ContextMenuItem>
                   <ContextMenuItem>
-                    <BookOpen className="mr-2 h-4 w-4" />
+                    <Scale className="mr-2 h-4 w-4" />
                     Open source licenses
                   </ContextMenuItem>
                 </ContextMenuSubContent>
@@ -642,7 +642,7 @@ export const Sidebar = ({
                   onMouseEnter={() => setHoveredNote(note.id)}
                   onMouseLeave={() => setHoveredNote(null)}
                 >
-                  <NotebookText className="w-4 h-4"/>
+                  <BookOpen className="w-4 h-4"/>
                   <span className="font-normal text-sm flex-1 truncate">{note.title || 'Untitled Note'}</span>
                 </div>
               </ContextMenuTrigger>
@@ -751,7 +751,7 @@ export const Sidebar = ({
                 </>
               ) : (
                 <>
-                  <Lock className="w-5 h-5" />
+              <Lock className="w-5 h-5" />
                   Export Encrypted (.dat)
                 </>
               )}
@@ -764,7 +764,7 @@ export const Sidebar = ({
             <div className="w-full flex flex-col gap-2 mb-2">
               <div className="relative">
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type="password"
                   className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
                   placeholder="Master password for JSON export"
                   value={exportJsonPassword}
@@ -772,16 +772,6 @@ export const Sidebar = ({
                   disabled={exportingType !== null}
                   autoComplete="current-password"
                 />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  tabIndex={-1}
-                  onClick={() => setShowPassword(v => !v)}
-                  disabled={exportingType !== null}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
               </div>
               <button
                 className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-secondary/80 transition disabled:opacity-60
@@ -807,7 +797,7 @@ export const Sidebar = ({
                   </>
                 ) : (
                   <>
-                    <LockOpen className="w-5 h-5" />
+                <LockOpen className="w-5 h-5" />
                     Export Decrypted (.json)
                   </>
                 )}
@@ -883,7 +873,7 @@ export const Sidebar = ({
             <div className="w-full flex flex-col gap-4 mb-2">
               <div className="relative">
                 <input
-                  type={showCurrentPw ? 'text' : 'password'}
+                  type="password"
                   className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
                   placeholder="Current password"
                   value={currentPw}
@@ -891,20 +881,10 @@ export const Sidebar = ({
                   disabled={changePwLoading}
                   autoComplete="current-password"
                 />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  tabIndex={-1}
-                  onClick={() => setShowCurrentPw(v => !v)}
-                  disabled={changePwLoading}
-                  aria-label={showCurrentPw ? 'Hide password' : 'Show password'}
-                >
-                  {showCurrentPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
               </div>
               <div className="relative">
                 <input
-                  type={showNewPw ? 'text' : 'password'}
+                  type="password"
                   className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
                   placeholder="New password"
                   value={newPw}
@@ -916,20 +896,10 @@ export const Sidebar = ({
                   disabled={changePwLoading}
                   autoComplete="new-password"
                 />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  tabIndex={-1}
-                  onClick={() => setShowNewPw(v => !v)}
-                  disabled={changePwLoading}
-                  aria-label={showNewPw ? 'Hide password' : 'Show password'}
-                >
-                  {showNewPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
               </div>
               <div className="relative">
                 <input
-                  type={showConfirmNewPw ? 'text' : 'password'}
+                  type="password"
                   className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
                   placeholder="Confirm new password"
                   value={confirmNewPw}
@@ -937,21 +907,11 @@ export const Sidebar = ({
                   disabled={changePwLoading}
                   autoComplete="new-password"
                 />
-                <button
-                  type="button"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  tabIndex={-1}
-                  onClick={() => setShowConfirmNewPw(v => !v)}
-                  disabled={changePwLoading}
-                  aria-label={showConfirmNewPw ? 'Hide password' : 'Show password'}
-                >
-                  {showConfirmNewPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-                {/* Show only one feedback message here */}
-                {(newPw || confirmNewPw) && (
-                  <div className={`text-xs mt-1 ${validatePassword(newPw) ? 'text-red-500' : 'text-green-600'}`}>{validatePassword(newPw) || 'Strong password!'}</div>
-                )}
               </div>
+              {/* Show only one feedback message here */}
+              {(newPw || confirmNewPw) && (
+                <div className={`text-xs mt-1 ${validatePassword(newPw) ? 'text-red-500' : 'text-green-600'}`}>{validatePassword(newPw) || 'Strong password!'}</div>
+              )}
               {changePwError && !validatePassword(newPw) && <div className="text-red-500 text-xs mt-1 text-center">{changePwError}</div>}
             </div>
             <button
