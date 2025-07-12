@@ -15,7 +15,7 @@ import {
   ContextMenuRadioItem
 } from './ui/context-menu';
 import { useNavigate } from 'react-router-dom';
-import { clearDataFile, exportData, loadData, importData } from '../lib/utils';
+import { clearDataFile, exportData, loadData, importData, saveData } from '../lib/utils';
 import { useTheme } from '../lib/theme';
 
 interface SidebarProps {
@@ -76,6 +76,18 @@ export const Sidebar = ({
   const [importPassword, setImportPassword] = useState('');
   const [importError, setImportError] = useState('');
   const [importLoading, setImportLoading] = useState(false);
+  // Add change password dialog state and related states
+  const [changePwDialogOpen, setChangePwDialogOpen] = useState(false);
+  const [currentPw, setCurrentPw] = useState('');
+  const [newPw, setNewPw] = useState('');
+  const [confirmNewPw, setConfirmNewPw] = useState('');
+  const [changePwError, setChangePwError] = useState('');
+  const [changePwLoading, setChangePwLoading] = useState(false);
+  const [showCurrentPw, setShowCurrentPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+  const [showConfirmNewPw, setShowConfirmNewPw] = useState(false);
+  // Add state for password change confirmation popup
+  const [showPwChangeSuccess, setShowPwChangeSuccess] = useState(false);
 
   const getLocalEmojiPath = (filename: string) => filename || '';
 
@@ -217,6 +229,50 @@ export const Sidebar = ({
     }
   };
 
+  // Password policy validation (copied from FirstSetup)
+  function validatePassword(pw: string): string {
+    if (pw.length < 8) return 'Password must be at least 8 characters.';
+    if (!/[a-z]/.test(pw)) return 'Password must include a lowercase letter.';
+    if (!/[A-Z]/.test(pw)) return 'Password must include an uppercase letter.';
+    if (!/[0-9]/.test(pw)) return 'Password must include a number.';
+    if (!/[^a-zA-Z0-9]/.test(pw)) return 'Password must include a special character.';
+    return '';
+  }
+
+  // Replace handleChangePassword with secure logic
+  const handleChangePassword = async () => {
+    setChangePwError('');
+    if (!currentPw || !newPw || !confirmNewPw) {
+      setChangePwError('Please fill in all fields.');
+      return;
+    }
+    if (newPw !== confirmNewPw) {
+      setChangePwError('New passwords do not match.');
+      return;
+    }
+    const pwPolicyError = validatePassword(newPw);
+    if (pwPolicyError) {
+      setChangePwError(pwPolicyError);
+      return;
+    }
+    setChangePwLoading(true);
+    try {
+      // 1. Load and decrypt data with current password
+      const data = await loadData(currentPw);
+      // 2. Save data with new password (re-encrypt)
+      await saveData(newPw, data);
+      setChangePwDialogOpen(false);
+      setCurrentPw('');
+      setNewPw('');
+      setConfirmNewPw('');
+      setShowPwChangeSuccess(true);
+    } catch (e) {
+      setChangePwError('Current password is incorrect.');
+    } finally {
+      setChangePwLoading(false);
+    }
+  };
+
   return (
     <div 
       ref={sidebarRef} // <-- Attach ref to sidebar container
@@ -343,7 +399,7 @@ export const Sidebar = ({
                     <Lock className="mr-2 h-4 w-4" />
                     Lock App
                   </ContextMenuItem>
-                  <ContextMenuItem>
+                  <ContextMenuItem onClick={() => setChangePwDialogOpen(true)}>
                     <KeyRound className="mr-2 h-4 w-4" />
                     Change master password
                   </ContextMenuItem>
@@ -712,6 +768,135 @@ export const Sidebar = ({
               )}
             </button>
             <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => setImportDialogOpen(false)} disabled={importLoading}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {/* Change Master Password Dialog */}
+      {changePwDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+            <div className="text-2xl font-bold mb-2 text-center">Change Master Password</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">Update your master password to keep your notes secure.</div>
+            <div className="w-full flex flex-col gap-4 mb-2">
+              <div className="relative">
+                <input
+                  type={showCurrentPw ? 'text' : 'password'}
+                  className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
+                  placeholder="Current password"
+                  value={currentPw}
+                  onChange={e => setCurrentPw(e.target.value)}
+                  disabled={changePwLoading}
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                  onClick={() => setShowCurrentPw(v => !v)}
+                  disabled={changePwLoading}
+                  aria-label={showCurrentPw ? 'Hide password' : 'Show password'}
+                >
+                  {showCurrentPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showNewPw ? 'text' : 'password'}
+                  className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
+                  placeholder="New password"
+                  value={newPw}
+                  onChange={e => {
+                    setNewPw(e.target.value);
+                    if (e.target.value) setChangePwError(validatePassword(e.target.value));
+                    else setChangePwError('');
+                  }}
+                  disabled={changePwLoading}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                  onClick={() => setShowNewPw(v => !v)}
+                  disabled={changePwLoading}
+                  aria-label={showNewPw ? 'Hide password' : 'Show password'}
+                >
+                  {showNewPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+              <div className="relative">
+                <input
+                  type={showConfirmNewPw ? 'text' : 'password'}
+                  className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
+                  placeholder="Confirm new password"
+                  value={confirmNewPw}
+                  onChange={e => setConfirmNewPw(e.target.value)}
+                  disabled={changePwLoading}
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  tabIndex={-1}
+                  onClick={() => setShowConfirmNewPw(v => !v)}
+                  disabled={changePwLoading}
+                  aria-label={showConfirmNewPw ? 'Hide password' : 'Show password'}
+                >
+                  {showConfirmNewPw ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+                {/* Show only one feedback message here */}
+                {(newPw || confirmNewPw) && (
+                  <div className={`text-xs mt-1 ${validatePassword(newPw) ? 'text-red-500' : 'text-green-600'}`}>{validatePassword(newPw) || 'Strong password!'}</div>
+                )}
+              </div>
+              {changePwError && !validatePassword(newPw) && <div className="text-red-500 text-xs mt-1 text-center">{changePwError}</div>}
+            </div>
+            <button
+              className={`w-full flex items-center justify-center mt-4 gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2
+                ${changePwLoading ? 'bg-indigo-500 text-white' : 'bg-foreground text-background'}`}
+              onClick={handleChangePassword}
+              disabled={changePwLoading}
+            >
+              {changePwLoading ? (
+                <>
+                  <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="4"
+                      fill="none"
+                      strokeDasharray="60"
+                      strokeDashoffset="20"
+                    />
+                  </svg>
+                  Changing…
+                </>
+              ) : (
+                <>Change Password</>
+              )}
+            </button>
+            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => setChangePwDialogOpen(false)} disabled={changePwLoading}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {/* Password Change Success Popup */}
+      {showPwChangeSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+            <div className="text-2xl font-bold mb-2 text-center">Password Changed</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">Your password has been changed successfully. Please re-login to continue.</div>
+            <button
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2 bg-foreground text-background"
+              onClick={() => {
+                setShowPwChangeSuccess(false);
+                sessionStorage.removeItem('masterPassword');
+                window.location.href = '/login';
+              }}
+            >
+              Re-login
+            </button>
           </div>
         </div>
       )}
