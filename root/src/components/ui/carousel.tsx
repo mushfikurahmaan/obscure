@@ -201,21 +201,19 @@ const CarouselPrevious = React.forwardRef<
   return (
     <Button
       ref={ref}
-      variant={variant}
-      size={size}
+      type="button"
       className={cn(
-        "absolute  h-8 w-8 rounded-full",
-        orientation === "horizontal"
-          ? "-left-12 top-1/2 -translate-y-1/2"
-          : "-top-12 left-1/2 -translate-x-1/2 rotate-90",
+        "absolute left-[-3rem] top-1/2 -translate-y-1/2 bg-indigo-500 hover:bg-indigo-700 text-white rounded-full",
         className
       )}
-      disabled={!canScrollPrev}
+      size={size}
+      variant={variant}
       onClick={scrollPrev}
-      {...props}
+      disabled={!canScrollPrev}
+      tabIndex={-1}
+      aria-label="Previous slide"
     >
-      <ArrowLeft className="h-4 w-4" />
-      <span className="sr-only">Previous slide</span>
+      <ArrowLeft className="w-5 h-5 text-white" />
     </Button>
   )
 })
@@ -230,21 +228,19 @@ const CarouselNext = React.forwardRef<
   return (
     <Button
       ref={ref}
-      variant={variant}
-      size={size}
+      type="button"
       className={cn(
-        "absolute h-8 w-8 rounded-full",
-        orientation === "horizontal"
-          ? "-right-12 top-1/2 -translate-y-1/2"
-          : "-bottom-12 left-1/2 -translate-x-1/2 rotate-90",
+        "absolute right-[-3rem] top-1/2 -translate-y-1/2 bg-indigo-500 hover:bg-indigo-700 text-white rounded-full",
         className
       )}
-      disabled={!canScrollNext}
+      size={size}
+      variant={variant}
       onClick={scrollNext}
-      {...props}
+      disabled={!canScrollNext}
+      tabIndex={-1}
+      aria-label="Next slide"
     >
-      <ArrowRight className="h-4 w-4" />
-      <span className="sr-only">Next slide</span>
+      <ArrowRight className="w-5 h-5 text-white" />
     </Button>
   )
 })

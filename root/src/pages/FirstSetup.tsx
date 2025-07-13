@@ -1,14 +1,51 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
-import { getCurrentWindow } from "@tauri-apps/api/window";
-import { X } from 'lucide-react';
+import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { saveData, importData, loadData } from '../lib/utils';
-import notesImg from '../assets/onboarding_screen.jpg';
+import notesImg from '../assets/notes.png';
+import { listen } from "@tauri-apps/api/event";
+import { Card, CardContent } from '../components/ui/card';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '../components/ui/carousel';
+import useEmblaCarousel, { type UseEmblaCarouselType } from 'embla-carousel-react';
 
 interface FirstSetupProps {
   onSetupComplete?: () => void;
 }
+
+const ONBOARDING_STEPS = [
+  {
+    title: 'Obscure',
+    subtitle: 'A private, powerful notes app for devs and thinkers.',
+    description: 'Your thoughts stay offline, safe, and yours.',
+  },
+  {
+    title: 'Local-First, Always Private',
+    subtitle: 'No Cloud. No Tracking.',
+    description: 'Your notes are stored locally and encrypted with your master password. Even we can’t read them.',
+  },
+  {
+    title: 'Fast Markdown/Rich Text Editor',
+    subtitle: 'Write Freely',
+    description: 'Code snippets, checklists, formatting — all in one place. Optimized for writing, built for speed.',
+  },
+  {
+    title: 'Encrypted Vault',
+    subtitle: 'Secure Everything',
+    description: 'Lock notes, protect with a single master password. Your data is encrypted with AES-256.',
+  },
+  {
+    title: 'Ready to Begin?',
+    subtitle: 'Let’s Get You Started',
+    description: 'Create a vault or import your existing one. Only you control your data.',
+  },
+];
 
 const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
   const navigate = useNavigate();
@@ -27,10 +64,15 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
   const [manualImportPassword, setManualImportPassword] = useState('');
   const [manualImportError, setManualImportError] = useState('');
   const [manualImportLoading, setManualImportLoading] = useState(false);
-  // Add state for import and create success popups and countdown
-  const [showImportSuccess, setShowImportSuccess] = useState(false);
-  const [showCreateSuccess, setShowCreateSuccess] = useState(false);
-  const [successCountdown, setSuccessCountdown] = useState(3);
+  // Remove state for import and create success popups and countdown
+  const [isMaximized, setIsMaximized] = useState(false);
+  // Remove onboardingStep state
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [carouselApi, setCarouselApi] = useState<UseEmblaCarouselType[1] | null>(null);
+  // Add state for success popup
+  const [showSuccessPopup, setShowSuccessPopup] = useState<'create' | 'import' | null>(null);
+  // Add loading state for create password
+  const [createLoading, setCreateLoading] = useState(false);
 
   // Password validation helpers
   const validatePassword = (pw: string) => {
@@ -49,16 +91,20 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
   const handleCreatePassword = async () => {
     if (passwordValidation) return;
     if (!passwordsMatch) return;
+    setCreateLoading(true);
     try {
       await saveData(masterPassword, JSON.stringify({ notes: [] }));
       setShowCreatePassword(false);
       setMasterPassword('');
       setRetypePassword('');
-      setShowCreateSuccess(true);
-      setSuccessCountdown(3);
+      // setShowCreateSuccess(true); // Removed
+      // setSuccessCountdown(3); // Removed
+      setShowSuccessPopup('create');
     } catch (e) {
       // Optionally show error
       alert('Failed to initialize secure storage.');
+    } finally {
+      setCreateLoading(false);
     }
   };
 
@@ -92,92 +138,194 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
       setManualImportFile(null);
       setManualImportPassword('');
       setManualImportLoading(false);
-      setShowImportSuccess(true);
-      setSuccessCountdown(3);
+      // setShowImportSuccess(true); // Removed
+      // setSuccessCountdown(3); // Removed
+      setShowSuccessPopup('import');
     } catch (e) {
       setManualImportLoading(false);
       setManualImportError('Failed to decrypt file. Check your password or file.');
     }
   };
 
-  useEffect(() => {
-    // Force light mode for first setup
-    document.documentElement.classList.remove('dark');
-    document.body.style.background = '#fff';
-    document.body.style.color = '#111';
-    return () => {
-      document.body.style.background = '';
-      document.body.style.color = '';
-    };
-  }, []);
+  // Corrected Tauri v2 window event listening
+ // Replace the useEffect hook with this corrected version:
 
-  // Countdown effect for success popups
+useEffect(() => {
+  let unlistenResize: (() => void) | undefined;
+  let unlistenMax: (() => void) | undefined;
+  let unlistenUnmax: (() => void) | undefined;
+  const setup = async () => {
+    const win = getCurrentWindow();
+    setIsMaximized(await win.isMaximized());
+    unlistenResize = await win.listen('tauri://resize', async () => {
+      setIsMaximized(await win.isMaximized());
+    });
+    unlistenMax = await win.listen('tauri://maximize', () => setIsMaximized(true));
+    unlistenUnmax = await win.listen('tauri://unmaximize', () => setIsMaximized(false));
+  };
+  setup();
+  return () => {
+    if (unlistenResize) unlistenResize();
+    if (unlistenMax) unlistenMax();
+    if (unlistenUnmax) unlistenUnmax();
+  };
+}, []);
+
+  // Set fixed window size and disable resizing for first login screen
+useEffect(() => {
+  const setFixedSize = async () => {
+    const win = getCurrentWindow();
+    await win.setResizable(false);
+    await win.setSize(new LogicalSize(900, 600));
+    await win.setDecorations(false); // Optionally disable window decorations
+  };
+  setFixedSize();
+
+  // On unmount, re-enable resizing and decorations
+  return () => {
+    const resetSize = async () => {
+      const win = getCurrentWindow();
+      await win.setResizable(true);
+      await win.setDecorations(true);
+      // Optionally, set a different size for the main app here
+      // await win.setSize(new LogicalSize(1200, 800));
+    };
+    resetSize();
+  };
+}, []);
+
+  // Remove the useEffect for countdown and popup
+  // useEffect(() => {
+  //   if (!showImportSuccess && !showCreateSuccess) return;
+  //   if (successCountdown === 0) {
+  //     setShowImportSuccess(false);
+  //     setShowCreateSuccess(false);
+  //     window.location.href = '/login';
+  //     return;
+  //   }
+  //   const timer = setTimeout(() => setSuccessCountdown(c => c - 1), 1000);
+  //   return () => clearTimeout(timer);
+  // }, [showImportSuccess, showCreateSuccess, successCountdown]);
+
+  // Add effect to update carouselIndex on slide change
   useEffect(() => {
-    if (!showImportSuccess && !showCreateSuccess) return;
-    if (successCountdown === 0) {
-      setShowImportSuccess(false);
-      setShowCreateSuccess(false);
-      window.location.href = '/login';
-      return;
-    }
-    const timer = setTimeout(() => setSuccessCountdown(c => c - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [showImportSuccess, showCreateSuccess, successCountdown]);
+    if (!carouselApi) return;
+    const onSelect = () => setCarouselIndex(carouselApi.selectedScrollSnap());
+    carouselApi.on('select', onSelect);
+    // Set initial index
+    setCarouselIndex(carouselApi.selectedScrollSnap());
+    return () => { carouselApi.off('select', onSelect); };
+  }, [carouselApi]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white text-black" style={{ WebkitAppRegion: 'drag' }}>
+    <div className="min-h-screen w-screen h-screen flex items-center justify-center bg-background text-foreground transition-colors duration-300 bg-[#fff] dark:bg-[#141414]"
+      style={{
+        '--window-control-icon':
+          typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? '#ffffff'
+            : '#000000',
+      } as React.CSSProperties}
+    >
       {/* Window Controls */}
-      <div className="absolute top-0 right-0 flex items-center gap-1 z-10" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
+      <div className="absolute top-0 right-0 flex items-center gap-1 z-10" style={{ WebkitAppRegion: 'drag', height: '2.5rem' }}>
         <button
-          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
+          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
+          style={{ WebkitAppRegion: 'no-drag' }}
           title="Minimize"
-          onClick={async () => { const window = getCurrentWindow(); await window.minimize(); }}
+          onClick={async () => { 
+            const window = getCurrentWindow(); 
+            await window.minimize(); 
+          }}
         >
-          <svg width="12" height="2" viewBox="0 0 12 2" fill="none" style={{ display: 'block', margin: 'auto' }}><rect width="12" height="2" rx="1" fill="currentColor" /></svg>
+          <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11, color: 'var(--window-control-icon)' }}>&#xE921;</span>
         </button>
-        <button
-          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
-          title="Maximize"
-          onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ display: 'block', margin: 'auto' }}><rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" /></svg>
-        </button>
+        {isMaximized ? (
+          <button
+            className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
+            style={{ WebkitAppRegion: 'no-drag' }}
+            title="Restore"
+            onClick={async () => { 
+              const window = getCurrentWindow(); 
+              await window.toggleMaximize(); 
+            }}
+          >
+            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11, color: 'var(--window-control-icon)' }}>&#xE923;</span>
+          </button>
+        ) : (
+          <button
+            className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
+            style={{ WebkitAppRegion: 'no-drag' }}
+            title="Maximize"
+            onClick={async () => { 
+              const window = getCurrentWindow(); 
+              await window.toggleMaximize(); 
+            }}
+          >
+            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11, color: 'var(--window-control-icon)' }}>&#xE922;</span>
+          </button>
+        )}
         <button
           className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowred hover:text-white transition-colors select-none"
+          style={{ WebkitAppRegion: 'no-drag' }}
           title="Close"
-          onClick={async () => { const window = getCurrentWindow(); await window.close(); }}
+          onClick={async () => { 
+            const window = getCurrentWindow(); 
+            await window.close(); 
+          }}
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ display: 'block', margin: 'auto' }}><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" /><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" strokeWidth="1.5" /></svg>
+          <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11, color: 'var(--window-control-icon)'}}>&#xE8BB;</span>
         </button>
       </div>
-      <div className="flex flex-col md:flex-row items-center w-full max-w-6xl gap-4 md:gap-8 p-4" style={{ WebkitAppRegion: 'no-drag' }}>
-        {/* Image section */}
-        <div className="flex justify-start items-center w-full md:w-auto md:flex-1 md:pl-4 mb-6 md:mb-0">
-          <img src={notesImg} alt="Welcome" className="w-48 h-48 md:w-[520px] md:h-[520px] max-w-full max-h-[40vh] md:max-w-[54vw] md:max-h-[80vh] object-contain rounded-2xl" />
+      <div className="w-full h-full flex flex-col items-center justify-center p-0 md:p-8 gap-0 bg-transparent" style={{ WebkitAppRegion: 'no-drag' }}>
+        <Carousel className="w-full max-w-md mx-auto flex-1 flex flex-col justify-center" setApi={setCarouselApi}>
+          <CarouselContent>
+            {ONBOARDING_STEPS.map((step, idx) => (
+              <CarouselItem key={idx}>
+                <div className="p-1 h-full flex items-center justify-center">
+                  <Card className="w-full h-full min-h-[420px] flex flex-col items-center justify-center bg-card text-card-foreground border-0 shadow-none dark:bg-[#141414] dark:text-white">
+                    <CardContent className="flex flex-col items-center justify-center w-full h-full p-8 select-none" style={{ fontFamily: 'Epilogue, sans-serif' }}>
+                      <div className="text-4xl font-extrabold mb-4 w-full text-center dark:text-white text-black">{step.title}</div>
+                      <div className="text-xl font-semibold mb-2 text-neutral-700 dark:text-neutral-300 w-full text-center">{step.subtitle}</div>
+                      <div className="text-base md:text-lg text-neutral-600 dark:text-neutral-400 mb-8 w-full text-center">{step.description}</div>
+                      {idx === ONBOARDING_STEPS.length - 1 && (
+                        <div className="flex flex-col gap-2 w-full max-w-xs items-center mt-4">
+                          <Button className="w-full h-10 text-base font-semibold bg-indigo-500 text-white rounded-lg shadow hover:bg-indigo-800 transition" onClick={() => setShowCreatePassword(true)}>
+                            Start from Scratch
+                          </Button>
+                          <Button className="w-full h-10 text-base font-semibold bg-indigo-500 text-white rounded-lg shadow hover:bg-indigo-800 transition" onClick={() => setShowImportManualDialog(true)}>
+                            Import Existing Vault
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          <CarouselPrevious />
+          <CarouselNext />
+        </Carousel>
+        {/* Progress bar */}
+        <div className="flex flex-row gap-2 mt-8 justify-center w-full">
+          {ONBOARDING_STEPS.map((_, idx) => (
+            <span
+              key={idx}
+              className={`w-2 h-2 rounded-full border-2 ${carouselIndex === idx ? 'bg-indigo-500 border-indigo-500' : 'bg-neutral-300 dark:bg-neutral-700 border-neutral-400 dark:border-neutral-500'} transition-all`}
+            />
+          ))}
         </div>
-        {/* Main content section */}
-        <div className="flex flex-col items-center justify-between flex-1 w-full max-w-xs h-auto md:h-[520px]">
-          <div className="flex flex-col w-full items-center gap-2 mt-0 mb-16">
-            <h1 className="text-2xl font-bold text-center">Obscure</h1>
-            <p className="text-base text-center text-muted-foreground">A secure, modern note-taking app for privacy-focused users.</p>
-          </div>
-          <div className="flex flex-col w-full gap-2 mt-auto mb-0">
-            <Button className="w-full h-10 text-lg bg-black text-white hover:bg-neutral-800" onClick={() => setShowCreatePassword(true)}>
-              Get Started from Scratch
-            </Button>
-            <Button className="w-full h-10 text-lg bg-black text-white hover:bg-neutral-800" onClick={() => setShowImportManualDialog(true)}>
-              Import Existing Account
-            </Button>
-          </div>
-          {/* Import Existing Account Dialog */}
+      </div>
+      {/* Dialogs and popups remain unchanged */}
+      {/* Create Password Dialog */}
           {showCreatePassword && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative">
+              <div className="bg-white dark:bg-[#181818] rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative text-black dark:text-white">
                 <div className="text-xl font-bold mb-2 text-center">Create Master Password</div>
                 <div className="text-sm text-muted-foreground mb-4 text-center">Set a strong password to secure your account. You will need this password to unlock the app.</div>
                 <input
                   type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-white dark:bg-[#232323] text-black dark:text-white"
                   placeholder="Enter master password"
                   value={masterPassword}
                   onChange={e => setMasterPassword(e.target.value)}
@@ -185,7 +333,7 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
                 />
                 <input
                   type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-white dark:bg-[#232323] text-black dark:text-white"
                   placeholder="Retype master password"
                   value={retypePassword}
                   onChange={e => setRetypePassword(e.target.value)}
@@ -206,11 +354,11 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
                     Cancel
                   </button>
                   <button
-                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 ${showCreateSuccess ? 'bg-indigo-500 text-white' : 'bg-black text-white'}`}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 ${createLoading ? 'bg-indigo-500 text-white' : 'bg-black text-white'}`}
                     onClick={handleCreatePassword}
-                    disabled={!!passwordValidation || !passwordsMatch || showCreateSuccess}
+                    disabled={!!passwordValidation || !passwordsMatch || createLoading}
                   >
-                    {showCreateSuccess ? (
+                    {createLoading ? (
                       <span className="flex items-center gap-2">
                         <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
                           <circle
@@ -234,9 +382,10 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
               </div>
             </div>
           )}
+          {/* Import Manual Dialog */}
           {showImportManualDialog && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative">
+              <div className="bg-white dark:bg-[#181818] rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative text-black dark:text-white">
                 <div className="text-xl font-bold mb-2 text-center">Import Manually</div>
                 <div className="text-sm text-muted-foreground mb-4 text-center">Select your encrypted data file and enter your master password to decrypt.</div>
                 <input
@@ -246,7 +395,7 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
                 />
                 <input
                   type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-white dark:bg-[#232323] text-black dark:text-white"
                   placeholder="Enter master password"
                   value={manualImportPassword}
                   onChange={e => setManualImportPassword(e.target.value)}
@@ -294,30 +443,27 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
               </div>
             </div>
           )}
-          {/* Import Success Popup */}
-          {showImportSuccess && (
+          {/* Remove the JSX for Import Success Popup and Create Success Popup */}
+          {showSuccessPopup && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative">
-                <div className="text-2xl font-bold mb-2 text-center">Import Successful!</div>
-                <div className="text-sm text-muted-foreground mb-4 text-center">Redirecting to login…</div>
-                <div className="text-base font-semibold text-center mb-2">{successCountdown}</div>
+              <div className="bg-white dark:bg-[#181818] rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative text-black dark:text-white">
+                <div className="text-2xl font-bold mb-2 text-center">
+                  {showSuccessPopup === 'create' ? 'Account Created!' : 'Import Successful!'}
+                </div>
+                <div className="text-sm text-muted-foreground mb-4 text-center">
+                  Account {showSuccessPopup === 'create' ? 'creation' : 'import'} successful. Please log in.
+                </div>
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow bg-indigo-500 text-white hover:bg-indigo-800 transition mt-2"
+                  onClick={() => { window.location.href = '/login'; }}
+                >
+                  Go to Login
+                </button>
               </div>
             </div>
           )}
-          {/* Create Success Popup */}
-          {showCreateSuccess && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative">
-                <div className="text-2xl font-bold mb-2 text-center">Account Created!</div>
-                <div className="text-sm text-muted-foreground mb-4 text-center">Redirecting to login…</div>
-                <div className="text-base font-semibold text-center mb-2">{successCountdown}</div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 };
 
-export default FirstSetup; 
+export default FirstSetup;

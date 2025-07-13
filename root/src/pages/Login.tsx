@@ -16,6 +16,7 @@ const Login = ({ onLogin }: LoginProps) => {
   const [error, setError] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem('theme');
@@ -39,6 +40,27 @@ const Login = ({ onLogin }: LoginProps) => {
       mql.addEventListener('change', applySystemTheme);
       return () => mql.removeEventListener('change', applySystemTheme);
     }
+  }, []);
+
+  useEffect(() => {
+    let unlistenResize: (() => void) | undefined;
+    let unlistenMax: (() => void) | undefined;
+    let unlistenUnmax: (() => void) | undefined;
+    const setup = async () => {
+      const win = getCurrentWindow();
+      setIsMaximized(await win.isMaximized());
+      unlistenResize = await win.listen('tauri://resize', async () => {
+        setIsMaximized(await win.isMaximized());
+      });
+      unlistenMax = await win.listen('tauri://maximize', () => setIsMaximized(true));
+      unlistenUnmax = await win.listen('tauri://unmaximize', () => setIsMaximized(false));
+    };
+    setup();
+    return () => {
+      if (unlistenResize) unlistenResize();
+      if (unlistenMax) unlistenMax();
+      if (unlistenUnmax) unlistenUnmax();
+    };
   }, []);
 
   useEffect(() => {
@@ -69,25 +91,35 @@ const Login = ({ onLogin }: LoginProps) => {
       {/* Window Controls */}
       <div className="absolute top-0 right-0 flex items-center gap-1 z-20 p-2" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
         <button
-          className="w-10 h-10 px-0 flex items-center justify-center rounded hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
+          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
           title="Minimize"
           onClick={async () => { const window = getCurrentWindow(); await window.minimize(); }}
         >
-          <svg width="12" height="2" viewBox="0 0 12 2" fill="none" style={{ display: 'block', margin: 'auto' }}><rect width="12" height="2" rx="1" fill="currentColor" /></svg>
+          <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE921;</span>
         </button>
+        {isMaximized ? (
+          <button
+            className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
+            title="Restore"
+            onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
+          >
+            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE923;</span>
+          </button>
+        ) : (
+          <button
+            className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
+            title="Maximize"
+            onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
+          >
+            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE922;</span>
+          </button>
+        )}
         <button
-          className="w-10 h-10 px-0 flex items-center justify-center rounded hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
-          title="Maximize"
-          onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
-        >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ display: 'block', margin: 'auto' }}><rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.5" fill="none" /></svg>
-        </button>
-        <button
-          className="w-10 h-10 px-0 flex items-center justify-center rounded hover:bg-windowred hover:text-white transition-colors select-none"
+          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowred hover:text-white transition-colors select-none"
           title="Close"
           onClick={async () => { const window = getCurrentWindow(); await window.close(); }}
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{ display: 'block', margin: 'auto' }}><line x1="2" y1="2" x2="10" y2="10" stroke="currentColor" strokeWidth="1.5" /><line x1="10" y1="2" x2="2" y2="10" stroke="currentColor" strokeWidth="1.5" /></svg>
+          <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE8BB;</span>
         </button>
       </div>
       {/* Right: Login Card */}
