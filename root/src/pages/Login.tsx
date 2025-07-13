@@ -5,6 +5,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { loadData } from '../lib/utils';
 import { Eye, EyeOff } from 'lucide-react';
 import notesImg from '../assets/notes.png';
+import CustomPasswordInput from '../components/CustomPasswordInput';
 
 interface LoginProps {
   onLogin?: () => void;
@@ -112,29 +113,13 @@ const Login = ({ onLogin }: LoginProps) => {
           {/* Password input */}
           <div className="flex flex-col gap-2">
             <label htmlFor="password" className="text-sm font-medium">Master Password</label>
-            <div className="relative">
-              <input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
-                placeholder="Enter your master password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                autoFocus
-                autoComplete="current-password"
-                disabled={verifying}
-              />
-              <button
-                type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                tabIndex={-1}
-                onClick={() => setShowPassword(v => !v)}
-                disabled={verifying}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-              >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-            </div>
+            <CustomPasswordInput
+              value={password}
+              onChange={setPassword}
+              placeholder="Enter your master password"
+              disabled={verifying}
+              autoFocus
+            />
           </div>
           {error && <div className="text-red-500 text-xs text-center -mt-4">{error}</div>}
           {verifying ? (
@@ -161,7 +146,7 @@ const Login = ({ onLogin }: LoginProps) => {
             <Button
               type="submit"
               className="w-full h-10 text-base font-semibold rounded-lg bg-foreground text-background hover:bg-primary/90 transition"
-              disabled={verifying}
+              disabled={verifying || password.length === 0}
             >
               Sign In
             </Button>

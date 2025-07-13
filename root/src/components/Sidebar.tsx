@@ -21,6 +21,7 @@ import jsPDF from 'jspdf';
 import { slateToHtml } from '../lib/slateToHtml';
 import { slateToMarkdown } from '../lib/slateToMarkdown';
 import { contentToSlateValue } from './NoteEditor';
+import CustomPasswordInput from './CustomPasswordInput';
 
 interface SidebarProps {
   notes: Note[];
@@ -761,18 +762,15 @@ export const Sidebar = ({
               <span className="mx-3 text-xs text-muted-foreground font-medium">or</span>
               <div className="flex-grow border-t border-border" />
             </div>
-            <div className="w-full flex flex-col gap-2 mb-2">
-              <div className="relative">
-                <input
-                  type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
-                  placeholder="Master password for JSON export"
-                  value={exportJsonPassword}
-                  onChange={e => setExportJsonPassword(e.target.value)}
-                  disabled={exportingType !== null}
-                  autoComplete="current-password"
-                />
-              </div>
+            <div className="w-full flex flex-col gap-2 mb-6">
+              <CustomPasswordInput
+                value={exportJsonPassword}
+                onChange={setExportJsonPassword}
+                placeholder="Master password for JSON export"
+                disabled={exportingType !== null}
+                autoFocus
+              />
+            </div>
               <button
                 className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-secondary/80 transition disabled:opacity-60
     ${exportingType === 'json' ? 'bg-indigo-500 text-white' : theme === 'dark' ? 'bg-foreground text-background' : 'bg-foreground text-background'}`}
@@ -803,7 +801,6 @@ export const Sidebar = ({
                 )}
               </button>
               {exportJsonError && <div className="text-red-500 text-xs mt-1 text-center">{exportJsonError}</div>}
-            </div>
             <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setExportDialogOpen(false); resetExportDialog(); }} disabled={exportingType !== null}>Cancel</button>
           </div>
         </div>
@@ -817,19 +814,19 @@ export const Sidebar = ({
             <input
               type="file"
               accept=".dat,.json"
-              className="w-full border rounded-lg px-3 py-2 text-base mb-4 bg-[hsl(var(--background))]"
+              className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
               onChange={e => setImportFile(e.target.files?.[0] || null)}
               disabled={importLoading}
             />
-            <input
-              type="password"
-              className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
-              placeholder="Master password to decrypt"
+            <div className="flex flex-col w-full gap-2 mb-6">
+            <CustomPasswordInput
               value={importPassword}
-              onChange={e => setImportPassword(e.target.value)}
+              onChange={setImportPassword}
+              placeholder="Master password to decrypt"
               disabled={importLoading}
-              autoComplete="current-password"
+              autoFocus
             />
+            </div>
             {importError && <div className="text-red-500 text-xs mb-2 text-center">{importError}</div>}
             <button
               className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2
@@ -867,80 +864,59 @@ export const Sidebar = ({
       {/* Change Master Password Dialog */}
       {changePwDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
-            <div className="text-2xl font-bold mb-2 text-center">Change Master Password</div>
-            <div className="text-sm text-muted-foreground mb-6 text-center">Update your master password to keep your notes secure.</div>
-            <div className="w-full flex flex-col gap-4 mb-2">
-              <div className="relative">
-                <input
-                  type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
-                  placeholder="Current password"
-                  value={currentPw}
-                  onChange={e => setCurrentPw(e.target.value)}
-                  disabled={changePwLoading}
-                  autoComplete="current-password"
-                />
-              </div>
-              <div className="relative">
-                <input
-                  type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
-                  placeholder="New password"
-                  value={newPw}
-                  onChange={e => {
-                    setNewPw(e.target.value);
-                    if (e.target.value) setChangePwError(validatePassword(e.target.value));
-                    else setChangePwError('');
-                  }}
-                  disabled={changePwLoading}
-                  autoComplete="new-password"
-                />
-              </div>
-              <div className="relative">
-                <input
-                  type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
-                  placeholder="Confirm new password"
-                  value={confirmNewPw}
-                  onChange={e => setConfirmNewPw(e.target.value)}
-                  disabled={changePwLoading}
-                  autoComplete="new-password"
-                />
-              </div>
-              {/* Show only one feedback message here */}
-              {(newPw || confirmNewPw) && (
-                <div className={`text-xs mt-1 ${validatePassword(newPw) ? 'text-red-500' : 'text-green-600'}`}>{validatePassword(newPw) || 'Strong password!'}</div>
-              )}
-              {changePwError && !validatePassword(newPw) && <div className="text-red-500 text-xs mt-1 text-center">{changePwError}</div>}
+          <div className="bg-card rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative text-card-foreground bg-background">
+            <div className="text-xl font-bold mb-2 text-center">Change Master Password</div>
+            <div className="text-sm text-muted-foreground mb-4 text-center">Enter your current password and choose a new one.</div>
+            <div className="flex flex-col w-full gap-3 mb-2">
+              <CustomPasswordInput
+                value={currentPw}
+                onChange={setCurrentPw}
+                placeholder="Current password"
+                disabled={changePwLoading}
+                autoFocus
+              />
+              <CustomPasswordInput
+                value={newPw}
+                onChange={setNewPw}
+                placeholder="New password"
+                disabled={changePwLoading}
+              />
+              <CustomPasswordInput
+                value={confirmNewPw}
+                onChange={setConfirmNewPw}
+                placeholder="Confirm new password"
+                disabled={changePwLoading}
+              />
             </div>
-            <button
-              className={`w-full flex items-center justify-center mt-4 gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2
-                ${changePwLoading ? 'bg-indigo-500 text-white' : 'bg-foreground text-background'}`}
-              onClick={handleChangePassword}
-              disabled={changePwLoading}
-            >
-              {changePwLoading ? (
-                <>
-                  <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
-                    <circle
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="white"
-                      strokeWidth="4"
-                      fill="none"
-                      strokeDasharray="60"
-                      strokeDashoffset="20"
-                    />
-                  </svg>
-                  Changing…
-                </>
-              ) : (
-                <>Change Password</>
-              )}
-            </button>
-            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setChangePwDialogOpen(false); resetChangePwDialog(); }} disabled={changePwLoading}>Cancel</button>
+            {changePwError && <div className="text-red-500 text-xs mb-1">{changePwError}</div>}
+            <div className="flex flex-col w-full gap-2 mt-4">
+              <button
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 ${changePwLoading ? 'bg-indigo-500 text-white' : 'bg-foreground text-[hsl(var(--background))]'}`}
+                onClick={handleChangePassword}
+                disabled={changePwLoading}
+              >
+                {changePwLoading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="4"
+                        fill="none"
+                        strokeDasharray="60"
+                        strokeDashoffset="20"
+                      />
+                    </svg>
+                    Changing…
+                  </span>
+                ) : (
+                  'Change Password'
+                )}
+              </button>
+              <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setChangePwDialogOpen(false); resetChangePwDialog(); }}>Cancel</button>
+            </div>
           </div>
         </div>
       )}

@@ -14,6 +14,7 @@ import {
   CarouselPrevious,
 } from '../components/ui/carousel';
 import useEmblaCarousel, { type UseEmblaCarouselType } from 'embla-carousel-react';
+import CustomPasswordInput from '../components/CustomPasswordInput';
 
 interface FirstSetupProps {
   onSetupComplete?: () => void;
@@ -323,22 +324,21 @@ useEffect(() => {
               <div className="bg-card rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative text-card-foreground bg-background">
                 <div className="text-xl font-bold mb-2 text-center">Create Master Password</div>
                 <div className="text-sm text-muted-foreground mb-4 text-center">Set a strong password to secure your account. You will need this password to unlock the app.</div>
-                <input
-                  type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-background text-foreground"
-                  placeholder="Enter master password"
-                  value={masterPassword}
-                  onChange={e => setMasterPassword(e.target.value)}
-                  autoComplete="new-password"
-                />
-                <input
-                  type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-background text-foreground"
-                  placeholder="Retype master password"
-                  value={retypePassword}
-                  onChange={e => setRetypePassword(e.target.value)}
-                  autoComplete="new-password"
-                />
+                <div className="flex flex-col w-full gap-2 mb-2">
+                  <CustomPasswordInput
+                    value={masterPassword}
+                    onChange={setMasterPassword}
+                    placeholder="Enter master password"
+                    disabled={createLoading}
+                    autoFocus
+                  />
+                  <CustomPasswordInput
+                    value={retypePassword}
+                    onChange={setRetypePassword}
+                    placeholder="Retype master password"
+                    disabled={createLoading}
+                  />
+                </div>
                 {/* Real-time feedback */}
                 {masterPassword && passwordValidation && (
                   <div className="text-red-500 text-xs mb-1">{passwordValidation}</div>
@@ -393,12 +393,12 @@ useEffect(() => {
                   className="w-full border rounded-lg px-3 py-2 text-base mb-2"
                   onChange={e => setManualImportFile(e.target.files?.[0] || null)}
                 />
-                <input
-                  type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-background text-foreground"
-                  placeholder="Enter master password"
+                <CustomPasswordInput
                   value={manualImportPassword}
-                  onChange={e => setManualImportPassword(e.target.value)}
+                  onChange={setManualImportPassword}
+                  placeholder="Enter master password"
+                  disabled={manualImportLoading}
+                  autoFocus
                 />
                 {manualImportError && <div className="text-red-500 text-xs mb-1">{manualImportError}</div>}
                 <div className="flex flex-col w-full gap-2 mt-4">

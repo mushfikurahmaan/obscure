@@ -54,3 +54,71 @@
   scrollbar-width: thin;
   scrollbar-color: #444 transparent;
 }
+
+/* Comprehensive CSS to hide password reveal icons across all browsers */
+
+/* Hide default password reveal (eye) icon in Chromium browsers */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-input-decoration,
+input[type="password"]::-webkit-input-password-reveal,
+input[type="password"]::-webkit-input-password-reveal-button {
+  display: none !important;
+}
+
+/* Additional pseudo-elements for newer browsers */
+input[type="password"]::-webkit-reveal {
+  display: none !important;
+}
+
+input[type="password"]::-webkit-password-reveal {
+  display: none !important;
+}
+
+/* For Edge and newer versions */
+input[type="password"]::-ms-reveal {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Alternative approach - disable the feature entirely */
+input[type="password"] {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Method 2: Use autocomplete attribute in HTML to potentially disable the icon */
+/* Add this to your HTML input: autocomplete="new-password" */
+
+/* Method 3: Override with background if other methods fail */
+input[type="password"] {
+  background-image: none !important;
+  background-position: right center;
+  background-repeat: no-repeat;
+  background-size: 0 !important;
+}
+
+/* For inputs with specific classes (adjust as needed) */
+.password-input::-webkit-password-reveal,
+.password-input::-ms-reveal {
+  display: none !important;
+}
+
+/* Additional fallback for stubborn browsers */
+input[type="password"] {
+  position: relative;
+}
+
+input[type="password"]::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 30px;
+  height: 100%;
+  background: white;
+  pointer-events: none;
+}
