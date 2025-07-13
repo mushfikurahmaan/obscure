@@ -19,30 +19,6 @@ const Login = ({ onLogin }: LoginProps) => {
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
-    const stored = localStorage.getItem('theme');
-    const theme = stored === 'light' || stored === 'dark' || stored === 'system' ? stored : 'system';
-    if (theme !== 'system') {
-      if (theme === 'dark') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    } else {
-      const mql = window.matchMedia('(prefers-color-scheme: dark)');
-      const applySystemTheme = () => {
-        if (mql.matches) {
-          document.documentElement.classList.add('dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-        }
-      };
-      applySystemTheme();
-      mql.addEventListener('change', applySystemTheme);
-      return () => mql.removeEventListener('change', applySystemTheme);
-    }
-  }, []);
-
-  useEffect(() => {
     let unlistenResize: (() => void) | undefined;
     let unlistenMax: (() => void) | undefined;
     let unlistenUnmax: (() => void) | undefined;

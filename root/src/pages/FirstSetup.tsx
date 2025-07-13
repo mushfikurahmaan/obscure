@@ -218,7 +218,7 @@ useEffect(() => {
   }, [carouselApi]);
 
   return (
-    <div className="min-h-screen w-screen h-screen flex items-center justify-center bg-background text-foreground transition-colors duration-300 bg-[#fff] dark:bg-[#141414]"
+    <div className="min-h-screen w-screen h-screen flex items-center justify-center bg-background text-foreground transition-colors duration-300"
       style={{
         '--window-control-icon':
           typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
@@ -282,11 +282,11 @@ useEffect(() => {
             {ONBOARDING_STEPS.map((step, idx) => (
               <CarouselItem key={idx}>
                 <div className="p-1 h-full flex items-center justify-center">
-                  <Card className="w-full h-full min-h-[420px] flex flex-col items-center justify-center bg-card text-card-foreground border-0 shadow-none dark:bg-[#141414] dark:text-white">
+                  <Card className="w-full h-full min-h-[420px] flex flex-col items-center justify-center bg-card text-card-foreground border-0 shadow-none">
                     <CardContent className="flex flex-col items-center justify-center w-full h-full p-8 select-none" style={{ fontFamily: 'Epilogue, sans-serif' }}>
-                      <div className="text-4xl font-extrabold mb-4 w-full text-center dark:text-white text-black">{step.title}</div>
-                      <div className="text-xl font-semibold mb-2 text-neutral-700 dark:text-neutral-300 w-full text-center">{step.subtitle}</div>
-                      <div className="text-base md:text-lg text-neutral-600 dark:text-neutral-400 mb-8 w-full text-center">{step.description}</div>
+                      <div className="text-4xl font-extrabold mb-4 w-full text-center">{step.title}</div>
+                      <div className="text-xl font-semibold mb-2 w-full text-center">{step.subtitle}</div>
+                      <div className="text-base md:text-lg mb-8 w-full text-center">{step.description}</div>
                       {idx === ONBOARDING_STEPS.length - 1 && (
                         <div className="flex flex-col gap-2 w-full max-w-xs items-center mt-4">
                           <Button className="w-full h-10 text-base font-semibold bg-indigo-500 text-white rounded-lg shadow hover:bg-indigo-800 transition" onClick={() => setShowCreatePassword(true)}>
@@ -320,12 +320,12 @@ useEffect(() => {
       {/* Create Password Dialog */}
           {showCreatePassword && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-white dark:bg-[#181818] rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative text-black dark:text-white">
+              <div className="bg-card rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative text-card-foreground bg-background">
                 <div className="text-xl font-bold mb-2 text-center">Create Master Password</div>
                 <div className="text-sm text-muted-foreground mb-4 text-center">Set a strong password to secure your account. You will need this password to unlock the app.</div>
                 <input
                   type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-white dark:bg-[#232323] text-black dark:text-white"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-background text-foreground"
                   placeholder="Enter master password"
                   value={masterPassword}
                   onChange={e => setMasterPassword(e.target.value)}
@@ -333,7 +333,7 @@ useEffect(() => {
                 />
                 <input
                   type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-white dark:bg-[#232323] text-black dark:text-white"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-background text-foreground"
                   placeholder="Retype master password"
                   value={retypePassword}
                   onChange={e => setRetypePassword(e.target.value)}
@@ -385,7 +385,7 @@ useEffect(() => {
           {/* Import Manual Dialog */}
           {showImportManualDialog && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-white dark:bg-[#181818] rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative text-black dark:text-white">
+              <div className="bg-card rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative bg-background text-card-foreground">
                 <div className="text-xl font-bold mb-2 text-center">Import Manually</div>
                 <div className="text-sm text-muted-foreground mb-4 text-center">Select your encrypted data file and enter your master password to decrypt.</div>
                 <input
@@ -395,7 +395,7 @@ useEffect(() => {
                 />
                 <input
                   type="password"
-                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-white dark:bg-[#232323] text-black dark:text-white"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-background text-foreground"
                   placeholder="Enter master password"
                   value={manualImportPassword}
                   onChange={e => setManualImportPassword(e.target.value)}
@@ -415,7 +415,7 @@ useEffect(() => {
                     Cancel
                   </button>
                   <button
-                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 ${manualImportLoading ? 'bg-indigo-500 text-white' : 'bg-black text-white'}`}
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 cursor-pointer ${manualImportLoading ? 'bg-indigo-500 text-white' : 'bg-black text-white'}`}
                     onClick={handleImportManual}
                     disabled={!manualImportFile || !manualImportPassword || manualImportLoading}
                   >
@@ -446,7 +446,7 @@ useEffect(() => {
           {/* Remove the JSX for Import Success Popup and Create Success Popup */}
           {showSuccessPopup && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-white dark:bg-[#181818] rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative text-black dark:text-white">
+              <div className="bg-card rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative text-card-foreground bg-background">
                 <div className="text-2xl font-bold mb-2 text-center">
                   {showSuccessPopup === 'create' ? 'Account Created!' : 'Import Successful!'}
                 </div>

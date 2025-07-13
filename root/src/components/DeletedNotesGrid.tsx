@@ -53,7 +53,7 @@ export const DeletedNotesGrid: React.FC<DeletedNotesGridProps> = ({ notes, onRes
             <ContextMenu key={note.id}>
               <ContextMenuTrigger asChild>
                 <div
-                  className="relative flex flex-col gap-2 px-5 py-4 rounded-lg bg-white dark:bg-[hsl(var(--card))] border border-[hsl(var(--border))] shadow-md hover:shadow-xl transition-all cursor-pointer select-none group min-h-[120px]"
+                  className="relative flex flex-col gap-2 px-5 py-4 rounded-lg bg-[hsl(var(--card))] border border-[hsl(var(--border))] shadow-md hover:shadow-xl transition-all cursor-pointer select-none group min-h-[120px]"
                   onClick={() => onSelectNote(note)}
                   tabIndex={0}
                 >
