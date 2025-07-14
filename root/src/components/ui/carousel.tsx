@@ -198,6 +198,8 @@ const CarouselPrevious = React.forwardRef<
 >(({ className, variant = "outline", size = "icon", ...props }, ref) => {
   const { orientation, scrollPrev, canScrollPrev } = useCarousel()
 
+  if (!canScrollPrev) return null;
+
   return (
     <Button
       ref={ref}
@@ -209,7 +211,6 @@ const CarouselPrevious = React.forwardRef<
       size={size}
       variant={variant}
       onClick={scrollPrev}
-      disabled={!canScrollPrev}
       tabIndex={-1}
       aria-label="Previous slide"
     >
@@ -225,6 +226,8 @@ const CarouselNext = React.forwardRef<
 >(({ className, variant = "outline", size = "icon", ...props }, ref) => {
   const { orientation, scrollNext, canScrollNext } = useCarousel()
 
+  if (!canScrollNext) return null;
+
   return (
     <Button
       ref={ref}
@@ -236,7 +239,6 @@ const CarouselNext = React.forwardRef<
       size={size}
       variant={variant}
       onClick={scrollNext}
-      disabled={!canScrollNext}
       tabIndex={-1}
       aria-label="Next slide"
     >

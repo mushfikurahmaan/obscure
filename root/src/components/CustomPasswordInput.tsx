@@ -7,6 +7,7 @@ interface CustomPasswordInputProps {
   placeholder?: string;
   disabled?: boolean;
   autoFocus?: boolean;
+  id?: string; // Add id as an optional prop
 }
 
 const mask = (value: string) => '•'.repeat(value.length);
@@ -17,6 +18,7 @@ const CustomPasswordInput: React.FC<CustomPasswordInputProps> = ({
   placeholder = 'Enter password',
   disabled = false,
   autoFocus = false,
+  id, // Accept id prop
 }) => {
   const [showPassword, setShowPassword] = useState(false);
 
@@ -43,7 +45,7 @@ const CustomPasswordInput: React.FC<CustomPasswordInputProps> = ({
   return (
     <div className="relative w-full">
       <input
-        id="custom-password"
+        id={id} // Only set id if provided
         type="text"
         inputMode="text"
         className="w-full border rounded-lg px-3 py-2 text-base pr-10 focus:ring-2 focus:ring-primary focus:border-primary transition bg-[hsl(var(--background))]"
