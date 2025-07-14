@@ -485,7 +485,7 @@ const Index = () => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-gray-400 hover:text-green-500 hover:bg-gray-700 border-none w-7 h-7 relative"
+                          className="text-gray-400 hover:text-indigo-500 hover:bg-[hsl(var(--code-block-background))] border-none w-7 h-7 relative"
                           aria-label="Favorite"
                           style={{ WebkitAppRegion: 'no-drag' }}
                         >

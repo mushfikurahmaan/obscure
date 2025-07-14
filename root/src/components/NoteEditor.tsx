@@ -583,283 +583,283 @@ const handleInsertEmoji = () => {
   const { selection } = editor;
   if (!selection) return;
   Transforms.insertNodes(editor, { type: 'emoji', character: char, children: [{ text: '' }] }, { at: selection });
-  ReactEditor.focus(editor);
-};
+    ReactEditor.focus(editor);
+  };
 
-// Modern floating toolbar with arrow
-return (
-  <div
-    ref={menuRef}
-    className="fixed z-50 bg-[#111113] bg-opacity-95 rounded-lg shadow-xl border border-gray-700"
-    style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
-    onMouseDown={e => e.preventDefault()}
-  >
-    {/* Arrow removed */}
-    
-    {/* Main Toolbar */}
+  // Modern floating toolbar with arrow
+  return (
     <div
+      ref={menuRef}
+    className="fixed z-50 bg-[#111113] bg-opacity-95 rounded-lg shadow-xl border border-gray-700"
+      style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
+      onMouseDown={e => e.preventDefault()}
+    >
+    {/* Arrow removed */}
+      
+      {/* Main Toolbar */}
+      <div
       className="flex items-center gap-1 rounded-lg px-2 py-1 relative"
       // Removed inline background style for color consistency
-    >
-      
-      {/* Text Size Buttons (replace with dropdown) */}
-      <div className="relative" style={{ marginRight: 4 }}>
-        <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-16 h-8 flex items-center justify-center gap-1"
-          title="Text style"
-          onClick={e => {
-            e.stopPropagation();
-            setShowFontSizeDropdown(v => {
-              const next = !v;
-              if (next && textDropdownButtonRef.current) {
-                const rect = textDropdownButtonRef.current.getBoundingClientRect();
-                const dropdownHeight = 176; // 4 options * 44px each (approx)
-                const spaceBelow = window.innerHeight - rect.bottom;
-                const spaceAbove = rect.top;
-                if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
-                  setFontSizeDropdownDirection('up');
-                } else {
-                  setFontSizeDropdownDirection('down');
+      >
+        
+        {/* Text Size Buttons (replace with dropdown) */}
+        <div className="relative" style={{ marginRight: 4 }}>
+          <button
+            className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-16 h-8 flex items-center justify-center gap-1"
+            title="Text style"
+            onClick={e => {
+              e.stopPropagation();
+              setShowFontSizeDropdown(v => {
+                const next = !v;
+                if (next && textDropdownButtonRef.current) {
+                  const rect = textDropdownButtonRef.current.getBoundingClientRect();
+                  const dropdownHeight = 176; // 4 options * 44px each (approx)
+                  const spaceBelow = window.innerHeight - rect.bottom;
+                  const spaceAbove = rect.top;
+                  if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+                    setFontSizeDropdownDirection('up');
+                  } else {
+                    setFontSizeDropdownDirection('down');
+                  }
                 }
-              }
-              setShowHighlighterPalette(false);
-              setShowTextColorPalette(false);
-              return next;
-            });
-          }}
-          ref={textDropdownButtonRef}
-          style={{ lineHeight: 1 }}
-        >
-          Text
-          <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="ml-1"><path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
-        {/* Dropdown menu */}
-        {showFontSizeDropdown && (
-          <div
-            className="absolute w-32 bg-[#111113] rounded-lg shadow-xl z-50 border border-gray-700"
-            style={{
-              minWidth: 120,
-              left: 0,
-              marginTop: fontSizeDropdownDirection === 'down' ? '0.25rem' : undefined,
-              bottom: fontSizeDropdownDirection === 'up' ? '100%' : undefined,
-              marginBottom: fontSizeDropdownDirection === 'up' ? '0.25rem' : undefined
+                setShowHighlighterPalette(false);
+                setShowTextColorPalette(false);
+                return next;
+              });
             }}
-            onMouseDown={e => e.preventDefault()}
+            ref={textDropdownButtonRef}
+            style={{ lineHeight: 1 }}
           >
-            <button
-              className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-t-lg"
-              onClick={() => { handleFontSize('h1'); setShowFontSizeDropdown(false); }}
-            >Heading 1</button>
-            <button
-              className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700"
-              onClick={() => { handleFontSize('h2'); setShowFontSizeDropdown(false); }}
-            >Heading 2</button>
-            <button
-              className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700"
-              onClick={() => { handleFontSize('h3'); setShowFontSizeDropdown(false); }}
-            >Heading 3</button>
-            <button
-              className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-b-lg"
-              onClick={() => { handleFontSize('default'); setShowFontSizeDropdown(false); }}
-            >Normal</button>
-          </div>
-        )}
-      </div>
-      {/* End of Text Size Dropdown */}
-      
-      <button
-        className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-        title="Bold"
-        onClick={() => handleMark('bold')}
-      >
+            Text
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="ml-1"><path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+          {/* Dropdown menu */}
+          {showFontSizeDropdown && (
+            <div
+              className="absolute w-32 bg-[#111113] rounded-lg shadow-xl z-50 border border-gray-700"
+              style={{
+                minWidth: 120,
+                left: 0,
+                marginTop: fontSizeDropdownDirection === 'down' ? '0.25rem' : undefined,
+                bottom: fontSizeDropdownDirection === 'up' ? '100%' : undefined,
+                marginBottom: fontSizeDropdownDirection === 'up' ? '0.25rem' : undefined
+              }}
+              onMouseDown={e => e.preventDefault()}
+            >
+              <button
+                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-t-lg"
+                onClick={() => { handleFontSize('h1'); setShowFontSizeDropdown(false); }}
+              >Heading 1</button>
+              <button
+                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700"
+                onClick={() => { handleFontSize('h2'); setShowFontSizeDropdown(false); }}
+              >Heading 2</button>
+              <button
+                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700"
+                onClick={() => { handleFontSize('h3'); setShowFontSizeDropdown(false); }}
+              >Heading 3</button>
+              <button
+                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-b-lg"
+                onClick={() => { handleFontSize('default'); setShowFontSizeDropdown(false); }}
+              >Normal</button>
+            </div>
+          )}
+        </div>
+        {/* End of Text Size Dropdown */}
+        
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Bold"
+          onClick={() => handleMark('bold')}
+        >
         <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><path stroke="currentColor" strokeWidth="2" d="M7 4h4a3 3 0 0 1 0 6H7zm0 6h5a3 3 0 1 1 0 6H7z"/></svg>
-      </button>
-      <button
-        className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-        title="Italic"
-        onClick={() => handleMark('italic')}
-      >
+        </button>
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Italic"
+          onClick={() => handleMark('italic')}
+        >
         <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><path stroke="currentColor" strokeWidth="2" d="M10 4h4M6 16h4m2-12-4 12"/></svg>
-      </button>
-      <button
-        className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-        title="Underline"
-        onClick={() => handleMark('underline')}
-      >
+        </button>
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Underline"
+          onClick={() => handleMark('underline')}
+        >
         <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><path stroke="currentColor" strokeWidth="2" d="M6 4v5a4 4 0 0 0 8 0V4M5 16h10"/></svg>
-      </button>
-      <button
-        className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'left' ? ' bg-gray-700' : ''}`}
-        title="Align Left"
-        onClick={() => setAlignment('left')}
-      >
+        </button>
+        <button
+          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'left' ? ' bg-gray-700' : ''}`}
+          title="Align Left"
+          onClick={() => setAlignment('left')}
+        >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
-      </button>
-      <button
-        className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'center' ? ' bg-gray-700' : ''}`}
-        title="Align Center"
-        onClick={() => setAlignment('center')}
-      >
+        </button>
+        <button
+          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'center' ? ' bg-gray-700' : ''}`}
+          title="Align Center"
+          onClick={() => setAlignment('center')}
+        >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="5" y="5" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="5" y="13" width="10" height="2" rx="1" fill="currentColor"/></svg>
-      </button>
-      <button
-        className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'right' ? ' bg-gray-700' : ''}`}
-        title="Align Right"
-        onClick={() => setAlignment('right')}
-      >
+        </button>
+        <button
+          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'right' ? ' bg-gray-700' : ''}`}
+          title="Align Right"
+          onClick={() => setAlignment('right')}
+        >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="7" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
-      </button>
-      <button
-        className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'justify' ? ' bg-gray-700' : ''}`}
-        title="Justify"
-        onClick={() => setAlignment('justify')}
-      >
+        </button>
+        <button
+          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'justify' ? ' bg-gray-700' : ''}`}
+          title="Justify"
+          onClick={() => setAlignment('justify')}
+        >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
-      </button>
-      <button
-        className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-        title="Code Block"
-        onClick={handleCodeBlock}
-      >
+        </button>
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Code Block"
+          onClick={handleCodeBlock}
+        >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
-      </button>
-      
-      {/* Text Color with Color Palette */}
-      <div ref={textColorRef} className="relative">
-        <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition relative"
-          title="Text Color"
-          onClick={handleTextColorClick}
-        >
+        </button>
+        
+        {/* Text Color with Color Palette */}
+        <div ref={textColorRef} className="relative">
+          <button
+            className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition relative"
+            title="Text Color"
+            onClick={handleTextColorClick}
+          >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><polyline points="4,7 4,4 20,4 20,7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-          {/* Color indicator */}
-          <div 
-            className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-1 rounded-full"
-            style={{ backgroundColor: selectedTextColor }}
-          />
-        </button>
-        
-        {/* Sliding Color Palette */}
-        <div
-          className="absolute transition-all duration-300 ease-out"
-          style={{
-            left: paletteDirection === 'right' ? '100%' : undefined,
-            right: paletteDirection === 'left' ? '100%' : undefined,
-            marginLeft: paletteDirection === 'right' ? '8px' : undefined,
-            marginRight: paletteDirection === 'left' ? '8px' : undefined,
-            width: showTextColorPalette ? '200px' : '0px',
-            opacity: showTextColorPalette ? 1 : 0,
-            background: '#111113',
-            borderRadius: 8,
-            minWidth: showTextColorPalette ? '200px' : '0px',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
-            zIndex: 100,
-            alignItems: 'center',
-            display: showTextColorPalette ? 'flex' : 'none',
-            top: '50%',
-            transform: 'translateY(-50%)',
-          }}
-        >
+            {/* Color indicator */}
+            <div 
+              className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-1 rounded-full"
+              style={{ backgroundColor: selectedTextColor }}
+            />
+          </button>
+          
+          {/* Sliding Color Palette */}
           <div
-            className="flex items-center gap-2 px-3 py-2 whitespace-nowrap w-full"
+            className="absolute transition-all duration-300 ease-out"
             style={{
-              background: 'transparent',
+              left: paletteDirection === 'right' ? '100%' : undefined,
+              right: paletteDirection === 'left' ? '100%' : undefined,
+              marginLeft: paletteDirection === 'right' ? '8px' : undefined,
+              marginRight: paletteDirection === 'left' ? '8px' : undefined,
+              width: showTextColorPalette ? '200px' : '0px',
+              opacity: showTextColorPalette ? 1 : 0,
+              background: '#111113',
               borderRadius: 8,
-              minWidth: '200px',
-              height: '40px',
+              minWidth: showTextColorPalette ? '200px' : '0px',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+              zIndex: 100,
+              alignItems: 'center',
+              display: showTextColorPalette ? 'flex' : 'none',
+              top: '50%',
+              transform: 'translateY(-50%)',
             }}
           >
-            {TEXT_COLORS.map((textColor, index) => (
-              <button
-                key={index}
-                className="w-6 h-6 rounded-full border-2 border-gray-600 hover:border-gray-400 transition-colors flex-shrink-0"
-                style={{ backgroundColor: textColor.color }}
-                title={textColor.name}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleTextColorSelect(textColor.color);
-                }}
-              >
-                {selectedTextColor === textColor.color && (
-                  <div className="w-full h-full rounded-full border-2 border-white" />
-                )}
-              </button>
-            ))}
+            <div
+              className="flex items-center gap-2 px-3 py-2 whitespace-nowrap w-full"
+              style={{
+                background: 'transparent',
+                borderRadius: 8,
+                minWidth: '200px',
+                height: '40px',
+              }}
+            >
+              {TEXT_COLORS.map((textColor, index) => (
+                <button
+                  key={index}
+                  className="w-6 h-6 rounded-full border-2 border-gray-600 hover:border-gray-400 transition-colors flex-shrink-0"
+                  style={{ backgroundColor: textColor.color }}
+                  title={textColor.name}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTextColorSelect(textColor.color);
+                  }}
+                >
+                  {selectedTextColor === textColor.color && (
+                    <div className="w-full h-full rounded-full border-2 border-white" />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
-      
-      {/* Highlighter with Color Palette */}
-      <div ref={highlighterRef} className="relative">
-        <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition relative"
-          title="Highlight"
-          onClick={handleHighlighterClick}
-        >
+        
+        {/* Highlighter with Color Palette */}
+        <div ref={highlighterRef} className="relative">
+          <button
+            className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition relative"
+            title="Highlight"
+            onClick={handleHighlighterClick}
+          >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
-          {/* Color indicator */}
-          <div 
-            className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-1 rounded-full"
-            style={{ backgroundColor: selectedHighlightColor }}
-          />
-        </button>
-        
-        {/* Sliding Color Palette */}
-        <div
-          className="absolute transition-all duration-300 ease-out"
-          style={{
-            left: paletteDirection === 'right' ? '100%' : undefined,
-            right: paletteDirection === 'left' ? '100%' : undefined,
-            marginLeft: paletteDirection === 'right' ? '8px' : undefined,
-            marginRight: paletteDirection === 'left' ? '8px' : undefined,
-            width: showHighlighterPalette ? '200px' : '0px',
-            opacity: showHighlighterPalette ? 1 : 0,
-            background: '#111113',
-            borderRadius: 8,
-            minWidth: showHighlighterPalette ? '200px' : '0px',
-            boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
-            zIndex: 100,
-            alignItems: 'center',
-            display: showHighlighterPalette ? 'flex' : 'none',
-            top: '50%',
-            transform: 'translateY(-50%)',
-          }}
-        >
+            {/* Color indicator */}
+            <div 
+              className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-1 rounded-full"
+              style={{ backgroundColor: selectedHighlightColor }}
+            />
+          </button>
+          
+          {/* Sliding Color Palette */}
           <div
-            className="flex items-center gap-2 px-3 py-2 whitespace-nowrap w-full"
+            className="absolute transition-all duration-300 ease-out"
             style={{
-              background: 'transparent',
+              left: paletteDirection === 'right' ? '100%' : undefined,
+              right: paletteDirection === 'left' ? '100%' : undefined,
+              marginLeft: paletteDirection === 'right' ? '8px' : undefined,
+              marginRight: paletteDirection === 'left' ? '8px' : undefined,
+              width: showHighlighterPalette ? '200px' : '0px',
+              opacity: showHighlighterPalette ? 1 : 0,
+              background: '#111113',
               borderRadius: 8,
-              minWidth: '200px',
-              height: '40px',
+              minWidth: showHighlighterPalette ? '200px' : '0px',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+              zIndex: 100,
+              alignItems: 'center',
+              display: showHighlighterPalette ? 'flex' : 'none',
+              top: '50%',
+              transform: 'translateY(-50%)',
             }}
           >
-            {HIGHLIGHTER_COLORS.map((highlighter, index) => (
-              <button
-                key={index}
-                className="w-6 h-6 rounded-full border-2 border-gray-600 hover:border-gray-400 transition-colors flex-shrink-0"
-                style={{ backgroundColor: highlighter.color }}
-                title={highlighter.name}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleHighlightColorSelect(highlighter.color);
-                }}
-              >
-                {selectedHighlightColor === highlighter.color && (
-                  <div className="w-full h-full rounded-full border-2 border-white" />
-                )}
-              </button>
-            ))}
+            <div
+              className="flex items-center gap-2 px-3 py-2 whitespace-nowrap w-full"
+              style={{
+                background: 'transparent',
+                borderRadius: 8,
+                minWidth: '200px',
+                height: '40px',
+              }}
+            >
+              {HIGHLIGHTER_COLORS.map((highlighter, index) => (
+                <button
+                  key={index}
+                  className="w-6 h-6 rounded-full border-2 border-gray-600 hover:border-gray-400 transition-colors flex-shrink-0"
+                  style={{ backgroundColor: highlighter.color }}
+                  title={highlighter.name}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleHighlightColorSelect(highlighter.color);
+                  }}
+                >
+                  {selectedHighlightColor === highlighter.color && (
+                    <div className="w-full h-full rounded-full border-2 border-white" />
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Link Button */}
-      <button
-        className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
-        title="Link"
-        onClick={() => (isLinkActive() ? removeLink() : insertLink())}
-      >
+        {/* Link Button */}
+        <button
+          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Link"
+          onClick={() => (isLinkActive() ? removeLink() : insertLink())}
+        >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
       </button>
     </div>
