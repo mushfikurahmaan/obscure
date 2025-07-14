@@ -116,7 +116,27 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
     try {
       const fileContent = await manualImportFile.text();
       await importData(fileContent);
-      await loadData(manualImportPassword);
+      let decrypted: any;
+      try {
+        decrypted = await loadData(manualImportPassword);
+      } catch (e) {
+        setManualImportLoading(false);
+        setManualImportError('Failed to decrypt file. Check your password or file.');
+        return;
+      }
+      let vaultObj: any;
+      try {
+        vaultObj = JSON.parse(decrypted);
+      } catch {
+        setManualImportLoading(false);
+        setManualImportError('Imported file is not valid JSON.');
+        return;
+      }
+      if (!vaultObj || !Array.isArray(vaultObj.notes)) {
+        setManualImportLoading(false);
+        setManualImportError('This file is not a valid vault. If you want to import a single note, use the single note import feature.');
+        return;
+      }
       setShowImportManualDialog(false);
       setManualImportFile(null);
       setManualImportPassword('');

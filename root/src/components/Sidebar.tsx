@@ -116,6 +116,10 @@ export const Sidebar = ({
   const [singleNoteImportError, setSingleNoteImportError] = useState('');
   const [singleNoteImportLoading, setSingleNoteImportLoading] = useState(false);
   const [showSingleNoteImportSuccess, setShowSingleNoteImportSuccess] = useState(false);
+  // --- Add state for clear data password and error ---
+  const [clearDataPassword, setClearDataPassword] = useState('');
+  const [clearDataError, setClearDataError] = useState('');
+  const [clearDataLoading, setClearDataLoading] = useState(false);
 
   const getLocalEmojiPath = (filename: string) => filename || '';
 
@@ -170,12 +174,23 @@ export const Sidebar = ({
   ];
 
   const handleClearAllData = async () => {
-    setConfirmClearOpen(false);
-    await clearDataFile();
-    sessionStorage.removeItem('masterPassword');
-    sessionStorage.removeItem('loggedIn');
-    setShowClearDataSuccess(true);
-    setClearDataCountdown(5);
+    setClearDataError('');
+    setClearDataLoading(true);
+    try {
+      // Verify password before clearing data
+      await loadData(clearDataPassword);
+      setConfirmClearOpen(false);
+      await clearDataFile();
+      sessionStorage.removeItem('masterPassword');
+      sessionStorage.removeItem('loggedIn');
+      setShowClearDataSuccess(true);
+      setClearDataCountdown(5);
+      setClearDataPassword('');
+    } catch (e) {
+      setClearDataError('Incorrect master password. Data was not deleted.');
+    } finally {
+      setClearDataLoading(false);
+    }
   };
 
   const handleExportDat = async () => {
@@ -246,7 +261,28 @@ export const Sidebar = ({
     try {
       const fileContent = await importFile.text();
       await importData(fileContent);
-      await loadData(importPassword); // Will throw if password is wrong
+      // Try to decrypt and check format
+      let decrypted: any;
+      try {
+        decrypted = await loadData(importPassword);
+      } catch (e) {
+        setImportError('Failed to import. Check your password or file.');
+        setImportLoading(false);
+        return;
+      }
+      let vaultObj: any;
+      try {
+        vaultObj = JSON.parse(decrypted);
+      } catch {
+        setImportError('Imported file is not valid JSON.');
+        setImportLoading(false);
+        return;
+      }
+      if (!vaultObj || !Array.isArray(vaultObj.notes)) {
+        setImportError('This file is not a valid vault. If you want to import a single note, use the single note import feature.');
+        setImportLoading(false);
+        return;
+      }
       setImportDialogOpen(false);
       setImportFile(null);
       setImportPassword('');
@@ -870,19 +906,47 @@ export const Sidebar = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
             <div className="text-2xl font-bold mb-2 text-center">Delete all data?</div>
-            <div className="text-sm text-muted-foreground mb-6 text-center">This will permanently delete all your notes and settings from this device. This action cannot be undone.</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">This will permanently delete all your notes and settings from this device. This action cannot be undone.<br/>To confirm, enter your master password.</div>
             <div className="flex flex-col w-full gap-3 mt-2">
+              <CustomPasswordInput
+                value={clearDataPassword}
+                onChange={setClearDataPassword}
+                placeholder="Enter master password to confirm"
+                disabled={clearDataLoading}
+                autoFocus
+              />
+              {clearDataError && <div className="text-red-500 text-xs text-center">{clearDataError}</div>}
               <button
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60"
-                onClick={() => setConfirmClearOpen(false)}
+                onClick={() => { setConfirmClearOpen(false); setClearDataPassword(''); setClearDataError(''); }}
+                disabled={clearDataLoading}
               >
                 Cancel
               </button>
               <button
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-red-700 transition disabled:opacity-60 bg-red-600 text-white"
                 onClick={handleClearAllData}
+                disabled={!clearDataPassword || clearDataLoading}
               >
-                Delete
+                {clearDataLoading ? (
+                  <>
+                    <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="4"
+                        fill="none"
+                        strokeDasharray="60"
+                        strokeDashoffset="20"
+                      />
+                    </svg>
+                    Deleting…
+                  </>
+                ) : (
+                  'Delete'
+                )}
               </button>
             </div>
           </div>
