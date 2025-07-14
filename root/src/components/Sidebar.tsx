@@ -22,6 +22,12 @@ import { slateToHtml } from '../lib/slateToHtml';
 import { slateToMarkdown } from '../lib/slateToMarkdown';
 import { contentToSlateValue } from './NoteEditor';
 import CustomPasswordInput from './CustomPasswordInput';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from './ui/dropdown-menu';
 
 interface SidebarProps {
   notes: Note[];
@@ -96,6 +102,14 @@ export const Sidebar = ({
   // Add state for clear data success popup and countdown
   const [showClearDataSuccess, setShowClearDataSuccess] = useState(false);
   const [clearDataCountdown, setClearDataCountdown] = useState(5);
+  const [showImportSuccess, setShowImportSuccess] = useState(false);
+  // Add state for single note import dialog
+  const [singleNoteImportDialogOpen, setSingleNoteImportDialogOpen] = useState(false);
+  const [singleNoteImportFile, setSingleNoteImportFile] = useState<File | null>(null);
+  const [singleNoteImportPassword, setSingleNoteImportPassword] = useState('');
+  const [singleNoteImportError, setSingleNoteImportError] = useState('');
+  const [singleNoteImportLoading, setSingleNoteImportLoading] = useState(false);
+  const [showSingleNoteImportSuccess, setShowSingleNoteImportSuccess] = useState(false);
 
   const getLocalEmojiPath = (filename: string) => filename || '';
 
@@ -230,7 +244,7 @@ export const Sidebar = ({
       setImportDialogOpen(false);
       setImportFile(null);
       setImportPassword('');
-      setTimeout(() => window.location.reload(), 500); // Reload to reflect imported notes
+      setShowImportSuccess(true);
     } catch (e) {
       setImportError('Failed to import. Check your password or file.');
     } finally {
@@ -348,6 +362,43 @@ export const Sidebar = ({
     }
   };
 
+  // Add export as encrypted .dat handler
+  const handleExportNoteDat = async (note: Note) => {
+    try {
+      // Prompt for password (reuse sessionStorage or prompt if not available)
+      let masterPassword = sessionStorage.getItem('masterPassword');
+      if (!masterPassword) {
+        masterPassword = prompt('Enter your master password to export this note as encrypted (.dat):') || '';
+      }
+      if (!masterPassword) return;
+      // Encrypt only this note as a vault
+      const noteVault = JSON.stringify(note);
+      // Save to a temp vault, export, then restore original vault
+      let originalVault: string | null = null;
+      try {
+        originalVault = await exportData();
+      } catch {}
+      await saveData(masterPassword, noteVault);
+      const fileContent = await exportData();
+      // Restore original vault
+      if (originalVault) await importData(originalVault);
+      // Download as .dat
+      const blob = new Blob([fileContent], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${note.title || 'note'}.dat`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 100);
+    } catch (e) {
+      alert('Failed to export as encrypted .dat.');
+    }
+  };
+
   // Add countdown effect for clear data popup
   useEffect(() => {
     if (!showClearDataSuccess) return;
@@ -358,6 +409,81 @@ export const Sidebar = ({
     const timer = setTimeout(() => setClearDataCountdown(c => c - 1), 1000);
     return () => clearTimeout(timer);
   }, [showClearDataSuccess, clearDataCountdown]);
+
+  // Handler for single note import
+  const handleSingleNoteImport = async () => {
+    setSingleNoteImportError('');
+    if (!singleNoteImportFile) {
+      setSingleNoteImportError('Please select a file.');
+      return;
+    }
+    if (!singleNoteImportPassword) {
+      setSingleNoteImportError('Please enter your password.');
+      return;
+    }
+    setSingleNoteImportLoading(true);
+    try {
+      const fileContent = await singleNoteImportFile.text();
+      let originalVault: string | null = null;
+      try {
+        originalVault = await exportData();
+      } catch {}
+      await importData(fileContent);
+      let decrypted: any;
+      try {
+        decrypted = await loadData(singleNoteImportPassword);
+      } catch (e) {
+        if (originalVault) await importData(originalVault);
+        setSingleNoteImportError('Incorrect password or corrupt file.');
+        setSingleNoteImportLoading(false);
+        return;
+      }
+      let noteObj: any;
+      try {
+        noteObj = JSON.parse(decrypted);
+      } catch {
+        if (originalVault) await importData(originalVault);
+        setSingleNoteImportError('File is not a valid note.');
+        setSingleNoteImportLoading(false);
+        return;
+      }
+      if (Array.isArray(noteObj) || (noteObj.notes && Array.isArray(noteObj.notes))) {
+        if (originalVault) await importData(originalVault);
+        setSingleNoteImportError('You can only import a single note here.');
+        setSingleNoteImportLoading(false);
+        return;
+      }
+      if (!noteObj.id || !noteObj.title || !('content' in noteObj)) {
+        if (originalVault) await importData(originalVault);
+        setSingleNoteImportError('File is not a valid note.');
+        setSingleNoteImportLoading(false);
+        return;
+      }
+      if (originalVault) await importData(originalVault);
+      if (notes.some(n => n.id === noteObj.id)) {
+        setSingleNoteImportError('A note with this ID already exists.');
+        setSingleNoteImportLoading(false);
+        return;
+      }
+      const mergedNotes = [noteObj, ...notes];
+      await saveData(singleNoteImportPassword, JSON.stringify({ notes: mergedNotes }));
+      setShowSingleNoteImportSuccess(true);
+      setSingleNoteImportDialogOpen(false);
+      setSingleNoteImportFile(null);
+      setSingleNoteImportPassword('');
+    } catch (e) {
+      setSingleNoteImportError('Failed to import. Check your password or file.');
+    } finally {
+      setSingleNoteImportLoading(false);
+    }
+  };
+  // Helper to reset single note import dialog fields
+  const resetSingleNoteImportDialog = () => {
+    setSingleNoteImportFile(null);
+    setSingleNoteImportPassword('');
+    setSingleNoteImportError('');
+    setSingleNoteImportLoading(false);
+  };
 
   return (
     <div 
@@ -608,14 +734,41 @@ export const Sidebar = ({
       <div className="px-3 py-2 flex flex-col flex-1 min-h-0 overflow-hidden">
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-normal text-[hsl(var(--sidebar-foreground))] px-3">My Notes</h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-5 w-5 p-0 text-[hsl(var(--sidebar-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
-            onClick={onCreateNote}
-          >
-            <Plus className="w-3 h-3" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 w-5 p-0 text-[hsl(var(--sidebar-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+              >
+                <Plus className="w-3 h-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+              side="right"
+              align="start"
+              className="w-44 ml-2 bg-[hsl(var(--sidebar-background))] text-xs border border-[hsl(var(--context-menu-border))] text-[hsl(var(--sidebar-foreground))]"
+            >
+              <DropdownMenuItem
+                onClick={() => {
+                  onCreateNote();
+                }}
+                className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+              >
+                <NotebookPen className="w-4 h-4 mr-2" />
+                New Note
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  setSingleNoteImportDialogOpen(true);
+                }}
+                className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Import Note
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
         <div className="space-y-1 flex-1 min-h-0 overflow-y-auto">
           {notes
@@ -667,6 +820,13 @@ export const Sidebar = ({
                     >
                       <FileCode2 className="w-4 h-4 mr-2" />
                       Markdown
+                    </ContextMenuItem>
+                    <ContextMenuItem
+                      className="flex items-center px-3 py-1.5 rounded-md text-xs w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+                      onClick={() => handleExportNoteDat(note)}
+                    >
+                      <Lock className="w-4 h-4 mr-2" />
+                      Encrypted (.dat)
                     </ContextMenuItem>
                   </ContextMenuSubContent>
                 </ContextMenuSub>
@@ -861,6 +1021,21 @@ export const Sidebar = ({
           </div>
         </div>
       )}
+      {/* Full Backup Import Success Popup */}
+      {showImportSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+            <div className="text-2xl font-bold mb-2 text-center">Notes imported successfully.</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">Your notes have been restored from backup.</div>
+            <button
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2 bg-foreground text-background"
+              onClick={() => { setShowImportSuccess(false); window.location.reload(); }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
       {/* Change Master Password Dialog */}
       {changePwDialogOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -951,6 +1126,77 @@ export const Sidebar = ({
               onClick={() => { setShowClearDataSuccess(false); window.location.href = '/'; }}
             >
               Go to Setup Now
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Single Note Import Dialog (for Notes > Plus > Import) */}
+      {singleNoteImportDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+            <div className="text-2xl font-bold mb-2 text-center">Import Note</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">Import a single encrypted note (.dat file).</div>
+            <input
+              type="file"
+              accept=".dat"
+              className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
+              onChange={e => setSingleNoteImportFile(e.target.files?.[0] || null)}
+              disabled={singleNoteImportLoading}
+            />
+            <div className="flex flex-col w-full gap-2 mb-6">
+              <CustomPasswordInput
+                value={singleNoteImportPassword}
+                onChange={setSingleNoteImportPassword}
+                placeholder="Master password to decrypt"
+                disabled={singleNoteImportLoading}
+                autoFocus
+              />
+            </div>
+            {singleNoteImportError && <div className="text-red-500 text-xs mb-2 text-center">{singleNoteImportError}</div>}
+            <button
+              className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2
+                ${singleNoteImportLoading ? 'bg-indigo-500 text-white' : 'bg-foreground text-background'}`}
+              onClick={handleSingleNoteImport}
+              disabled={!singleNoteImportFile || !singleNoteImportPassword || singleNoteImportLoading}
+            >
+              {singleNoteImportLoading ? (
+                <>
+                  <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="white"
+                      strokeWidth="4"
+                      fill="none"
+                      strokeDasharray="60"
+                      strokeDashoffset="20"
+                    />
+                  </svg>
+                  Importing…
+                </>
+              ) : (
+                <>
+                  <Download className="w-5 h-5" />
+                  Import Note
+                </>
+              )}
+            </button>
+            <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setSingleNoteImportDialogOpen(false); resetSingleNoteImportDialog(); }} disabled={singleNoteImportLoading}>Cancel</button>
+          </div>
+        </div>
+      )}
+      {/* Single Note Import Success Popup */}
+      {showSingleNoteImportSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+            <div className="text-2xl font-bold mb-2 text-center">Note imported successfully.</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">Your note has been added to your vault.</div>
+            <button
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2 bg-foreground text-background"
+              onClick={() => { setShowSingleNoteImportSuccess(false); window.location.reload(); }}
+            >
+              OK
             </button>
           </div>
         </div>
