@@ -5,7 +5,7 @@ import { withHistory } from 'slate-history';
 import type { Note } from '../pages/Index';
 import { formatRelativeDate } from '../lib/utils';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu';
-import {ArchiveRestore, Trash2, RotateCcw, Table as LucideTable, Smile } from 'lucide-react';
+import {ArchiveRestore, Trash2, RotateCcw, Smile } from 'lucide-react';
 
 interface NoteEditorProps {
   note: Note;
@@ -590,7 +590,7 @@ const handleInsertEmoji = () => {
   return (
     <div
       ref={menuRef}
-    className="fixed z-50 bg-[#111113] bg-opacity-95 rounded-lg shadow-xl border border-gray-700"
+      className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-xl border border-[hsl(var(--context-menu-border))]"
       style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
       onMouseDown={e => e.preventDefault()}
     >
@@ -605,7 +605,7 @@ const handleInsertEmoji = () => {
         {/* Text Size Buttons (replace with dropdown) */}
         <div className="relative" style={{ marginRight: 4 }}>
           <button
-            className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-16 h-8 flex items-center justify-center gap-1"
+            className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-16 h-8 flex items-center justify-center gap-1"
             title="Text style"
             onClick={e => {
               e.stopPropagation();
@@ -636,7 +636,7 @@ const handleInsertEmoji = () => {
           {/* Dropdown menu */}
           {showFontSizeDropdown && (
             <div
-              className="absolute w-32 bg-[#111113] rounded-lg shadow-xl z-50 border border-gray-700"
+              className="absolute w-32 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--foreground))] rounded-lg shadow-xl z-50 border border-[hsl(var(--popover-border))]"
               style={{
                 minWidth: 120,
                 left: 0,
@@ -647,19 +647,19 @@ const handleInsertEmoji = () => {
               onMouseDown={e => e.preventDefault()}
             >
               <button
-                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-t-lg"
+                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] rounded-t-lg"
                 onClick={() => { handleFontSize('h1'); setShowFontSizeDropdown(false); }}
               >Heading 1</button>
               <button
-                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700"
+                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))]"
                 onClick={() => { handleFontSize('h2'); setShowFontSizeDropdown(false); }}
               >Heading 2</button>
               <button
-                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700"
+                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))]"
                 onClick={() => { handleFontSize('h3'); setShowFontSizeDropdown(false); }}
               >Heading 3</button>
               <button
-                className="block w-full text-left px-4 py-2 text-gray-200 hover:bg-gray-700 rounded-b-lg"
+                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))]"
                 onClick={() => { handleFontSize('default'); setShowFontSizeDropdown(false); }}
               >Normal</button>
             </div>
@@ -668,56 +668,56 @@ const handleInsertEmoji = () => {
         {/* End of Text Size Dropdown */}
         
         <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
           title="Bold"
           onClick={() => handleMark('bold')}
         >
         <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><path stroke="currentColor" strokeWidth="2" d="M7 4h4a3 3 0 0 1 0 6H7zm0 6h5a3 3 0 1 1 0 6H7z"/></svg>
         </button>
         <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
           title="Italic"
           onClick={() => handleMark('italic')}
         >
         <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><path stroke="currentColor" strokeWidth="2" d="M10 4h4M6 16h4m2-12-4 12"/></svg>
         </button>
         <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
           title="Underline"
           onClick={() => handleMark('underline')}
         >
         <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><path stroke="currentColor" strokeWidth="2" d="M6 4v5a4 4 0 0 0 8 0V4M5 16h10"/></svg>
         </button>
         <button
-          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'left' ? ' bg-gray-700' : ''}`}
+          className={`px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'left' ? ' bg-[hsl(var(--context-menu-hover))]' : ''}`}
           title="Align Left"
           onClick={() => setAlignment('left')}
         >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
         </button>
         <button
-          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'center' ? ' bg-gray-700' : ''}`}
+          className={`px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'center' ? ' bg-[hsl(var(--context-menu-hover))]' : ''}`}
           title="Align Center"
           onClick={() => setAlignment('center')}
         >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="5" y="5" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="5" y="13" width="10" height="2" rx="1" fill="currentColor"/></svg>
         </button>
         <button
-          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'right' ? ' bg-gray-700' : ''}`}
+          className={`px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'right' ? ' bg-[hsl(var(--context-menu-hover))]' : ''}`}
           title="Align Right"
           onClick={() => setAlignment('right')}
         >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="7" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
         </button>
         <button
-          className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'justify' ? ' bg-gray-700' : ''}`}
+          className={`px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'justify' ? ' bg-[hsl(var(--context-menu-hover))]' : ''}`}
           title="Justify"
           onClick={() => setAlignment('justify')}
         >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
         </button>
         <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] transition w-8 h-8 flex items-center justify-center"
           title="Code Block"
           onClick={handleCodeBlock}
         >
@@ -727,7 +727,7 @@ const handleInsertEmoji = () => {
         {/* Text Color with Color Palette */}
         <div ref={textColorRef} className="relative">
           <button
-            className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition relative"
+            className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] transition relative"
             title="Text Color"
             onClick={handleTextColorClick}
           >
@@ -741,7 +741,7 @@ const handleInsertEmoji = () => {
           
           {/* Sliding Color Palette */}
           <div
-            className="absolute transition-all duration-300 ease-out"
+            className="absolute transition-all duration-300 ease-out bg-[hsl(var(--popover))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--popover-border))] shadow-xl rounded-lg"
             style={{
               left: paletteDirection === 'right' ? '100%' : undefined,
               right: paletteDirection === 'left' ? '100%' : undefined,
@@ -749,7 +749,6 @@ const handleInsertEmoji = () => {
               marginRight: paletteDirection === 'left' ? '8px' : undefined,
               width: showTextColorPalette ? '200px' : '0px',
               opacity: showTextColorPalette ? 1 : 0,
-              background: '#111113',
               borderRadius: 8,
               minWidth: showTextColorPalette ? '200px' : '0px',
               boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
@@ -792,7 +791,7 @@ const handleInsertEmoji = () => {
         {/* Highlighter with Color Palette */}
         <div ref={highlighterRef} className="relative">
           <button
-            className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition relative"
+            className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition relative"
             title="Highlight"
             onClick={handleHighlighterClick}
           >
@@ -806,7 +805,7 @@ const handleInsertEmoji = () => {
           
           {/* Sliding Color Palette */}
           <div
-            className="absolute transition-all duration-300 ease-out"
+            className="absolute transition-all duration-300 ease-out bg-[hsl(var(--popover))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--popover-border))] shadow-xl rounded-lg"
             style={{
               left: paletteDirection === 'right' ? '100%' : undefined,
               right: paletteDirection === 'left' ? '100%' : undefined,
@@ -814,7 +813,6 @@ const handleInsertEmoji = () => {
               marginRight: paletteDirection === 'left' ? '8px' : undefined,
               width: showHighlighterPalette ? '200px' : '0px',
               opacity: showHighlighterPalette ? 1 : 0,
-              background: '#111113',
               borderRadius: 8,
               minWidth: showHighlighterPalette ? '200px' : '0px',
               boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
@@ -856,7 +854,7 @@ const handleInsertEmoji = () => {
 
         {/* Link Button */}
         <button
-          className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
           title="Link"
           onClick={() => (isLinkActive() ? removeLink() : insertLink())}
         >
@@ -866,7 +864,7 @@ const handleInsertEmoji = () => {
     {/* New block options as icon row */}
     <div className="flex items-center gap-1 mt-1 px-2 pb-1">
       <button
-        className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
         title="Numbered List"
         onClick={() => handleInsertList('numbered-list')}
       >
@@ -874,7 +872,7 @@ const handleInsertEmoji = () => {
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
       </button>
       <button
-        className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
         title="Bullet List"
         onClick={() => handleInsertList('bulleted-list')}
       >
@@ -882,7 +880,7 @@ const handleInsertEmoji = () => {
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>
       </button>
       <button
-        className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
         title="Checklist"
         onClick={handleInsertChecklist}
       >
@@ -890,7 +888,7 @@ const handleInsertEmoji = () => {
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
       </button>
       <button
-        className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
         title="Divider"
         onClick={handleInsertDivider}
       >
@@ -898,7 +896,7 @@ const handleInsertEmoji = () => {
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
       </button>
       <button
-        className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
         title="Emoji/Special Char"
         onClick={handleInsertEmoji}
       >
