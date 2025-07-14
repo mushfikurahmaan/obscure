@@ -271,7 +271,7 @@ useEffect(() => {
               <CarouselItem key={idx} className="bg-transparent">
                 <div className="p-1 h-full flex items-center justify-center bg-transparent">
                   <Card className="w-full h-full min-h-[420px] flex flex-col items-center justify-center bg-transparent text-card-foreground border-0 shadow-none">
-                    <CardContent className="flex flex-col items-center justify-center w-full h-full p-8 select-none bg-transparent" style={{ fontFamily: 'Epilogue, sans-serif' }}>
+                    <CardContent className="flex flex-col items-center justify-center w-full h-full p-8 select-none bg-transparent" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>
                       <div className="text-4xl font-extrabold mb-4 w-full text-center" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>{step.title}</div>
                       <div className="text-xl font-semibold mb-2 w-full text-center" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>{step.subtitle}</div>
                       <div className="text-base md:text-lg mb-8 w-full text-center" style={{ fontFamily: 'Space Grotesk, sans-serif' }}>{step.description}</div>
