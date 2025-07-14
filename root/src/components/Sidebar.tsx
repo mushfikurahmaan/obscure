@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Trash, Settings, Archive, NotebookPen, Sun, Moon, Laptop, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, Lock, FileDown, Eye, EyeOff, LockOpen, FileCode2, Scale } from 'lucide-react';
+import { Search, Plus, Trash, Settings, Archive, SquarePlus, Sun, Moon, Laptop, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, Lock, FileDown, Eye, EyeOff, LockOpen, FileCode2, Scale } from 'lucide-react';
 import { Button } from './ui/button';
 import type { Note } from '../pages/Index';
 import {
@@ -27,6 +27,12 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
+  DropdownMenuSeparator,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem
 } from './ui/dropdown-menu';
 
 interface SidebarProps {
@@ -160,7 +166,7 @@ export const Sidebar = ({
   }, [isSearchActive]);
 
   const menuItems = [
-    { icon: NotebookPen, label: 'New Note', active: false, onClick: onCreateNote },
+    { icon: SquarePlus, label: 'New Note', active: false, onClick: onCreateNote },
   ];
 
   const handleClearAllData = async () => {
@@ -499,7 +505,7 @@ export const Sidebar = ({
             onClick={() => { onCreateNote(); setActiveSection('new'); }}
           >
             <div className="flex items-center space-x-3">
-              <NotebookPen className="w-4 h-4" />
+              <SquarePlus className="w-4 h-4" />
               <span className="font-normal">New Note</span>
             </div>
           </div>
@@ -562,25 +568,25 @@ export const Sidebar = ({
       {/* Folder Section */}
       <div className="px-3 py-2">
         <div className="space-y-1">
-          {/* Settings Button with Context Menu */}
-          <ContextMenu>
-            <ContextMenuTrigger asChild>
-            <div
-              className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'settings' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
-              onClick={() => setActiveSection('settings')}
-            >
-              <div className="flex items-center space-x-3">
+          {/* Settings Button with Dropdown Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div
+                className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'settings' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+                onClick={() => setActiveSection('settings')}
+              >
+                <div className="flex items-center space-x-3">
                   <Settings className="w-4 h-4" />
                   <span className="font-normal">Settings</span>
                 </div>
               </div>
-            </ContextMenuTrigger>
-            <ContextMenuContent className="w-52 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="right" align="start" sideOffset={8} className="w-52 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
               {/* Appearance Section */}
-              <ContextMenuSub>
-                <ContextMenuSubTrigger>Appearance</ContextMenuSubTrigger>
-                <ContextMenuSubContent className="w-50 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
-                  <ContextMenuRadioGroup
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Appearance</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-50 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
+                  <DropdownMenuRadioGroup
                     value={theme}
                     onValueChange={value => {
                       if (value === 'light' || value === 'dark' || value === 'system') {
@@ -588,82 +594,82 @@ export const Sidebar = ({
                       }
                     }}
                   >
-                    <ContextMenuRadioItem value="light">
+                    <DropdownMenuRadioItem value="light">
                       <Sun className="mr-2 h-4 w-4" />
                       Light
-                    </ContextMenuRadioItem>
-                    <ContextMenuRadioItem value="dark">
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="dark">
                       <Moon className="mr-2 h-4 w-4" />
                       Dark
-                    </ContextMenuRadioItem>
-                    <ContextMenuRadioItem value="system">
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="system">
                       <Laptop className="mr-2 h-4 w-4" />
                       System
-                    </ContextMenuRadioItem>
-                  </ContextMenuRadioGroup>
-                </ContextMenuSubContent>
-              </ContextMenuSub>
+                    </DropdownMenuRadioItem>
+                  </DropdownMenuRadioGroup>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               {/* Security & Privacy Section */}
-              <ContextMenuSub>
-                <ContextMenuSubTrigger>Security & Privacy</ContextMenuSubTrigger>
-                <ContextMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
-                  <ContextMenuItem onClick={onLock}>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Security & Privacy</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
+                  <DropdownMenuItem onClick={onLock}>
                     <Lock className="mr-2 h-4 w-4" />
                     Lock App
-                  </ContextMenuItem>
-                  <ContextMenuItem onClick={() => setChangePwDialogOpen(true)}>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setChangePwDialogOpen(true)}>
                     <KeyRound className="mr-2 h-4 w-4" />
                     Change master password
-                  </ContextMenuItem>
-                  <ContextMenuSeparator className='border-t border-[hsl(var(--context-menu-border))]'/>
-                  <ContextMenuItem variant="destructive" onClick={() => setConfirmClearOpen(true)}>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator className='border-t border-[hsl(var(--context-menu-border))]' />
+                  <DropdownMenuItem variant="destructive" onClick={() => setConfirmClearOpen(true)}>
                     <Trash className="mr-2 h-4 w-4" />
                     Clear all data
-                  </ContextMenuItem>
-                </ContextMenuSubContent>
-              </ContextMenuSub>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               {/* Advanced Section */}
-              <ContextMenuSub>
-                <ContextMenuSubTrigger>Advanced</ContextMenuSubTrigger>
-                <ContextMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
-                  <ContextMenuItem onClick={() => setExportDialogOpen(true)}>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>Advanced</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
+                  <DropdownMenuItem onClick={() => setExportDialogOpen(true)}>
                     <Upload className="mr-2 h-4 w-4" />
                     Export notes
-                  </ContextMenuItem>
-                  <ContextMenuItem onClick={() => setImportDialogOpen(true)}>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
                     <Download className="mr-2 h-4 w-4" />
                     Import notes
-                  </ContextMenuItem>
-                  <ContextMenuItem>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
                     <Settings2 className="mr-2 h-4 w-4" />
                     Developer options
-                  </ContextMenuItem>
-                </ContextMenuSubContent>
-              </ContextMenuSub>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               {/* About Section */}
-              <ContextMenuSub>
-                <ContextMenuSubTrigger>About</ContextMenuSubTrigger>
-                <ContextMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
-                  <ContextMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>About</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
+                  <DropdownMenuItem>
                     <Info className="mr-2 h-4 w-4" />
                     App version
-                  </ContextMenuItem>
-                  <ContextMenuItem>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Check for updates
-                  </ContextMenuItem>
-                  <ContextMenuItem>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
                     <Mail className="mr-2 h-4 w-4" />
                     Contact support
-                  </ContextMenuItem>
-                  <ContextMenuItem>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
                     <Scale className="mr-2 h-4 w-4" />
                     Open source licenses
-                  </ContextMenuItem>
-                </ContextMenuSubContent>
-              </ContextMenuSub>
-            </ContextMenuContent>
-          </ContextMenu>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+            </DropdownMenuContent>
+          </DropdownMenu>
           {/* Trash Button (unchanged) */}
           <div
             className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'trash' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
@@ -755,7 +761,7 @@ export const Sidebar = ({
                 }}
                 className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
               >
-                <NotebookPen className="w-4 h-4 mr-2" />
+                <SquarePlus className="w-4 h-4 mr-2" />
                 New Note
               </DropdownMenuItem>
               <DropdownMenuItem

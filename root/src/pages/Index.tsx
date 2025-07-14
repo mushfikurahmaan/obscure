@@ -631,10 +631,7 @@ const Index = () => {
           ) : (
             <div className="h-full flex items-center justify-center" style={{ marginLeft: 31, marginRight: 31 }}>
               <div className="text-center max-w-md">
-                <div className="w-24 h-24 bg-gray-700 rounded-xl flex items-center justify-center mx-auto mb-6">
-                  <Edit className="w-12 h-12 text-gray-500" />
-                </div>
-                <h2 className="text-2xl font-medium text-[hsl(var(--foreground))] mb-3">Empty page, endless possibilities</h2>
+                <h2 className="text-2xl font-medium text-[hsl(var(--foreground))] mb-3">Open, Write and Close</h2>
                 <p className="text-[hsl(var(--muted-foreground))] mb-6 text-base">This space is yours. Select or start a note</p>
                 <Button
                   onClick={handleCreateNote}

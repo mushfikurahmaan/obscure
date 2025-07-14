@@ -6,7 +6,7 @@ import {
   ContextMenuContent,
   ContextMenuItem
 } from './ui/context-menu';
-import { Box, Trash2 } from 'lucide-react';
+import { ArchiveRestore, Trash2 } from 'lucide-react';
 
 interface ArchiveNotesGridProps {
   notes: Note[];
@@ -88,7 +88,7 @@ export const ArchiveNotesGrid: React.FC<ArchiveNotesGridProps> = ({ notes, onSel
               </ContextMenuTrigger>
               <ContextMenuContent>
                 <ContextMenuItem onClick={() => onRemoveFromArchive(note.id)}>
-                  <Box className="w-4 h-4 mr-2" />
+                  <ArchiveRestore className="w-4 h-4 mr-2" />
                   Remove from Archive
                 </ContextMenuItem>
                 <ContextMenuItem onClick={() => onDeletePermanently(note.id)} variant="destructive">

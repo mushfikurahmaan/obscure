@@ -5,7 +5,7 @@ import { withHistory } from 'slate-history';
 import type { Note } from '../pages/Index';
 import { formatRelativeDate } from '../lib/utils';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu';
-import { Box, Trash2, RotateCcw, Quote, Table as LucideTable, Smile } from 'lucide-react';
+import {ArchiveRestore, Trash2, RotateCcw, Table as LucideTable, Smile } from 'lucide-react';
 
 interface NoteEditorProps {
   note: Note;
@@ -1292,7 +1292,7 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
                 e.stopPropagation();
                 onRemoveFromArchive && onRemoveFromArchive(note.id);
               }}>
-                <Box className="w-4 h-4 mr-2" />
+                <ArchiveRestore className="w-4 h-4 mr-2" />
                 Remove from Archive
               </ContextMenuItem>
               <ContextMenuItem onClick={e => {
