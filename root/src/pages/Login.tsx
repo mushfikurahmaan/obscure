@@ -61,7 +61,7 @@ const Login = ({ onLogin }: LoginProps) => {
   };
 
   return (
-    <div className="h-screen min-h-0 flex flex-row bg-white dark:bg-[#18181b] transition-colors relative" style={{ WebkitAppRegion: 'drag' }}>
+    <div className="h-screen min-h-0 flex flex-row bg-background transition-colors relative" style={{ WebkitAppRegion: 'drag' }}>
       {/* Window Controls */}
       <div className="absolute top-0 right-0 flex items-center gap-1 z-20 p-2" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
         <button
@@ -97,10 +97,10 @@ const Login = ({ onLogin }: LoginProps) => {
         </button>
       </div>
       {/* Right: Login Card */}
-      <div className="flex-1 h-full flex items-center justify-center p-6 bg-white dark:bg-background" style={{ WebkitAppRegion: 'drag' }}>
+      <div className="flex-1 h-full flex items-center justify-center p-6 bg-background" style={{ WebkitAppRegion: 'drag' }}>
         <form
           onSubmit={handleLogin}
-          className="w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6 bg-white dark:bg-background"
+          className="w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6 bg-background"
           style={{ WebkitAppRegion: 'no-drag' }}
         >
           <div className="flex flex-col items-center gap-2">

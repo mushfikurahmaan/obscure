@@ -321,7 +321,7 @@ const Index = () => {
         <div className="flex flex-col items-center gap-6">
           <div className="flex flex-col items-center gap-2">
             <span className="text-2xl font-semibold tracking-wide">
-              <MatrixText text="Decrypting" /> your notes
+              <MatrixText text="decrypting" /> your notes
             </span>
             <span className="text-lg text-muted-foreground">Your data is being securely unlocked</span>
           </div>

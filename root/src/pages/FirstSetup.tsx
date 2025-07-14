@@ -22,7 +22,7 @@ interface FirstSetupProps {
 const ONBOARDING_STEPS = [
   {
     title: 'Welcome to Obscure',
-    subtitle: 'Open. Write. Close.',
+    subtitle: 'Open. Type. Close.',
     description: 'A private, distraction-free notes app that saves everything for you—securely and silently.'
   },
   {
@@ -250,36 +250,18 @@ useEffect(() => {
           {/* Outer soft glow */}
           <div className="absolute -top-1 -left-2 w-28 h-3 bg-indigo-300 rounded-full blur-lg opacity-25"></div>
         </div>
-        {/* Radial light effect spreading from the bar - much stronger in light mode */}
-        <div 
-          className="absolute top-0 left-0 w-full h-screen pointer-events-none dark:hidden"
-          style={{
-            background: `radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.55) 0%, rgba(99, 102, 241, 0.35) 30%, rgba(99, 102, 241, 0.15) 60%, transparent 80%)`,
-          }}
-        />
+        {/* Smooth radial light effect for light mode */}
         <div
           className="absolute top-0 left-0 w-full h-screen pointer-events-none dark:hidden"
           style={{
-            background: `radial-gradient(circle at 50% 0%, rgba(80, 80, 180, 0.18) 0%, transparent 70%)`,
+            background: 'radial-gradient(circle at 50% 0%, rgba(99,102,241,0.45) 0%, rgba(99,102,241,0.10) 60%, transparent 100%)',
           }}
         />
-        {/* Keep dark mode overlays for strong effect */}
-        <div 
-          className="hidden dark:block absolute top-0 left-0 w-full h-screen opacity-30 pointer-events-none"
+        {/* Smooth radial light effect for dark mode */}
+        <div
+          className="hidden dark:block absolute top-0 left-0 w-full h-screen pointer-events-none"
           style={{
-            background: `radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.4) 0%, rgba(99, 102, 241, 0.2) 25%, rgba(99, 102, 241, 0.1) 50%, transparent 75%)`,
-          }}
-        />
-        <div 
-          className="hidden dark:block absolute top-0 left-0 w-full h-screen opacity-20 pointer-events-none"
-          style={{
-            background: `radial-gradient(circle at 50% 0%, rgba(129, 140, 248, 0.6) 0%, rgba(129, 140, 248, 0.3) 30%, transparent 60%)`,
-          }}
-        />
-        <div 
-          className="hidden dark:block absolute top-0 left-0 w-full h-screen opacity-25 pointer-events-none"
-          style={{
-            background: `radial-gradient(circle at 50% 0%, rgba(165, 180, 252, 0.8) 0%, rgba(165, 180, 252, 0.4) 40%, transparent 70%)`,
+            background: 'radial-gradient(circle at 50% 0%, rgba(99,102,241,0.30) 0%, rgba(99,102,241,0.08) 55%, transparent 100%)',
           }}
         />
       </div>
