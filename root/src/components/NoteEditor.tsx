@@ -33,6 +33,7 @@ type CustomText = {
   highlight?: boolean;
   highlightColor?: string;
   code?: boolean;
+  strikethrough?: boolean;
 }
 
 type CustomElement =
@@ -129,6 +130,62 @@ const TEXT_COLORS = [
   { name: 'Amber', color: '#F59E0B' },           // Warm and eye-catching gold-orange
 ];
 
+// Map common hex codes to color names
+const hexToColorName = (hex: string) => {
+  const map: Record<string,string> = {
+    // Basic / CSS core (16)
+    '#FFFFFF':'White','#000000':'Black','#FF0000':'Red','#00FF00':'Lime',
+    '#0000FF':'Blue','#FFFF00':'Yellow','#00FFFF':'Aqua/Cyan','#FF00FF':'Fuchsia/Magenta',
+    '#C0C0C0':'Silver','#808080':'Gray','#800000':'Maroon','#808000':'Olive',
+    '#008000':'Green','#800080':'Purple','#000080':'Navy','#008080':'Teal',
+  
+    // Extended CSS names (~130 more)
+    '#F0F8FF':'AliceBlue','#FAEBD7':'AntiqueWhite','#7FFFD4':'Aquamarine','#F0FFFF':'Azure',
+    '#F5F5DC':'Beige','#FFE4C4':'Bisque','#FFEBCD':'BlanchedAlmond','#6495ED':'CornflowerBlue',
+    '#DC143C':'Crimson','#00BFFF':'DeepSkyBlue','#FF1493':'DeepPink','#00CED1':'DarkTurquoise',
+    '#B8860B':'DarkGoldenrod','#A9A9A9':'DarkGray','#006400':'DarkGreen','#8B008B':'DarkMagenta',
+    '#FF8C00':'DarkOrange','#E9967A':'DarkSalmon','#8FBC8F':'DarkSeaGreen','#483D8B':'DarkSlateBlue',
+    '#2F4F4F':'DarkSlateGray','#9400D3':'DarkViolet','#ADFF2F':'GreenYellow',
+    '#7FFF00':'Chartreuse','#7CFC00':'LawnGreen','#32CD32':'LimeGreen','#98FB98':'PaleGreen',
+    '#00FA9A':'MediumSpringGreen','#00FF7F':'SpringGreen','#3CB371':'MediumSeaGreen',
+    '#2E8B57':'SeaGreen','#FFF8DC':'Cornsilk','#FFEFD5':'PapayaWhip',
+    '#FFE4B5':'Moccasin','#FFDAB9':'PeachPuff','#EEE8AA':'PaleGoldenrod','#F0E68C':'Khaki',
+    '#BDB76B':'DarkKhaki','#D8BFD8':'Thistle','#DDA0DD':'Plum','#EE82EE':'Violet',
+    '#DA70D6':'Orchid','#BA55D3':'MediumOrchid','#9370DB':'MediumPurple','#663399':'RebeccaPurple',
+    '#8A2BE2':'BlueViolet','#FFB6C1':'LightPink','#FF69B4':'HotPink',
+    '#C71585':'MediumVioletRed','#DB7093':'PaleVioletRed','#F08080':'LightCoral',
+    '#FA8072':'Salmon','#FFA07A':'LightSalmon','#FF6347':'Tomato',
+    '#FF7F50':'Coral','#D2691E':'Chocolate','#CD5C5C':'IndianRed','#B22222':'FireBrick',
+    '#8B0000':'DarkRed','#F0FFF0':'Honeydew','#F5FFFA':'MintCream','#FFF0F5':'LavenderBlush',
+    '#FFFACD':'LemonChiffon','#E6E6FA':'Lavender',
+    '#7B68EE':'MediumSlateBlue','#6A5ACD':'SlateBlue','#6B8E23':'OliveDrab',
+    '#556B2F':'DarkOliveGreen','#66CDAA':'MediumAquaMarine',
+    '#20B2AA':'LightSeaGreen','#008B8B':'DarkCyan','#40E0D0':'Turquoise',
+    '#48D1CC':'MediumTurquoise','#AFEEEE':'PaleTurquoise','#E0FFFF':'LightCyan',
+    '#00008B':'DarkBlue','#0000CD':'MediumBlue','#4169E1':'RoyalBlue','#4682B4':'SteelBlue',
+    '#1E90FF':'DodgerBlue','#87CEEB':'SkyBlue','#87CEFA':'LightSkyBlue',
+    '#ADD8E6':'LightBlue','#B0C4DE':'LightSteelBlue','#778899':'LightSlateGray','#708090':'SlateGray',
+    '#191970':'MidnightBlue','#B0E0E6':'PowderBlue','#FFDEAD':'NavajoWhite',
+    '#FDF5E6':'OldLace','#FFFAF0':'FloralWhite','#F5F5F5':'WhiteSmoke',
+    '#FFF5EE':'Seashell','#FFFAFA':'Snow','#F0EAD6':'Eggshell',
+    '#FAF0E6':'Linen','#FFFFF0':'Ivory',
+    '#FFE4E1':'MistyRose',
+  
+    // Highlight / extra popular shades (~40)
+    '#FF3131':'Neon Red','#FF3B29':'Mango Tango','#FE6F5E':'Bittersweet',
+    '#FFEB3B':'Vivid Yellow','#FFC107':'Amber','#FF5722':'Deep Orange',
+    '#4CAF50':'Green (Material)','#2196F3':'Blue (Material)','#9C27B0':'Purple (Material)',
+    '#E91E63':'Pink (Material)','#00E676':'Neon Green','#18FFFF':'Neon Cyan','#FFEA00':'Bright Yellow',
+    '#FF4081':'Pink Accent','#7C4DFF':'Deep Purple Accent','#536DFE':'Indigo Accent',
+    '#00E5FF':'Cyan Accent','#FFD740':'Yellow Accent','#D50000':'Red A700','#2962FF':'Blue A700',
+    '#00C853':'Green A700','#FFAB00':'Orange A700','#AA00FF':'Purple A700','#00B8D4':'Cyan A700',
+    '#64DD17':'Lime A700','#AEEA00':'Lime A400','#FF6D00':'Orange A400','#F50057':'Pink A400',
+  
+    // Add more if needed.
+  };
+  return map[hex.toUpperCase()] || hex.toUpperCase();
+};
+
 // Rich text context menu component
 const RichTextContextMenu = ({ 
   editor, 
@@ -157,6 +214,14 @@ const RichTextContextMenu = ({
   // Add state for dropdown direction
   const [fontSizeDropdownDirection, setFontSizeDropdownDirection] = useState<'down' | 'up'>('down');
   const textDropdownButtonRef = useRef<HTMLButtonElement>(null);
+
+  // In RichTextContextMenu, replace the color palette for text color and highlighter with a hex input, preview, and apply button
+  // Add state for hex input for both text color and highlighter
+  const [textColorInput, setTextColorInput] = useState(selectedTextColor);
+  const [highlightColorInput, setHighlightColorInput] = useState(selectedHighlightColor);
+
+  // Helper to validate hex
+  const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{6})$/.test(hex);
 
   // Handle clicks outside the menu to close it
   useEffect(() => {
@@ -592,7 +657,7 @@ const handleInsertEmoji = () => {
       ref={menuRef}
       className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-xl border border-[hsl(var(--context-menu-border))]"
       style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
-      onMouseDown={e => e.preventDefault()}
+      // Removed onMouseDown to allow input fields to be editable
     >
     {/* Arrow removed */}
       
@@ -644,7 +709,7 @@ const handleInsertEmoji = () => {
                 bottom: fontSizeDropdownDirection === 'up' ? '100%' : undefined,
                 marginBottom: fontSizeDropdownDirection === 'up' ? '0.25rem' : undefined
               }}
-              onMouseDown={e => e.preventDefault()}
+              // Removed onMouseDown to allow input fields to be editableimage.png
             >
               <button
                 className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] rounded-t-lg"
@@ -741,50 +806,92 @@ const handleInsertEmoji = () => {
           
           {/* Sliding Color Palette */}
           <div
-            className="absolute transition-all duration-300 ease-out bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--context-menu-border))] shadow-xl rounded-lg"
+            className="absolute flex items-center bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--context-menu-border))] shadow-xl rounded-lg"
             style={{
               left: paletteDirection === 'right' ? '100%' : undefined,
               right: paletteDirection === 'left' ? '100%' : undefined,
-              marginLeft: paletteDirection === 'right' ? '8px' : undefined,
-              marginRight: paletteDirection === 'left' ? '8px' : undefined,
-              width: showTextColorPalette ? '200px' : '0px',
+              marginLeft: paletteDirection === 'right' ? 8 : undefined,
+              marginRight: paletteDirection === 'left' ? 8 : undefined,
+              width: showTextColorPalette ? 190 : 0,
+              minWidth: showTextColorPalette ? 190 : 0,
+              maxWidth: 190,
               opacity: showTextColorPalette ? 1 : 0,
-              borderRadius: 8,
-              minWidth: showTextColorPalette ? '200px' : '0px',
+              borderRadius: 10,
               boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
               zIndex: 100,
-              alignItems: 'center',
               display: showTextColorPalette ? 'flex' : 'none',
               top: '50%',
               transform: 'translateY(-50%)',
+              padding: '0.25rem 0.5rem',
+              background: 'hsl(var(--background))',
+              transition: 'all 0.2s',
             }}
           >
-            <div
-              className="flex items-center gap-2 px-3 py-2 whitespace-nowrap w-full"
+            <input
+              type="text"
+              value={textColorInput}
+              onChange={e => setTextColorInput(e.target.value)}
+              placeholder="Hex code"
+              maxLength={7}
+              className="px-2 py-1 text-base outline-none placeholder:text-[hsl(var(--muted-foreground))]"
               style={{
-                background: 'transparent',
-                borderRadius: 8,
-                minWidth: '200px',
-                height: '40px',
+                border: '1px solid hsl(var(--input))',
+                width: 100,
+                height: 32,
+                fontSize: 14,
+                marginRight: 8,
+                background: 'hsl(var(--background))',
+                color: 'hsl(var(--foreground))',
+                flexShrink: 0,
+                borderRadius: 6,
+              }}
+              autoFocus
+              onKeyDown={e => {
+                if (e.key === 'Enter' && isValidHex(textColorInput)) {
+                  setSelectedTextColor(textColorInput);
+                  handleTextColorSelect(textColorInput);
+                }
+              }}
+            />
+            <span
+              title={isValidHex(textColorInput) ? hexToColorName(textColorInput) : 'Invalid color'}
+              style={{
+                display: 'inline-block',
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                background: isValidHex(textColorInput) ? textColorInput : '#222',
+                border: '2px solid #222',
+                marginRight: 8,
+                transition: 'background 0.2s',
+                flexShrink: 0,
+              }}
+            />
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                if (isValidHex(textColorInput)) {
+                  setSelectedTextColor(textColorInput);
+                  handleTextColorSelect(textColorInput);
+                }
+              }}
+              disabled={!isValidHex(textColorInput)}
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                background: isValidHex(textColorInput) ? '#6366F1' : '#888',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: 'none',
+                cursor: isValidHex(textColorInput) ? 'pointer' : 'not-allowed',
+                transition: 'background 0.2s',
+                flexShrink: 0,
               }}
             >
-              {TEXT_COLORS.map((textColor, index) => (
-                <button
-                  key={index}
-                  className="w-6 h-6 rounded-full border-2 border-gray-600 hover:border-gray-400 transition-colors flex-shrink-0"
-                  style={{ backgroundColor: textColor.color }}
-                  title={textColor.name}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleTextColorSelect(textColor.color);
-                  }}
-                >
-                  {selectedTextColor === textColor.color && (
-                    <div className="w-full h-full rounded-full border-2 border-white" />
-                  )}
-                </button>
-              ))}
-            </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </button>
           </div>
         </div>
         
@@ -805,50 +912,92 @@ const handleInsertEmoji = () => {
           
           {/* Sliding Color Palette */}
           <div
-            className="absolute transition-all duration-300 ease-out bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--context-menu-border))] shadow-xl rounded-lg"
+            className="absolute flex items-center bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--context-menu-border))] shadow-xl rounded-lg"
             style={{
               left: paletteDirection === 'right' ? '100%' : undefined,
               right: paletteDirection === 'left' ? '100%' : undefined,
-              marginLeft: paletteDirection === 'right' ? '8px' : undefined,
-              marginRight: paletteDirection === 'left' ? '8px' : undefined,
-              width: showHighlighterPalette ? '200px' : '0px',
+              marginLeft: paletteDirection === 'right' ? 8 : undefined,
+              marginRight: paletteDirection === 'left' ? 8 : undefined,
+              width: showHighlighterPalette ? 190 : 0,
+              minWidth: showHighlighterPalette ? 190 : 0,
+              maxWidth: 190,
               opacity: showHighlighterPalette ? 1 : 0,
-              borderRadius: 8,
-              minWidth: showHighlighterPalette ? '200px' : '0px',
+              borderRadius: 10,
               boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
               zIndex: 100,
-              alignItems: 'center',
               display: showHighlighterPalette ? 'flex' : 'none',
               top: '50%',
               transform: 'translateY(-50%)',
+              padding: '0.25rem 0.5rem',
+              background: 'hsl(var(--background))',
+              transition: 'all 0.2s',
             }}
           >
-            <div
-              className="flex items-center gap-2 px-3 py-2 whitespace-nowrap w-full"
+            <input
+              type="text"
+              value={highlightColorInput}
+              onChange={e => setHighlightColorInput(e.target.value)}
+              placeholder="Hex code"
+              maxLength={7}
+              className="px-2 py-1 text-base outline-none placeholder:text-[hsl(var(--muted-foreground))]"
               style={{
-                background: 'transparent',
-                borderRadius: 8,
-                minWidth: '200px',
-                height: '40px',
+                border: '1px solid hsl(var(--input))',
+                width: 100,
+                height: 32,
+                fontSize: 14,
+                marginRight: 8,
+                background: 'hsl(var(--background))',
+                color: 'hsl(var(--foreground))',
+                flexShrink: 0,
+                borderRadius: 6,
+              }}
+              autoFocus
+              onKeyDown={e => {
+                if (e.key === 'Enter' && isValidHex(highlightColorInput)) {
+                  setSelectedHighlightColor(highlightColorInput);
+                  handleHighlightColorSelect(highlightColorInput);
+                }
+              }}
+            />
+            <span
+              title={isValidHex(highlightColorInput) ? hexToColorName(highlightColorInput) : 'Invalid color'}
+              style={{
+                display: 'inline-block',
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                background: isValidHex(highlightColorInput) ? highlightColorInput : '#222',
+                border: '2px solid #222',
+                marginRight: 8,
+                transition: 'background 0.2s',
+                flexShrink: 0,
+              }}
+            />
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                if (isValidHex(highlightColorInput)) {
+                  setSelectedHighlightColor(highlightColorInput);
+                  handleHighlightColorSelect(highlightColorInput);
+                }
+              }}
+              disabled={!isValidHex(highlightColorInput)}
+              style={{
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                background: isValidHex(highlightColorInput) ? '#6366F1' : '#888',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: 'none',
+                cursor: isValidHex(highlightColorInput) ? 'pointer' : 'not-allowed',
+                transition: 'background 0.2s',
+                flexShrink: 0,
               }}
             >
-              {HIGHLIGHTER_COLORS.map((highlighter, index) => (
-                <button
-                  key={index}
-                  className="w-6 h-6 rounded-full border-2 border-gray-600 hover:border-gray-400 transition-colors flex-shrink-0"
-                  style={{ backgroundColor: highlighter.color }}
-                  title={highlighter.name}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleHighlightColorSelect(highlighter.color);
-                  }}
-                >
-                  {selectedHighlightColor === highlighter.color && (
-                    <div className="w-full h-full rounded-full border-2 border-white" />
-                  )}
-                </button>
-              ))}
-            </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </button>
           </div>
         </div>
 
@@ -903,6 +1052,16 @@ const handleInsertEmoji = () => {
           {/* Emoji icon (Lucide) */}
           <Smile className="w-5 h-5" />
         </button>
+        
+        {/* Strikethrough Button */}
+        <button
+          className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+          title="Strikethrough"
+          onClick={() => handleMark('strikethrough')}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" x2="20" y1="12" y2="12"/></svg>
+        </button>
+
         {/* Clear Formatting Button */}
         <button
           className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
@@ -911,7 +1070,7 @@ const handleInsertEmoji = () => {
             const { selection } = editor;
             if (!selection) return;
             // Remove all known marks
-            const marksToRemove = ['bold', 'italic', 'underline', 'fontSize', 'color', 'highlight', 'highlightColor', 'code'];
+            const marksToRemove = ['bold', 'italic', 'underline', 'strikethrough', 'fontSize', 'color', 'highlight', 'highlightColor', 'code'];
             marksToRemove.forEach(mark => {
               Editor.removeMark(editor, mark);
             });
@@ -1031,7 +1190,12 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
                 }}
                 style={{ marginRight: 8 }}
               />
-              <span style={checked ? { textDecoration: 'line-through', opacity: 0.7 } : {}}>{props.children}</span>
+              <span
+                className={checked ? "checklist-strikethrough" : ""}
+                style={checked ? { opacity: 0.7 } : {}}
+              >
+                {props.children}
+              </span>
             </li>
           );
         }
@@ -1059,6 +1223,10 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     
     if (leaf.underline) {
       children = <u>{children}</u>;
+    }
+    
+    if (leaf.strikethrough) {
+      children = <span style={{ textDecoration: 'line-through' }}>{children}</span>;
     }
     
     // Inline code styling

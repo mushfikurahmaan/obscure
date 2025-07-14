@@ -171,3 +171,21 @@ body {
   shape-rendering: geometricPrecision;
 }
 
+.checklist-strikethrough {
+  position: relative;
+  color: inherit;
+  opacity: 0.7;
+}
+.checklist-strikethrough::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 0.13em;
+  background: #aaa;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
