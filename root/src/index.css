@@ -60,6 +60,7 @@ All colors MUST be HSL.
 
     --code-block-background: 0, 0%, 85%;
     --code-block-text: 0, 0%, 16%;
+    --window-hover: 0, 0%, 90%;
 
   }
 
@@ -106,6 +107,8 @@ All colors MUST be HSL.
 
     --code-block-background: 0, 0%, 18%;
     --code-block-text: 60, 30%, 96%;
+    --window-hover: 0, 0%, 20%;
+    
   }
 }
 

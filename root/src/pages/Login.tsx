@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { loadData } from '../lib/utils';
-import { Eye, EyeOff } from 'lucide-react';
-import notesImg from '../assets/notes.png';
 import CustomPasswordInput from '../components/CustomPasswordInput';
 
 interface LoginProps {
@@ -16,7 +14,6 @@ const Login = ({ onLogin }: LoginProps) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [verifying, setVerifying] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
 
   useEffect(() => {
@@ -68,7 +65,7 @@ const Login = ({ onLogin }: LoginProps) => {
       {/* Window Controls */}
       <div className="absolute top-0 right-0 flex items-center gap-1 z-20 p-2" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
         <button
-          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
+          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
           title="Minimize"
           onClick={async () => { const window = getCurrentWindow(); await window.minimize(); }}
         >
@@ -76,7 +73,7 @@ const Login = ({ onLogin }: LoginProps) => {
         </button>
         {isMaximized ? (
           <button
-            className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
+            className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
             title="Restore"
             onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
           >

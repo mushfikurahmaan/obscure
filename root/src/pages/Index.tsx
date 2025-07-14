@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import {Plus, Edit, Bookmark, Loader2, Circle, Trash2, Lock} from 'lucide-react';
+import {Edit, Bookmark, Loader2, Circle, Trash2, Lock, SquareChevronLeft, SquareChevronRight} from 'lucide-react';
 import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
 import { Button } from '../components/ui/button';
@@ -10,17 +10,6 @@ import "../styles/scroll-thumb-only.css";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '../components/ui/dropdown-menu';
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { FixedSizeGrid as Grid } from 'react-window';
-import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogAction,
-  AlertDialogCancel,
-} from '../components/ui/alert-dialog';
 import { loadData, saveData } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../lib/theme';
@@ -53,9 +42,8 @@ const Index = () => {
 
   // --- Secure storage integration ---
   // Get master password from sessionStorage (set on login)
-  const [masterPassword, setMasterPassword] = useState<string | null>(() => sessionStorage.getItem('masterPassword'));
+  const [masterPassword] = useState<string | null>(() => sessionStorage.getItem('masterPassword'));
   const navigate = useNavigate();
-
   // Debounced save state
   const [saving, setSaving] = useState(false);
   const saveTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -440,9 +428,11 @@ const Index = () => {
                 style={{ WebkitAppRegion: 'no-drag' }}
               >
                 {/* Hamburger icon for expand/collapse */}
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+                {sidebarCollapsed ? (
+                  <SquareChevronRight className="w-6 h-6" />
+                ) : (
+                  <SquareChevronLeft className="w-6 h-6" />
+                )}
               </Button>
               {viewingArchived ? (
                 <span className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate" style={{ minHeight: '2.25rem', maxWidth: '100%' }}>

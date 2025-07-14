@@ -5,7 +5,7 @@ import { withHistory } from 'slate-history';
 import type { Note } from '../pages/Index';
 import { formatRelativeDate } from '../lib/utils';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu';
-import { Box, Trash2, RotateCcw } from 'lucide-react';
+import { Box, Trash2, RotateCcw, Quote, Table as LucideTable, Smile } from 'lucide-react';
 
 interface NoteEditorProps {
   note: Note;
@@ -38,7 +38,16 @@ type CustomText = {
 type CustomElement =
   | { type: 'paragraph' | 'code-block'; alignment?: 'left' | 'center' | 'right' | 'justify'; children: CustomText[] }
   | { type: 'link'; url: string; children: CustomText[] }
-  | { type: 'image'; url: string; children: CustomText[] };
+  | { type: 'image'; url: string; children: CustomText[] }
+  | { type: 'bulleted-list'; children: CustomElement[] }
+  | { type: 'numbered-list'; children: CustomElement[] }
+  | { type: 'list-item'; checked?: boolean; children: CustomText[] }
+  | { type: 'blockquote'; children: CustomText[] }
+  | { type: 'divider'; children: CustomText[] }
+  | { type: 'table'; children: CustomElement[] }
+  | { type: 'table-row'; children: CustomElement[] }
+  | { type: 'table-cell'; children: CustomText[] }
+  | { type: 'emoji'; character: string; children: CustomText[] };
 
 declare module 'slate' {
   interface CustomTypes {
@@ -207,43 +216,7 @@ const RichTextContextMenu = ({
 
   if (!isVisible) return null;
 
-  // Icon SVGs (inline for simplicity)
-  const icons = {
-    bold: (
-      <svg width="16" height="16" fill="none" viewBox="0 0 20 20" className="w-4 h-4"><path stroke="currentColor" strokeWidth="2" d="M7 4h4a3 3 0 0 1 0 6H7zm0 6h5a3 3 0 1 1 0 6H7z"/></svg>
-    ),
-    italic: (
-      <svg width="16" height="16" fill="none" viewBox="0 0 20 20" className="w-4 h-4"><path stroke="currentColor" strokeWidth="2" d="M10 4h4M6 16h4m2-12-4 12"/></svg>
-    ),
-    underline: (
-      <svg width="16" height="16" fill="none" viewBox="0 0 20 20" className="w-4 h-4"><path stroke="currentColor" strokeWidth="2" d="M6 4v5a4 4 0 0 0 8 0V4M5 16h10"/></svg>
-    ),
-    code: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-code-icon w-4 h-4"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
-    ),
-    highlight: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-highlighter-icon w-4 h-4"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
-    ),
-    textColor: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-type-icon w-4 h-4"><polyline points="4,7 4,4 20,4 20,7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
-    ),
-    link: (
-      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-    ),
-    alignLeft: (
-      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
-    ),
-    alignCenter: (
-      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="5" y="5" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="5" y="13" width="10" height="2" rx="1" fill="currentColor"/></svg>
-    ),
-    alignRight: (
-      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="7" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
-    ),
-    alignJustify: (
-      <svg width="16" height="16" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
-    ),
-  };
-
+  // All toolbar buttons now use direct SVG or Lucide components with className="w-5 h-5"
   // Handlers for formatting - REMOVED onClose() calls
   const handleMark = (format: string) => {
     toggleMark(editor, format);
@@ -406,36 +379,147 @@ const RichTextContextMenu = ({
     ReactEditor.focus(editor);
   };
 
+  // --- New block/inline handlers ---
+  const isBlockActive = (type: string) => {
+    const { selection } = editor;
+    if (!selection) return false;
+    const [match] = Editor.nodes(editor, {
+      at: selection,
+      match: n => SlateElement.isElement(n) && n.type === type,
+    });
+    return !!match;
+  };
+
+  const handleInsertList = (type: 'numbered-list' | 'bulleted-list') => {
+    const { selection } = editor;
+    if (!selection) return;
+    // Toggle: if already in this list, unwrap to paragraph
+    if (isBlockActive(type)) {
+      Transforms.unwrapNodes(editor, {
+        match: n => SlateElement.isElement(n) && (n.type === 'numbered-list' || n.type === 'bulleted-list'),
+        split: true,
+        at: selection,
+      });
+      // Set all list-items to paragraph
+      Transforms.setNodes(
+        editor,
+        { type: 'paragraph' } as Partial<SlateElement>,
+        { match: n => SlateElement.isElement(n) && n.type === 'list-item', at: selection }
+      );
+      return;
+    }
+    // Apply list
+    Transforms.wrapNodes(
+      editor,
+      { type, children: [] },
+      { match: n => SlateElement.isElement(n) && n.type === 'list-item', split: true, at: selection }
+    );
+    Transforms.setNodes(
+      editor,
+      { type: 'list-item' },
+      { match: n => SlateElement.isElement(n) && n.type === 'paragraph', at: selection }
+    );
+    ReactEditor.focus(editor);
+  };
+  const handleInsertChecklist = () => {
+    const { selection } = editor;
+    if (!selection) return;
+    // Toggle: if already checklist, unwrap to paragraph
+    if (isBlockActive('bulleted-list')) {
+      Transforms.unwrapNodes(editor, {
+        match: n => SlateElement.isElement(n) && n.type === 'bulleted-list',
+        split: true,
+        at: selection,
+      });
+      // Set all list-items to paragraph
+      Transforms.setNodes(
+        editor,
+        { type: 'paragraph' } as Partial<SlateElement>,
+        { match: n => SlateElement.isElement(n) && n.type === 'list-item', at: selection }
+      );
+      return;
+    }
+    // Apply checklist
+    Transforms.setNodes(
+      editor,
+      { type: 'list-item', checked: false },
+      { match: n => SlateElement.isElement(n) && n.type === 'paragraph', at: selection }
+    );
+    Transforms.wrapNodes(
+      editor,
+      { type: 'bulleted-list', children: [] },
+      { match: n => SlateElement.isElement(n) && n.type === 'list-item', split: true, at: selection }
+    );
+    ReactEditor.focus(editor);
+  };
+  const handleInsertBlockquote = () => {
+    const { selection } = editor;
+    if (!selection) return;
+    // Toggle: if already blockquote, revert to paragraph
+    if (isBlockActive('blockquote')) {
+      Transforms.setNodes(
+        editor,
+        { type: 'paragraph' } as Partial<SlateElement>,
+        { match: n => SlateElement.isElement(n) && n.type === 'blockquote', at: selection }
+      );
+      return;
+    }
+    Transforms.setNodes(
+      editor,
+      { type: 'blockquote' },
+      { match: n => SlateElement.isElement(n) && n.type === 'paragraph', at: selection }
+    );
+    ReactEditor.focus(editor);
+  };
+  const handleInsertTable = () => {
+    const { selection } = editor;
+    if (!selection) return;
+    // Insert a 2x2 table at selection
+    const table = {
+      type: 'table',
+      children: [
+        { type: 'table-row', children: [
+          { type: 'table-cell', children: [{ text: '' }] },
+          { type: 'table-cell', children: [{ text: '' }] },
+        ] },
+        { type: 'table-row', children: [
+          { type: 'table-cell', children: [{ text: '' }] },
+          { type: 'table-cell', children: [{ text: '' }] },
+        ] },
+      ]
+    } as CustomElement;
+    Transforms.insertNodes(editor, table, { at: selection });
+    ReactEditor.focus(editor);
+  };
+  const handleInsertDivider = () => {
+    const { selection } = editor;
+    if (!selection) return;
+    Transforms.insertNodes(editor, { type: 'divider', children: [{ text: '' }] }, { at: selection });
+    ReactEditor.focus(editor);
+  };
+  const handleInsertEmoji = () => {
+    const char = window.prompt('Enter emoji or special character:');
+    if (!char) return;
+    const { selection } = editor;
+    if (!selection) return;
+    Transforms.insertNodes(editor, { type: 'emoji', character: char, children: [{ text: '' }] }, { at: selection });
+    ReactEditor.focus(editor);
+  };
+
   // Modern floating toolbar with arrow
   return (
     <div
       ref={menuRef}
-      className="fixed z-50"
+      className="fixed z-50 bg-[#111113] bg-opacity-95 rounded-lg shadow-xl border border-gray-700"
       style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
       onMouseDown={e => e.preventDefault()}
     >
-      {/* Arrow */}
-      <div style={{
-        position: 'absolute',
-        top: -8,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 16,
-        height: 8,
-        overflow: 'hidden',
-        pointerEvents: 'none',
-      }}>
-        <svg width="16" height="8"><polygon points="8,0 16,8 0,8" fill="#111113"/></svg>
-      </div>
+      {/* Arrow removed */}
       
       {/* Main Toolbar */}
       <div
-        className="flex items-center gap-1 rounded-lg shadow-xl px-2 py-1 relative"
-        style={{
-          background: '#111113',
-          borderRadius: 8,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
-        }}
+        className="flex items-center gap-1 rounded-lg px-2 py-1 relative"
+        // Removed inline background style for color consistency
       >
         
         {/* Text Size Buttons (replace with dropdown) */}
@@ -508,56 +592,56 @@ const RichTextContextMenu = ({
           title="Bold"
           onClick={() => handleMark('bold')}
         >
-          {icons.bold}
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><path stroke="currentColor" strokeWidth="2" d="M7 4h4a3 3 0 0 1 0 6H7zm0 6h5a3 3 0 1 1 0 6H7z"/></svg>
         </button>
         <button
           className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
           title="Italic"
           onClick={() => handleMark('italic')}
         >
-          {icons.italic}
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><path stroke="currentColor" strokeWidth="2" d="M10 4h4M6 16h4m2-12-4 12"/></svg>
         </button>
         <button
           className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
           title="Underline"
           onClick={() => handleMark('underline')}
         >
-          {icons.underline}
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><path stroke="currentColor" strokeWidth="2" d="M6 4v5a4 4 0 0 0 8 0V4M5 16h10"/></svg>
         </button>
         <button
           className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'left' ? ' bg-gray-700' : ''}`}
           title="Align Left"
           onClick={() => setAlignment('left')}
         >
-          {icons.alignLeft}
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
         </button>
         <button
           className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'center' ? ' bg-gray-700' : ''}`}
           title="Align Center"
           onClick={() => setAlignment('center')}
         >
-          {icons.alignCenter}
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="5" y="5" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="5" y="13" width="10" height="2" rx="1" fill="currentColor"/></svg>
         </button>
         <button
           className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'right' ? ' bg-gray-700' : ''}`}
           title="Align Right"
           onClick={() => setAlignment('right')}
         >
-          {icons.alignRight}
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="7" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
         </button>
         <button
           className={`px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'justify' ? ' bg-gray-700' : ''}`}
           title="Justify"
           onClick={() => setAlignment('justify')}
         >
-          {icons.alignJustify}
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
         </button>
         <button
           className="px-1 py-1 text-base text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
           title="Code Block"
           onClick={handleCodeBlock}
         >
-          {icons.code}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="m16 18 6-6-6-6"/><path d="m8 6-6 6 6 6"/></svg>
         </button>
         
         {/* Text Color with Color Palette */}
@@ -567,7 +651,7 @@ const RichTextContextMenu = ({
             title="Text Color"
             onClick={handleTextColorClick}
           >
-            {icons.textColor}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><polyline points="4,7 4,4 20,4 20,7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg>
             {/* Color indicator */}
             <div 
               className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-1 rounded-full"
@@ -632,7 +716,7 @@ const RichTextContextMenu = ({
             title="Highlight"
             onClick={handleHighlighterClick}
           >
-            {icons.highlight}
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="m9 11-6 6v3h9l3-3"/><path d="m22 12-4.6 4.6a2 2 0 0 1-2.8 0l-5.2-5.2a2 2 0 0 1 0-2.8L14 4"/></svg>
             {/* Color indicator */}
             <div 
               className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 w-3 h-1 rounded-full"
@@ -696,7 +780,66 @@ const RichTextContextMenu = ({
           title="Link"
           onClick={() => (isLinkActive() ? removeLink() : insertLink())}
         >
-          {icons.link}
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+        </button>
+      </div>
+      {/* New block options as icon row */}
+      <div className="flex items-center gap-1 mt-1 px-2 pb-1">
+        <button
+          className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Numbered List"
+          onClick={() => handleInsertList('numbered-list')}
+        >
+          {/* List (numbered) icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+        </button>
+        <button
+          className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Bullet List"
+          onClick={() => handleInsertList('bulleted-list')}
+        >
+          {/* List (bulleted) icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>
+        </button>
+        <button
+          className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Checklist"
+          onClick={handleInsertChecklist}
+        >
+          {/* Checklist icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+        </button>
+        <button
+          className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Blockquote"
+          onClick={handleInsertBlockquote}
+        >
+          {/* Blockquote icon (Lucide) */}
+          <Quote className="w-5 h-5" />
+        </button>
+        <button
+          className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Table"
+          onClick={handleInsertTable}
+        >
+          {/* Table icon (Lucide) */}
+          <LucideTable className="w-5 h-5" />
+        </button>
+        <button
+          className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Divider"
+          onClick={handleInsertDivider}
+        >
+          {/* Divider icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>
+        </button>
+        <button
+          className="px-1 py-1 text-gray-200 hover:bg-gray-700 rounded transition w-8 h-8 flex items-center justify-center"
+          title="Emoji/Special Char"
+          onClick={handleInsertEmoji}
+        >
+          {/* Emoji icon (Lucide) */}
+          <Smile className="w-5 h-5" />
         </button>
       </div>
     </div>
@@ -765,6 +908,33 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
             {props.children}
           </div>
         );
+      case 'bulleted-list':
+        return <ul {...props.attributes} style={{ textAlign: alignment, paddingLeft: 24, margin: '8px 0' }}>{props.children}</ul>;
+      case 'numbered-list':
+        return <ol {...props.attributes} style={{ textAlign: alignment, paddingLeft: 24, margin: '8px 0' }}>{props.children}</ol>;
+      case 'list-item':
+        if (typeof props.element.checked === 'boolean') {
+          // Checklist
+          return (
+            <li {...props.attributes} style={{ display: 'flex', alignItems: 'center', textAlign: alignment }}>
+              <input type="checkbox" checked={props.element.checked} readOnly style={{ marginRight: 8 }} />
+              <span>{props.children}</span>
+            </li>
+          );
+        }
+        return <li {...props.attributes} style={{ textAlign: alignment }}>{props.children}</li>;
+      case 'blockquote':
+        return <blockquote {...props.attributes} style={{ borderLeft: '4px solid #888', margin: '8px 0', padding: '8px 16px', color: '#888', background: '#f9f9f9', fontStyle: 'italic', textAlign: alignment }}>{props.children}</blockquote>;
+      case 'divider':
+        return <hr {...props.attributes} style={{ border: 'none', borderTop: '1px solid #ccc', margin: '16px 0' }} />;
+      case 'table':
+        return <table {...props.attributes} style={{ borderCollapse: 'collapse', width: '100%', margin: '12px 0' }}><tbody>{props.children}</tbody></table>;
+      case 'table-row':
+        return <tr {...props.attributes}>{props.children}</tr>;
+      case 'table-cell':
+        return <td {...props.attributes} style={{ border: '1px solid #ccc', padding: '6px 12px' }}>{props.children}</td>;
+      case 'emoji':
+        return <span {...props.attributes} role="img" aria-label="emoji" style={{ fontSize: '1.5em', lineHeight: 1 }}>{props.element.character}{props.children}</span>;
       default:
         return <p {...props.attributes} style={{ textAlign: alignment }}>{props.children}</p>;
     }

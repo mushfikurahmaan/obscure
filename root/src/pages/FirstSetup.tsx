@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { saveData, importData, loadData } from '../lib/utils';
-import notesImg from '../assets/notes.png';
 import { listen } from "@tauri-apps/api/event";
 import { Card, CardContent } from '../components/ui/card';
 import {
@@ -194,19 +193,6 @@ useEffect(() => {
     resetSize();
   };
 }, []);
-
-  // Remove the useEffect for countdown and popup
-  // useEffect(() => {
-  //   if (!showImportSuccess && !showCreateSuccess) return;
-  //   if (successCountdown === 0) {
-  //     setShowImportSuccess(false);
-  //     setShowCreateSuccess(false);
-  //     window.location.href = '/login';
-  //     return;
-  //   }
-  //   const timer = setTimeout(() => setSuccessCountdown(c => c - 1), 1000);
-  //   return () => clearTimeout(timer);
-  // }, [showImportSuccess, showCreateSuccess, successCountdown]);
 
   // Add effect to update carouselIndex on slide change
   useEffect(() => {
