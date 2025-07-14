@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import {Edit, Bookmark, Loader2, Circle, Trash2, Lock, SquareChevronLeft, SquareChevronRight} from 'lucide-react';
+import {Edit, Bookmark, Loader2, Circle, Trash2, SquareChevronLeft, SquareChevronRight} from 'lucide-react';
+import MatrixText from '../components/MatrixText';
 import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
 import { Button } from '../components/ui/button';
@@ -319,12 +320,13 @@ const Index = () => {
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-[hsl(var(--foreground))]">
         <div className="flex flex-col items-center gap-6">
           <div className="flex flex-col items-center gap-2">
-            <Lock className="w-10 h-10 text-blue-500 animate-pulse" />
-            <span className="text-xl font-semibold tracking-wide">Decrypting your notes…</span>
-            <span className="text-sm text-muted-foreground">Your data is being securely unlocked</span>
+            <span className="text-2xl font-semibold tracking-wide">
+              <MatrixText text="Decrypting" /> your notes
+            </span>
+            <span className="text-lg text-muted-foreground">Your data is being securely unlocked</span>
           </div>
           <Progress value={progress} className="w-[320px] h-4 bg-secondary" />
-          <span className="text-xs text-muted-foreground mt-2">{Math.round(progress)}%</span>
+          <span className="text-sm text-muted-foreground mt-2">{Math.round(progress)}%</span>
         </div>
       </div>
     );

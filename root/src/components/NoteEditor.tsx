@@ -741,7 +741,7 @@ const handleInsertEmoji = () => {
           
           {/* Sliding Color Palette */}
           <div
-            className="absolute transition-all duration-300 ease-out bg-[hsl(var(--popover))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--popover-border))] shadow-xl rounded-lg"
+            className="absolute transition-all duration-300 ease-out bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--context-menu-border))] shadow-xl rounded-lg"
             style={{
               left: paletteDirection === 'right' ? '100%' : undefined,
               right: paletteDirection === 'left' ? '100%' : undefined,
@@ -805,7 +805,7 @@ const handleInsertEmoji = () => {
           
           {/* Sliding Color Palette */}
           <div
-            className="absolute transition-all duration-300 ease-out bg-[hsl(var(--popover))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--popover-border))] shadow-xl rounded-lg"
+            className="absolute transition-all duration-300 ease-out bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--context-menu-border))] shadow-xl rounded-lg"
             style={{
               left: paletteDirection === 'right' ? '100%' : undefined,
               right: paletteDirection === 'left' ? '100%' : undefined,
