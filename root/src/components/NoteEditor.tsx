@@ -903,6 +903,44 @@ const handleInsertEmoji = () => {
           {/* Emoji icon (Lucide) */}
           <Smile className="w-5 h-5" />
         </button>
+        {/* Clear Formatting Button */}
+        <button
+          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+          title="Clear Formatting"
+          onClick={() => {
+            const { selection } = editor;
+            if (!selection) return;
+            // Remove all known marks
+            const marksToRemove = ['bold', 'italic', 'underline', 'fontSize', 'color', 'highlight', 'highlightColor', 'code'];
+            marksToRemove.forEach(mark => {
+              Editor.removeMark(editor, mark);
+            });
+            // Unwrap links
+            Transforms.unwrapNodes(editor, {
+              at: selection,
+              match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link',
+              split: true,
+            });
+            // Unwrap code-blocks
+            Transforms.unwrapNodes(editor, {
+              at: selection,
+              match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'code-block',
+              split: true,
+            });
+            // Reset block types to paragraph
+            Transforms.setNodes(
+              editor,
+              { type: 'paragraph', alignment: undefined },
+              {
+                at: selection,
+                match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type !== 'paragraph',
+              }
+            );
+          }}
+        >
+          {/* Magic wand Lucide icon */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 22-1-4"/><path d="M19 13.99a1 1 0 0 0 1-1V12a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v.99a1 1 0 0 0 1 1"/><path d="M5 14h14l1.973 6.767A1 1 0 0 1 20 22H4a1 1 0 0 1-.973-1.233z"/><path d="m8 22 1-4"/></svg>
+        </button>
       </div>
     </div>
   );
