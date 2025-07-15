@@ -1038,71 +1038,51 @@ const handleInsertEmoji = () => {
       </button>
       <button
         className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-        title="Divider"
-        onClick={handleInsertDivider}
+        title="Strikethrough"
+        onClick={() => handleMark('strikethrough')}
       >
-        {/* Divider icon */}
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" x2="20" y1="12" y2="12"/></svg>
       </button>
       <button
         className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-        title="Emoji/Special Char"
-        onClick={handleInsertEmoji}
+        title="Clear Formatting"
+        onClick={() => {
+          const { selection } = editor;
+          if (!selection) return;
+          // Remove all known marks
+          const marksToRemove = ['bold', 'italic', 'underline', 'strikethrough', 'fontSize', 'color', 'highlight', 'highlightColor', 'code'];
+          marksToRemove.forEach(mark => {
+            Editor.removeMark(editor, mark);
+          });
+          // Unwrap links
+          Transforms.unwrapNodes(editor, {
+            at: selection,
+            match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link',
+            split: true,
+          });
+          // Unwrap code-blocks
+          Transforms.unwrapNodes(editor, {
+            at: selection,
+            match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'code-block',
+            split: true,
+          });
+          // Reset block types to paragraph
+          Transforms.setNodes(
+            editor,
+            { type: 'paragraph', alignment: undefined },
+            {
+              at: selection,
+              match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type !== 'paragraph',
+            }
+          );
+        }}
       >
-          {/* Emoji icon (Lucide) */}
-          <Smile className="w-5 h-5" />
-        </button>
-        
-        {/* Strikethrough Button */}
-        <button
-          className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-          title="Strikethrough"
-          onClick={() => handleMark('strikethrough')}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 4H9a3 3 0 0 0-2.83 4"/><path d="M14 12a4 4 0 0 1 0 8H6"/><line x1="4" x2="20" y1="12" y2="12"/></svg>
-        </button>
-
-        {/* Clear Formatting Button */}
-        <button
-          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-          title="Clear Formatting"
-          onClick={() => {
-            const { selection } = editor;
-            if (!selection) return;
-            // Remove all known marks
-            const marksToRemove = ['bold', 'italic', 'underline', 'strikethrough', 'fontSize', 'color', 'highlight', 'highlightColor', 'code'];
-            marksToRemove.forEach(mark => {
-              Editor.removeMark(editor, mark);
-            });
-            // Unwrap links
-            Transforms.unwrapNodes(editor, {
-              at: selection,
-              match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link',
-              split: true,
-            });
-            // Unwrap code-blocks
-            Transforms.unwrapNodes(editor, {
-              at: selection,
-              match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'code-block',
-              split: true,
-            });
-            // Reset block types to paragraph
-            Transforms.setNodes(
-              editor,
-              { type: 'paragraph', alignment: undefined },
-              {
-                at: selection,
-                match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type !== 'paragraph',
-              }
-            );
-          }}
-        >
-          {/* Magic wand Lucide icon */}
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 22-1-4"/><path d="M19 13.99a1 1 0 0 0 1-1V12a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v.99a1 1 0 0 0 1 1"/><path d="M5 14h14l1.973 6.767A1 1 0 0 1 20 22H4a1 1 0 0 1-.973-1.233z"/><path d="m8 22 1-4"/></svg>
-        </button>
-      </div>
+        {/* Magic wand Lucide icon */}
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 22-1-4"/><path d="M19 13.99a1 1 0 0 0 1-1V12a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v.99a1 1 0 0 0 1 1"/><path d="M5 14h14l1.973 6.767A1 1 0 0 1 20 22H4a1 1 0 0 1-.973-1.233z"/><path d="m8 22 1-4"/></svg>
+      </button>
     </div>
-  );
+  </div>
+);
 };
 
 // Add withLinks plugin to treat 'link' as inline
@@ -1110,6 +1090,108 @@ const withLinks = (editor: ReactEditor) => {
   const { isInline } = editor;
   editor.isInline = element => element.type === 'link' ? true : isInline(element);
   return editor;
+};
+
+// --- Add: New context menu for no selection ---
+const GeneralContextMenu = ({
+  isVisible,
+  position,
+  onClose,
+  onInsertEmoji,
+  onImageUpload,
+  onPaste,
+  onCopy,
+  onInsertDivider,
+}: {
+  isVisible: boolean;
+  position: { x: number; y: number };
+  onClose: () => void;
+  onInsertEmoji: () => void;
+  onImageUpload: () => void;
+  onPaste: () => void;
+  onCopy: () => void;
+  onInsertDivider: () => void;
+}) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuStyle, setMenuStyle] = useState<{ left: number; top: number } | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isVisible, onClose]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const reposition = () => {
+      if (!menuRef.current) return;
+      const menuRect = menuRef.current.getBoundingClientRect();
+      let left = position.x;
+      let top = position.y;
+      if (left + menuRect.width > window.innerWidth) {
+        left = Math.max(8, window.innerWidth - menuRect.width - 8);
+      }
+      if (top + menuRect.height > window.innerHeight) {
+        top = Math.max(8, window.innerHeight - menuRect.height - 8);
+      }
+      setMenuStyle({ left, top });
+    };
+    setTimeout(reposition, 0);
+  }, [isVisible, position.x, position.y]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div
+      ref={menuRef}
+      className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-xl border border-[hsl(var(--context-menu-border))]"
+      style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
+    >
+      <div className="flex flex-row items-center gap-1 px-2 py-1 min-w-[0]">
+        <button
+          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+          title="Emoji"
+          onClick={() => { onInsertEmoji(); onClose(); }}
+        >
+          <Smile className="w-5 h-5" />
+        </button>
+        <button
+          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+          title="Image Upload"
+          onClick={() => { onImageUpload(); onClose(); }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10l-3.1-3.1a2 2 0 0 0-2.814.014L6 21"/><path d="m14 19.5 3-3 3 3"/><path d="M17 22v-5.5"/><circle cx="9" cy="9" r="2"/></svg>
+        </button>
+        <button
+          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+          title="Paste"
+          onClick={() => { onPaste(); onClose(); }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+        </button>
+        <button
+          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+          title="Copy"
+          onClick={() => { onCopy(); onClose(); }}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+        </button>
+        <button
+          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+          title="Horizontal Line"
+          onClick={() => { onInsertDivider(); onClose(); }}
+        >
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  );
 };
 
 export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClose, setSaving, contextType, onRemoveFromArchive, onRestore, onDeletePermanently }: NoteEditorProps) => {
@@ -1120,6 +1202,10 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   // Rich text context menu state
   const [showRichTextMenu, setShowRichTextMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
+
+  // Add state for general context menu
+  const [showGeneralMenu, setShowGeneralMenu] = useState(false);
+  const [generalMenuPosition, setGeneralMenuPosition] = useState({ x: 0, y: 0 });
 
   const titleRef = useRef<HTMLHeadingElement>(null);
   const prevNoteId = useRef(note.id);
@@ -1338,6 +1424,12 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
       e.preventDefault();
       setMenuPosition({ x: e.clientX, y: e.clientY });
       setShowRichTextMenu(true);
+      setShowGeneralMenu(false);
+    } else {
+      e.preventDefault();
+      setGeneralMenuPosition({ x: e.clientX, y: e.clientY });
+      setShowGeneralMenu(true);
+      setShowRichTextMenu(false);
     }
   };
 
@@ -1354,6 +1446,71 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
 
     return () => clearTimeout(timeoutId);
   }, [title, slateValue, note.title, note.content]);
+
+  // --- General menu actions ---
+  const handleInsertEmoji = () => {
+    const char = window.prompt('Enter emoji or special character:');
+    if (!char) return;
+    const { selection } = editor;
+    if (!selection) {
+      // Insert at end if no selection
+      Transforms.insertNodes(editor, { type: 'emoji', character: char, children: [{ text: '' }] });
+    } else {
+      Transforms.insertNodes(editor, { type: 'emoji', character: char, children: [{ text: '' }] }, { at: selection });
+    }
+    ReactEditor.focus(editor);
+  };
+  const handleImageUpload = () => {
+    // Create a hidden file input
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e: any) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev: any) => {
+        const url = ev.target.result;
+        const { selection } = editor;
+        if (!selection) {
+          Transforms.insertNodes(editor, { type: 'image', url, children: [{ text: '' }] });
+        } else {
+          Transforms.insertNodes(editor, { type: 'image', url, children: [{ text: '' }] }, { at: selection });
+        }
+        ReactEditor.focus(editor);
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+  const handlePaste = () => {
+    // Try to trigger paste (browser security may limit this)
+    navigator.clipboard.readText().then(text => {
+      if (text) {
+        const { selection } = editor;
+        if (!selection) {
+          Transforms.insertText(editor, text);
+        } else {
+          Transforms.insertText(editor, text, { at: selection });
+        }
+        ReactEditor.focus(editor);
+      }
+    });
+  };
+  const handleCopy = () => {
+    // Copy current note content as plain text
+    const plainText = slateValueToText(slateValue);
+    navigator.clipboard.writeText(plainText);
+  };
+  const handleInsertDivider = () => {
+    const { selection } = editor;
+    if (!selection) {
+      Transforms.insertNodes(editor, { type: 'divider', children: [{ text: '' }] });
+    } else {
+      Transforms.insertNodes(editor, { type: 'divider', children: [{ text: '' }] }, { at: selection });
+    }
+    ReactEditor.focus(editor);
+  };
 
   const editorContent = (
     <div className="h-full flex flex-col bg-[hsl(var(--background))] text-[hsl(var(--foreground))]"
@@ -1476,6 +1633,17 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
             isVisible={showRichTextMenu}
             position={menuPosition}
             onClose={() => setShowRichTextMenu(false)}
+          />
+          {/* General context menu for no selection */}
+          <GeneralContextMenu
+            isVisible={showGeneralMenu}
+            position={generalMenuPosition}
+            onClose={() => setShowGeneralMenu(false)}
+            onInsertEmoji={handleInsertEmoji}
+            onImageUpload={handleImageUpload}
+            onPaste={handlePaste}
+            onCopy={handleCopy}
+            onInsertDivider={handleInsertDivider}
           />
         </div>
       </div>
