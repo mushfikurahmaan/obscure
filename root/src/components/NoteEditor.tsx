@@ -34,6 +34,7 @@ type CustomText = {
   highlightColor?: string;
   code?: boolean;
   strikethrough?: boolean;
+  fontFamily?: string;
 }
 
 type CustomElement =
@@ -111,25 +112,6 @@ const slateValueToJSON = (value: Descendant[]): string => {
   return JSON.stringify(value);
 };
 
-// Highlighter colors
-const HIGHLIGHTER_COLORS = [
-  { name: 'Yellow', color: '#FFFF00', darkColor: '#FFD700' },
-  { name: 'Green', color: '#00FF7F', darkColor: '#32CD32' },
-  { name: 'Pink', color: '#FF69B4', darkColor: '#FF1493' },
-  { name: 'Orange', color: '#FF8C00', darkColor: '#FF6347' },
-  { name: 'Blue', color: '#87CEEB', darkColor: '#00BFFF' },
-  { name: 'Purple', color: '#DDA0DD', darkColor: '#BA55D3' },
-];
-// Text colors
-const TEXT_COLORS = [
-  { name: 'Charcoal', color: '#2E2E2E' },       // Elegant, readable dark gray
-  { name: 'Indigo', color: '#4B4BFF' },          // Calm, modern blue-violet
-  { name: 'Crimson', color: '#DC143C' },         // Bold, vibrant red
-  { name: 'Emerald', color: '#10B981' },         // Popular green with a modern tint
-  { name: 'Royal Purple', color: '#7C3AED' },    // Vivid but not overwhelming
-  { name: 'Amber', color: '#F59E0B' },           // Warm and eye-catching gold-orange
-];
-
 // Map common hex codes to color names
 const hexToColorName = (hex: string) => {
   const map: Record<string,string> = {
@@ -186,6 +168,16 @@ const hexToColorName = (hex: string) => {
   return map[hex.toUpperCase()] || hex.toUpperCase();
 };
 
+// Add to the top: font options
+const FONT_FAMILIES = [
+  { label: 'Space Grotesk', value: 'SpaceGrotesk, sans-serif' },
+  { label: 'Arial', value: 'Arial, sans-serif' },
+  { label: 'Times New Roman', value: 'Times New Roman, serif' },
+  { label: 'Georgia', value: 'Georgia, serif' },
+  { label: 'Consolas', value: 'Consolas, monospace' },
+  { label: 'Courier New', value: 'Courier New, monospace' },
+];
+
 // Rich text context menu component
 const RichTextContextMenu = ({ 
   editor, 
@@ -200,12 +192,16 @@ const RichTextContextMenu = ({
 }) => {
   const [showHighlighterPalette, setShowHighlighterPalette] = useState(false);
   const [showTextColorPalette, setShowTextColorPalette] = useState(false);
-  const [selectedHighlightColor, setSelectedHighlightColor] = useState(HIGHLIGHTER_COLORS[0].color);
-  const [selectedTextColor, setSelectedTextColor] = useState(TEXT_COLORS[0].color);
+  const [selectedHighlightColor, setSelectedHighlightColor] = useState('#FFFF00');
+  const [selectedTextColor, setSelectedTextColor] = useState('#2E2E2E');
   const highlighterRef = useRef<HTMLDivElement>(null);
   const textColorRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const [showFontSizeDropdown, setShowFontSizeDropdown] = useState(false);
+  // Add state for font family dropdown
+  const [showFontFamilyDropdown, setShowFontFamilyDropdown] = useState(false);
+  const [fontFamilyDropdownDirection, setFontFamilyDropdownDirection] = useState<'down' | 'up'>('down');
+  const fontFamilyDropdownButtonRef = useRef<HTMLButtonElement>(null);
 
   // --- NEW: Track menu and palette positions ---
   const [menuStyle, setMenuStyle] = useState<{ left: number; top: number } | null>(null);
@@ -651,6 +647,16 @@ const handleInsertEmoji = () => {
     ReactEditor.focus(editor);
   };
 
+  // Add handler for font family
+  const handleFontFamily = (font: string) => {
+    if (font === 'default') {
+      Editor.removeMark(editor, 'fontFamily');
+    } else {
+      Editor.addMark(editor, 'fontFamily', font);
+    }
+    ReactEditor.focus(editor);
+  };
+
   // Modern floating toolbar with arrow
   return (
     <div
@@ -667,11 +673,76 @@ const handleInsertEmoji = () => {
       // Removed inline background style for color consistency
       >
         
+        {/* Font Family Dropdown Button */}
+        <div className="relative" style={{ marginRight: 4 }}>
+          <button
+            className="px-2 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition flex items-center justify-center gap-1"
+            title="Font family"
+            onClick={e => {
+              e.stopPropagation();
+              setShowFontFamilyDropdown(v => {
+                const next = !v;
+                if (next && fontFamilyDropdownButtonRef.current) {
+                  const rect = fontFamilyDropdownButtonRef.current.getBoundingClientRect();
+                  const dropdownHeight = 220; // 6 options * ~36px each
+                  const spaceBelow = window.innerHeight - rect.bottom;
+                  const spaceAbove = rect.top;
+                  if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+                    setFontFamilyDropdownDirection('up');
+                  } else {
+                    setFontFamilyDropdownDirection('down');
+                  }
+                }
+                setShowFontSizeDropdown(false);
+                setShowHighlighterPalette(false);
+                setShowTextColorPalette(false);
+                return next;
+              });
+            }}
+            ref={fontFamilyDropdownButtonRef}
+            style={{ lineHeight: 1 }}
+          >
+            {/* Font icon SVG only, no text */}
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 15 4-8 4 8"/><path d="M4 13h6"/><circle cx="18" cy="12" r="3"/><path d="M21 9v6"/></svg>
+          </button>
+          {/* Dropdown menu */}
+          {showFontFamilyDropdown && (
+            <div
+              className="absolute w-44 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--foreground))] rounded-lg shadow-xl z-50 border border-[hsl(var(--code-block-background))]"
+              style={{
+                minWidth: 160,
+                left: 0,
+                marginTop: fontFamilyDropdownDirection === 'down' ? '0.25rem' : undefined,
+                bottom: fontFamilyDropdownDirection === 'up' ? '100%' : undefined,
+                marginBottom: fontFamilyDropdownDirection === 'up' ? '0.25rem' : undefined
+              }}
+            >
+              {FONT_FAMILIES.map(f => (
+                <button
+                  key={f.value}
+                  className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))]"
+                  style={{ fontFamily: f.value }}
+                  onClick={() => { handleFontFamily(f.value); setShowFontFamilyDropdown(false); }}
+                >
+                  {f.label}
+                </button>
+              ))}
+              <button
+                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] rounded-b-lg"
+                onClick={() => { handleFontFamily('default'); setShowFontFamilyDropdown(false); }}
+              >
+                Default
+              </button>
+            </div>
+          )}
+        </div>
+        {/* End of Font Family Dropdown */}
+        
         {/* Text Size Buttons (replace with dropdown) */}
         <div className="relative" style={{ marginRight: 4 }}>
           <button
-            className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-16 h-8 flex items-center justify-center gap-1"
-            title="Text style"
+            className="px-2 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition flex items-center justify-center gap-1"
+            title="Font Size"
             onClick={e => {
               e.stopPropagation();
               setShowFontSizeDropdown(v => {
@@ -695,13 +766,12 @@ const handleInsertEmoji = () => {
             ref={textDropdownButtonRef}
             style={{ lineHeight: 1 }}
           >
-            Text
-            <svg width="12" height="12" viewBox="0 0 20 20" fill="none" className="ml-1"><path d="M6 8l4 4 4-4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12h6"/><path d="M15 6h6"/><path d="m3 13 3.553-7.724a.5.5 0 0 1 .894 0L11 13"/><path d="M3 18h18"/><path d="M3.92 11h6.16"/></svg>
           </button>
           {/* Dropdown menu */}
           {showFontSizeDropdown && (
             <div
-              className="absolute w-32 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--foreground))] rounded-lg shadow-xl z-50 border border-[hsl(var(--popover-border))]"
+              className="absolute w-32 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--foreground))] rounded-lg shadow-xl z-50 border border-[hsl(var(--code-block-background))]"
               style={{
                 minWidth: 120,
                 left: 0,
@@ -781,14 +851,7 @@ const handleInsertEmoji = () => {
         >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
         </button>
-        <button
-          className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] transition w-8 h-8 flex items-center justify-center"
-          title="Code Block"
-          onClick={handleCodeBlock}
-        >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
-        </button>
-        
+
         {/* Text Color with Color Palette */}
         <div ref={textColorRef} className="relative">
           <button
@@ -806,7 +869,7 @@ const handleInsertEmoji = () => {
           
           {/* Sliding Color Palette */}
           <div
-            className="absolute flex items-center bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--context-menu-border))] shadow-xl rounded-lg"
+            className="absolute flex items-center bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--code-block-background))] shadow-xl rounded-lg"
             style={{
               left: paletteDirection === 'right' ? '100%' : undefined,
               right: paletteDirection === 'left' ? '100%' : undefined,
@@ -912,7 +975,7 @@ const handleInsertEmoji = () => {
           
           {/* Sliding Color Palette */}
           <div
-            className="absolute flex items-center bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--context-menu-border))] shadow-xl rounded-lg"
+            className="absolute flex items-center bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--code-block-background))] shadow-xl rounded-lg"
             style={{
               left: paletteDirection === 'right' ? '100%' : undefined,
               right: paletteDirection === 'left' ? '100%' : undefined,
@@ -1000,18 +1063,26 @@ const handleInsertEmoji = () => {
             </button>
           </div>
         </div>
+    </div>
+    {/* New block options as icon row */}
+    {/* Code block */}
+    <div className="flex items-center gap-1 mt-1 px-2 pb-1">
+    <button
+          className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] transition w-8 h-8 flex items-center justify-center"
+          title="Code Block"
+          onClick={handleCodeBlock}
+        >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
+        </button>
 
-        {/* Link Button */}
-        <button
+      {/* Link Button */}
+      <button
           className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
           title="Link"
           onClick={() => (isLinkActive() ? removeLink() : insertLink())}
         >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
       </button>
-    </div>
-    {/* New block options as icon row */}
-    <div className="flex items-center gap-1 mt-1 px-2 pb-1">
       <button
         className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
         title="Numbered List"
@@ -1354,6 +1425,10 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
       // Use the custom highlight color if available, otherwise fall back to default
       style.backgroundColor = leaf.highlightColor || '#FFFF00';
       style.color = "#000";
+    }
+    
+    if (leaf.fontFamily) {
+      style.fontFamily = leaf.fontFamily;
     }
     
     return (
