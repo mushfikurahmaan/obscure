@@ -170,7 +170,15 @@ const hexToColorName = (hex: string) => {
 
 // Add to the top: font options
 const FONT_FAMILIES = [
-  { label: 'Space Grotesk', value: 'SpaceGrotesk, sans-serif' },
+  { label: 'Space Grotesk', value: 'Space Grotesk, sans-serif' },
+  { label: 'Roboto', value: 'Roboto, sans-serif' },
+  { label: 'Caveat', value: 'Caveat, cursive' },
+  { label: 'Inter', value: 'Inter, sans-serif' },
+  { label: 'Lora', value: 'Lora, serif' },
+  { label: 'Open Sans', value: 'Open Sans, sans-serif' },
+  { label: 'Source Code Pro', value: 'Source Code Pro, monospace' },
+  { label: 'Fira Code', value: 'Fira Code, monospace' },
+  { label: 'Poppins', value: 'Poppins, sans-serif' },
   { label: 'Arial', value: 'Arial, sans-serif' },
   { label: 'Times New Roman', value: 'Times New Roman, serif' },
   { label: 'Georgia', value: 'Georgia, serif' },
@@ -631,12 +639,6 @@ const handleInsertChecklist = () => {
   ReactEditor.focus(editor);
 };
 
-const handleInsertDivider = () => {
-  const { selection } = editor;
-  if (!selection) return;
-  Transforms.insertNodes(editor, { type: 'divider', children: [{ text: '' }] }, { at: selection });
-  ReactEditor.focus(editor);
-};
 
 const handleInsertEmoji = () => {
   const char = window.prompt('Enter emoji or special character:');
@@ -708,9 +710,10 @@ const handleInsertEmoji = () => {
           {/* Dropdown menu */}
           {showFontFamilyDropdown && (
             <div
-              className="absolute w-44 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--foreground))] rounded-lg shadow-xl z-50 border border-[hsl(var(--code-block-background))]"
+              className="absolute w-44 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--foreground))] rounded-lg shadow-xl z-50 border border-[hsl(var(--popover-border))] overflow-y-auto"
               style={{
                 minWidth: 160,
+                maxHeight: 220, // Show about 6 items, rest scroll
                 left: 0,
                 marginTop: fontFamilyDropdownDirection === 'down' ? '0.25rem' : undefined,
                 bottom: fontFamilyDropdownDirection === 'up' ? '100%' : undefined,
@@ -720,7 +723,7 @@ const handleInsertEmoji = () => {
               {FONT_FAMILIES.map(f => (
                 <button
                   key={f.value}
-                  className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))]"
+                  className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] text-sm"
                   style={{ fontFamily: f.value }}
                   onClick={() => { handleFontFamily(f.value); setShowFontFamilyDropdown(false); }}
                 >
@@ -728,7 +731,7 @@ const handleInsertEmoji = () => {
                 </button>
               ))}
               <button
-                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] rounded-b-lg"
+                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] rounded-b-lg text-sm"
                 onClick={() => { handleFontFamily('default'); setShowFontFamilyDropdown(false); }}
               >
                 Default
@@ -771,7 +774,7 @@ const handleInsertEmoji = () => {
           {/* Dropdown menu */}
           {showFontSizeDropdown && (
             <div
-              className="absolute w-32 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--foreground))] rounded-lg shadow-xl z-50 border border-[hsl(var(--code-block-background))]"
+              className="absolute w-32 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--foreground))] rounded-lg shadow-xl z-50 border border-[hsl(var(--popover-border))]"
               style={{
                 minWidth: 120,
                 left: 0,
@@ -779,22 +782,21 @@ const handleInsertEmoji = () => {
                 bottom: fontSizeDropdownDirection === 'up' ? '100%' : undefined,
                 marginBottom: fontSizeDropdownDirection === 'up' ? '0.25rem' : undefined
               }}
-              // Removed onMouseDown to allow input fields to be editableimage.png
             >
               <button
-                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] rounded-t-lg"
+                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] rounded-t-lg text-sm"
                 onClick={() => { handleFontSize('h1'); setShowFontSizeDropdown(false); }}
               >Heading 1</button>
               <button
-                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))]"
+                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] text-sm"
                 onClick={() => { handleFontSize('h2'); setShowFontSizeDropdown(false); }}
               >Heading 2</button>
               <button
-                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))]"
+                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] text-sm"
                 onClick={() => { handleFontSize('h3'); setShowFontSizeDropdown(false); }}
               >Heading 3</button>
               <button
-                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))]"
+                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] text-sm"
                 onClick={() => { handleFontSize('default'); setShowFontSizeDropdown(false); }}
               >Normal</button>
             </div>
@@ -1163,6 +1165,36 @@ const withLinks = (editor: ReactEditor) => {
   return editor;
 };
 
+// Add withDividers plugin to treat 'divider' as void
+const withDividers = (editor: ReactEditor) => {
+  const { isVoid } = editor;
+  editor.isVoid = element => element.type === 'divider' ? true : isVoid(element);
+  return editor;
+};
+
+// Add withTrailingParagraph plugin to always ensure a paragraph at the end
+const withTrailingParagraph = (editor: ReactEditor) => {
+  const { normalizeNode } = editor;
+  editor.normalizeNode = entry => {
+    const [node, path] = entry;
+    // Only check the root node
+    if (path.length === 0) {
+      const lastNode = editor.children[editor.children.length - 1];
+      if (!lastNode || !SlateElement.isElement(lastNode) || lastNode.type !== 'paragraph') {
+        // Insert a trailing empty paragraph
+        Transforms.insertNodes(
+          editor,
+          { type: 'paragraph', children: [{ text: '' }] },
+          { at: [editor.children.length] }
+        );
+        return;
+      }
+    }
+    normalizeNode(entry);
+  };
+  return editor;
+};
+
 // --- Add: New context menu for no selection ---
 const GeneralContextMenu = ({
   isVisible,
@@ -1284,7 +1316,15 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   
   // Slate editor setup - create new editor for each note
   const editor = useMemo(() => {
-    const e = withLinks(withHistory(withReact(createEditor())));
+    const e = withTrailingParagraph(
+      withDividers(
+        withLinks(
+          withHistory(
+            withReact(createEditor())
+          )
+        )
+      )
+    );
     editorRef.current = e;
     return e;
   }, [note.id]);
@@ -1359,7 +1399,12 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
         // For normal list items, do NOT use display: flex or list-style: none
         return <li {...props.attributes} style={{ textAlign: alignment }}>{props.children}</li>;
       case 'divider':
-        return <hr {...props.attributes} style={{ border: 'none', borderTop: '1px solid #ccc', margin: '16px 0' }} />;
+        return (
+          <div {...props.attributes} contentEditable={false} style={{ display: 'flex' }}>
+            <hr style={{ border: 'none', borderTop: '1px solid #ccc', margin: '16px 0', width: '100%' }} />
+            {props.children}
+          </div>
+        );
       case 'emoji':
         return <span {...props.attributes} role="img" aria-label="emoji" style={{ fontSize: '1.5em', lineHeight: 1 }}>{props.element.character}{props.children}</span>;
       default:
@@ -1577,13 +1622,33 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     const plainText = slateValueToText(slateValue);
     navigator.clipboard.writeText(plainText);
   };
+
+  
   const handleInsertDivider = () => {
     const { selection } = editor;
+    let insertPath = null;
     if (!selection) {
+      // Insert at end if no selection
       Transforms.insertNodes(editor, { type: 'divider', children: [{ text: '' }] });
+      // Find the path of the last node (divider just inserted)
+      const lastIndex = editor.children.length - 1;
+      insertPath = [lastIndex];
     } else {
+      // Insert at selection
       Transforms.insertNodes(editor, { type: 'divider', children: [{ text: '' }] }, { at: selection });
+      // Get the path where the divider was inserted
+      insertPath = Editor.path(editor, selection);
     }
+
+    // Always insert a new empty paragraph after the divider
+    const nextPath = [insertPath[0] + 1];
+    Transforms.insertNodes(
+      editor,
+      { type: 'paragraph', children: [{ text: '' }] },
+      { at: nextPath }
+    );
+    // Move selection to the start of the new paragraph
+    Transforms.select(editor, Editor.start(editor, nextPath));
     ReactEditor.focus(editor);
   };
 
