@@ -14,6 +14,8 @@ import {
 } from '../components/ui/carousel';
 import useEmblaCarousel, { type UseEmblaCarouselType } from 'embla-carousel-react';
 import CustomPasswordInput from '../components/CustomPasswordInput';
+import crypto from 'crypto';
+import MatrixText from '../components/MatrixText';
 
 interface FirstSetupProps {
   onSetupComplete?: () => void;
@@ -42,6 +44,22 @@ const ONBOARDING_STEPS = [
   },
 ];
 
+const generateRecoveryCode = () => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let code = '';
+  for (let i = 0; i < 18; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return code;
+};
+
+const hashRecoveryCode = (code: string) => {
+  // Simple SHA-256 hash for local use
+  return window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(code)).then(buf => {
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  });
+};
+
 const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
   const navigate = useNavigate();
   const [showCreatePassword, setShowCreatePassword] = useState(false);
@@ -62,6 +80,10 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
   const [carouselApi, setCarouselApi] = useState<UseEmblaCarouselType[1] | null>(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState<'create' | 'import' | null>(null);
   const [createLoading, setCreateLoading] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
+  const [showRecoveryCode, setShowRecoveryCode] = useState(false);
+  // Add state for copy feedback
+  const [copied, setCopied] = useState(false);
 
   // Password validation helpers
   const validatePassword = (pw: string) => {
@@ -83,10 +105,17 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
     setCreateLoading(true);
     try {
       await saveData(masterPassword, JSON.stringify({ notes: [] }));
+      // Generate and store recovery code
+      const code = generateRecoveryCode();
+      setRecoveryCode(code);
+      setShowRecoveryCode(true);
+      const hash = await hashRecoveryCode(code);
+      localStorage.setItem('recoveryCodeHash', hash);
+      localStorage.setItem('recoveryCodeUses', '0');
       setShowCreatePassword(false);
       setMasterPassword('');
       setRetypePassword('');
-      setShowSuccessPopup('create');
+      setShowSuccessPopup(null); // Don't show default success popup
     } catch (e) {
       alert('Failed to initialize secure storage.');
     } finally {
@@ -336,6 +365,9 @@ useEffect(() => {
             {masterPassword && !passwordValidation && retypePassword && !passwordsMatch && (
               <div className="text-red-500 text-xs mb-1">Passwords do not match.</div>
             )}
+            <div className="text-xs text-yellow-600 bg-yellow-50 border border-yellow-200 rounded p-2 mb-2 text-center">
+              <b>Important:</b> If you forget your password, <u>all your notes will be lost</u>. There is no way to recover them. Please write down or remember your password securely.
+            </div>
             <div className="flex flex-col w-full gap-2 mt-4">
               <button
                 className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60"
@@ -369,6 +401,42 @@ useEffect(() => {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Show recovery code after password creation */}
+      {showRecoveryCode && recoveryCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative text-card-foreground bg-background">
+            <div className="text-2xl font-bold mb-2 text-center">Save Your Recovery Code</div>
+            <div className="text-sm text-muted-foreground mb-4 text-center">
+              This is your only way to reset your password if you forget it. <b>Write it down and keep it safe.</b> You can use it up to 3 times. After that, it will be invalid.
+            </div>
+            <div className="mb-2 w-full flex flex-col items-center">
+              <code className="block w-full text-center font-mono text-base md:text-lg tracking-widest text-[hsl(var(--code-block-text))] bg-[hsl(var(--code-block-background))] rounded px-3 py-2 whitespace-nowrap overflow-x-auto select-all">
+                {recoveryCode}
+              </code>
+            </div>
+            <button
+              className="w-full flex items-center justify-center px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-[hsl(var(--background))] text-[hsl(var(--code-block-text))] hover:bg-muted transition mb-1"
+              onClick={async () => {
+                await navigator.clipboard.writeText(recoveryCode);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1200);
+              }}
+            >
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2 mb-2 text-center">
+              <b>Warning:</b> Resetting your password will <u>wipe all your notes</u>. Only use this if you are sure you have lost your password and accept losing all your data.
+            </div>
+            <button
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow bg-indigo-500 text-white hover:bg-indigo-800 transition mt-0"
+              onClick={() => { setShowRecoveryCode(false); setShowSuccessPopup('create'); setRecoveryCode(null); }}
+            >
+              I have saved it
+            </button>
           </div>
         </div>
       )}

@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { loadData } from '../lib/utils';
+import { loadData, saveData } from '../lib/utils';
 import CustomPasswordInput from '../components/CustomPasswordInput';
+// Remove MatrixText import if not used elsewhere
+// import MatrixText from '../components/MatrixText';
 
 interface LoginProps {
   onLogin?: () => void;
@@ -15,6 +17,15 @@ const Login = ({ onLogin }: LoginProps) => {
   const [error, setError] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
+  const [showRecoveryPopup, setShowRecoveryPopup] = useState(false);
+  const [recoveryCodeInput, setRecoveryCodeInput] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [recoveryError, setRecoveryError] = useState('');
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
+  const [resetCount, setResetCount] = useState(0);
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [showResetSuccessPopup, setShowResetSuccessPopup] = useState(false);
 
   useEffect(() => {
     let unlistenResize: (() => void) | undefined;
@@ -44,6 +55,61 @@ const Login = ({ onLogin }: LoginProps) => {
     }
   }, [error]);
 
+  useEffect(() => {
+    const count = parseInt(localStorage.getItem('recoveryCodeUses') || '0', 10);
+    setResetCount(count);
+  }, [showRecoveryPopup]);
+
+  const hashRecoveryCode = async (code: string) => {
+    const buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  };
+
+  const handleRecoveryReset = async () => {
+    setRecoveryError('');
+    if (!recoveryCodeInput || !newPassword || !confirmPassword) {
+      setRecoveryError('All fields are required.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setRecoveryError('Password must be at least 8 characters.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setRecoveryError('Passwords do not match.');
+      return;
+    }
+    setRecoveryLoading(true);
+    try {
+      const hash = await hashRecoveryCode(recoveryCodeInput);
+      const storedHash = localStorage.getItem('recoveryCodeHash');
+      let uses = parseInt(localStorage.getItem('recoveryCodeUses') || '0', 10);
+      if (!storedHash || uses >= 3) {
+        setRecoveryError('Recovery code is invalid or has been used too many times.');
+        setRecoveryLoading(false);
+        return;
+      }
+      if (hash !== storedHash) {
+        setRecoveryError('Recovery code is incorrect.');
+        setRecoveryLoading(false);
+        return;
+      }
+      // Overwrite vault with new password
+      await window.localStorage.clear(); // Clear all localStorage (including code hash/counter)
+      localStorage.setItem('recoveryCodeHash', storedHash);
+      localStorage.setItem('recoveryCodeUses', (uses + 1).toString());
+      setResetCount(uses + 1);
+      // Save empty vault with new password
+      await saveData(newPassword, JSON.stringify({ notes: [] }));
+      setResetSuccess(true);
+      setShowResetSuccessPopup(true);
+      setRecoveryLoading(false);
+    } catch (e) {
+      setRecoveryError('Failed to reset password.');
+      setRecoveryLoading(false);
+    }
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setVerifying(true);
@@ -59,6 +125,8 @@ const Login = ({ onLogin }: LoginProps) => {
       setError('Incorrect password.');
     }
   };
+
+  const resetsLeft = 3 - resetCount;
 
   return (
     <div className="h-screen min-h-0 flex flex-row bg-background transition-colors relative" style={{ WebkitAppRegion: 'drag' }}>
@@ -153,13 +221,119 @@ const Login = ({ onLogin }: LoginProps) => {
               type="button"
               className="text-xs text-muted-foreground hover:underline focus:outline-none"
               tabIndex={-1}
-              onClick={() => alert('Forgot password flow coming soon!')}
+              onClick={() => setShowRecoveryPopup(true)}
             >
               Forgot password?
             </button>
           </div>
         </form>
       </div>
+      {/* Recovery popup modal */}
+      {showRecoveryPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-2xl shadow-2xl p-5 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative text-card-foreground bg-background">
+            <div className="text-2xl font-bold mb-1 text-center">Reset Password</div>
+            <div className="text-sm text-muted-foreground mb-2 text-center">
+              Enter your recovery code and set a new password.<br />
+              <span className="font-semibold">Resets left: {3 - resetCount}</span>
+            </div>
+            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2 mb-2 text-center">
+              <b>Warning:</b> Resetting your password will <u>wipe all your notes</u>. Only use this if you have lost your password and accept losing all your data.
+            </div>
+            {resetsLeft === 0 && (
+              <div className="text-xs text-red-700 bg-red-100 border border-red-300 rounded p-2 mb-2 text-center font-semibold">
+                Your recovery code has expired. Password reset is no longer possible.
+              </div>
+            )}
+            <div className="w-full flex flex-col gap-1 mb-1">
+              <label className="text-xs font-semibold mb-0.5 text-green-500">Recovery Code</label>
+              <input
+                type="text"
+                value={recoveryCodeInput}
+                onChange={e => setRecoveryCodeInput(e.target.value)}
+                className="w-full px-3 py-1.5 rounded border border-border bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-blue-200 font-mono tracking-widest"
+                autoFocus
+                disabled={resetsLeft === 0}
+              />
+              <label className="text-xs font-semibold mt-1 mb-0.5">New Password</label>
+              <CustomPasswordInput
+                value={newPassword}
+                onChange={setNewPassword}
+                placeholder="Enter new password"
+                disabled={recoveryLoading || resetsLeft === 0}
+              />
+              <label className="text-xs font-semibold mt-1 mb-0.5">Confirm Password</label>
+              <CustomPasswordInput
+                value={confirmPassword}
+                onChange={setConfirmPassword}
+                placeholder="Retype new password"
+                disabled={recoveryLoading || resetsLeft === 0}
+              />
+            </div>
+            {recoveryError && <div className="text-red-500 text-xs mb-1 text-center">{recoveryError}</div>}
+            {resetSuccess ? (
+              <div className="text-green-600 text-center font-semibold mb-1">Password reset successful! Please log in.</div>
+            ) : null}
+            <div className="flex flex-col w-full gap-1 mt-2">
+              <button
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60 cursor-pointer"
+                onClick={() => { setShowRecoveryPopup(false); setRecoveryCodeInput(''); setNewPassword(''); setConfirmPassword(''); setRecoveryError(''); setResetSuccess(false); }}
+                disabled={recoveryLoading}
+              >
+                Cancel
+              </button>
+              <button
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 ${recoveryLoading ? 'bg-indigo-500 text-white' : 'bg-black text-white'}`}
+                onClick={handleRecoveryReset}
+                disabled={recoveryLoading || resetsLeft === 0}
+              >
+                {recoveryLoading ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                      <circle
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="4"
+                        fill="none"
+                        strokeDasharray="60"
+                        strokeDashoffset="20"
+                      />
+                    </svg>
+                    Resetting…
+                  </span>
+                ) : (
+                  'Reset Password'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Password reset success popup */}
+      {showResetSuccessPopup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-2xl shadow-2xl p-8 w-full max-w-xs flex flex-col items-center border border-[hsl(var(--border))] relative text-card-foreground bg-background">
+            <div className="text-2xl font-bold mb-2 text-center">Password Reset Successful!</div>
+            <div className="text-sm text-muted-foreground mb-4 text-center">Please log in with your new password.</div>
+            <button
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow bg-indigo-500 text-white hover:bg-indigo-800 transition mt-2"
+              onClick={() => {
+                setShowResetSuccessPopup(false);
+                setShowRecoveryPopup(false);
+                setRecoveryCodeInput('');
+                setNewPassword('');
+                setConfirmPassword('');
+                setRecoveryError('');
+                setResetSuccess(false);
+              }}
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

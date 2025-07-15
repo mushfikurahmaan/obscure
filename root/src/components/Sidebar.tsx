@@ -120,6 +120,8 @@ export const Sidebar = ({
   const [clearDataPassword, setClearDataPassword] = useState('');
   const [clearDataError, setClearDataError] = useState('');
   const [clearDataLoading, setClearDataLoading] = useState(false);
+  // Add state for Developer Options popup
+  const [developerOptionsOpen, setDeveloperOptionsOpen] = useState(false);
 
   const getLocalEmojiPath = (filename: string) => filename || '';
 
@@ -678,7 +680,7 @@ export const Sidebar = ({
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <Settings2 className="mr-2 h-4 w-4" />
-                    Developer options
+                    <span onClick={() => setDeveloperOptionsOpen(true)} style={{ width: '100%' }}>Developer options</span>
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
@@ -1267,6 +1269,35 @@ export const Sidebar = ({
               onClick={() => { setShowSingleNoteImportSuccess(false); window.location.reload(); }}
             >
               OK
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Developer Options Popup */}
+      {developerOptionsOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-md flex flex-col items-center border border-[hsl(var(--border))] relative max-h-[32rem]">
+            <div className="text-2xl font-bold mb-2 text-center">Developer Options</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">Advanced tools for debugging and development. (Placeholders)</div>
+            <div className="flex flex-col w-full gap-3 mt-2 overflow-y-auto custom-scroll-thumb" style={{ maxHeight: '18rem' }}>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">View Raw Vault Data</button>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Download Raw Vault (JSON)</button>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Test Encryption/Decryption</button>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Reset UI State</button>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Simulate Loading/Error States</button>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Export App State</button>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Import Diagnostics</button>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Show Performance Metrics</button>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Toggle Experimental Features</button>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Open Dev Console</button>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Clear Emoji/Image Cache</button>
+              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">View App Logs</button>
+            </div>
+            <button
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-foreground text-background hover:bg-muted transition disabled:opacity-60 mt-4"
+              onClick={() => setDeveloperOptionsOpen(false)}
+            >
+              Close
             </button>
           </div>
         </div>
