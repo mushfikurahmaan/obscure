@@ -426,7 +426,7 @@ const Index = () => {
               <Button
                 variant="ghost"
                 size="icon"
-                className="ml-6 mr-3 text-gray-400 hover:text-[hsl(var(--foreground))] hover:bg-gray-700 border-none w-7 h-7"
+                className="ml-6 mr-3 text-[hsl(var(--foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--code-block-background))] border-none w-7 h-7"
                 onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
                 aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 style={{ WebkitAppRegion: 'no-drag' }}
@@ -588,7 +588,7 @@ const Index = () => {
                   </DropdownMenu>
                   {/* Spinner */}
                   <span className="ml-3 flex items-center px-3 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm" style={{ minHeight: '2.25rem', WebkitAppRegion: 'no-drag' }}>
-                    <Loader2 className={`w-4 h-4 ${saving ? 'animate-spin text-blue-400' : 'text-gray-500 opacity-40'}`} />
+                    <Loader2 className={`w-4 h-4 ${saving ? 'animate-spin text-indigo-500' : 'text-gray-500 opacity-40'}`} />
                   </span>
                 </>
               )}
