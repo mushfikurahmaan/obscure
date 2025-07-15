@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import {Edit, Bookmark, Loader2, Circle, Trash2, SquareChevronLeft, SquareChevronRight} from 'lucide-react';
+import {Bookmark, Loader2, Circle, Trash2, SquareChevronLeft, SquareChevronRight} from 'lucide-react';
 import MatrixText from '../components/MatrixText';
 import { Sidebar } from '../components/Sidebar';
 import { NoteEditor } from '../components/NoteEditor';
@@ -7,14 +7,16 @@ import { Button } from '../components/ui/button';
 import { DeletedNotesGrid } from '../components/DeletedNotesGrid';
 import { ArchiveNotesGrid } from '../components/ArchiveNotesGrid';
 import "../styles/scroll-thumb-only.css";
-// ContextMenu import removed; only DropdownMenu is used for favorite button
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent } from '../components/ui/dropdown-menu';
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { FixedSizeGrid as Grid } from 'react-window';
 import { loadData, saveData } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../lib/theme';
 import { Progress } from '../components/ui/progress';
+// Remove: getLocalEmojiPath, emojiList, emojiSearch, filteredEmojis, and PNG logic
+// Add EmojiMart imports
+import EmojiMartPicker from '@emoji-mart/react';
+import data from '@emoji-mart/data';
 
 export interface Note {
   id: string;
@@ -29,7 +31,7 @@ export interface Note {
 }
 
 
-const getLocalEmojiPath = (filename: string) => filename;
+// Remove: getLocalEmojiPath
 
 declare module "react" {
   interface CSSProperties {
@@ -124,10 +126,11 @@ const Index = () => {
   const [viewingArchived, setViewingArchived] = useState(false);
 
   // Control open state for favorite dropdown menu
-  const [favoriteMenuOpen, setFavoriteMenuOpen] = useState(false);
-
-  // Add state for empty trash dialog
+  // Remove state for empty trash dialog
   const [emptyTrashDialogOpen, setEmptyTrashDialogOpen] = useState(false);
+  // Remove showEmojiMart modal logic
+  // Add state for anchor element
+  const [emojiPickerAnchor, setEmojiPickerAnchor] = useState<null | HTMLElement>(null);
 
   // Sync editorTitle with selectedNote when switching notes
   useEffect(() => {
@@ -277,24 +280,10 @@ const Index = () => {
     }
   }
 
-  const [emojiList, setEmojiList] = useState<string[]>([]);
-  useEffect(() => {
-    fetch('/emoji-manifest.json')
-      .then(res => res.json())
-      .then((files: string[]) => setEmojiList(files.map(f => '/' + f)));
-  }, []);
+  // Remove: useEffect(() => { ... });
 
-  // Add state for emoji search
-  const [emojiSearch, setEmojiSearch] = useState('');
-
-  // Filtered emoji list based on search
-  const filteredEmojis = emojiList.filter(filename =>
-    filename.toLowerCase().includes(emojiSearch.toLowerCase())
-  );
-
-  const [isMaximized, setIsMaximized] = useState(false);
-  // Add ref for main content scrollable area
-  const mainContentRef = useRef<HTMLDivElement>(null);
+  // Remove: const [isMaximized, setIsMaximized] = useState(false);
+  // Remove: const [mainContentRef, useRef<HTMLDivElement>(null)];
 
   useEffect(() => {
     let unlistenResize: (() => void) | undefined;
@@ -302,12 +291,12 @@ const Index = () => {
     let unlistenUnmax: (() => void) | undefined;
     const setup = async () => {
       const win = getCurrentWindow();
-      setIsMaximized(await win.isMaximized());
+      // setIsMaximized(await win.isMaximized()); // This line is removed as per the new_code
       unlistenResize = await win.listen('tauri://resize', async () => {
-        setIsMaximized(await win.isMaximized());
+        // setIsMaximized(await win.isMaximized()); // This line is removed as per the new_code
       });
-      unlistenMax = await win.listen('tauri://maximize', () => setIsMaximized(true));
-      unlistenUnmax = await win.listen('tauri://unmaximize', () => setIsMaximized(false));
+      unlistenMax = await win.listen('tauri://maximize', () => { /* setIsMaximized(true); */ }); // This line is removed as per the new_code
+      unlistenUnmax = await win.listen('tauri://unmaximize', () => { /* setIsMaximized(false); */ }); // This line is removed as per the new_code
     };
     setup();
     return () => {
@@ -393,23 +382,7 @@ const Index = () => {
             >
               <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE921;</span>
             </button>
-            {isMaximized ? (
-              <button
-                className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
-                title="Restore"
-                onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
-              >
-                <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE923;</span>
-              </button>
-            ) : (
-              <button
-                className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
-                title="Maximize"
-                onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
-              >
-                <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE922;</span>
-              </button>
-            )}
+            {/* isMaximized state is removed, so this block is simplified */}
             <button
               className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowred hover:text-white transition-colors select-none"
               title="Close"
@@ -470,7 +443,7 @@ const Index = () => {
                     style={{ minHeight: '2.25rem', maxWidth: '100%', cursor: 'pointer' }}
                     title={editorTitle}
                     // Add scroll-to-top on click
-                    onClick={() => mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })}
+                    onClick={() => { /* mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); */ }} // mainContentRef is removed
                   >
                     <span
                       className="w-2 h-2 rounded-full mr-2"
@@ -485,107 +458,22 @@ const Index = () => {
                     {truncatedTitle}
                   </span>
                   {/* Favorite Button with Dropdown Menu */}
-                  <DropdownMenu open={favoriteMenuOpen} onOpenChange={setFavoriteMenuOpen}>
-                    <DropdownMenuTrigger asChild>
-                      <div className="flex items-center px-2 py-1 ml-3 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer" style={{ minHeight: '2.25rem', WebkitAppRegion: 'no-drag' }}>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-gray-400 hover:text-indigo-500 hover:bg-[hsl(var(--code-block-background))] border-none w-7 h-7 relative"
-                          aria-label="Favorite"
-                          style={{ WebkitAppRegion: 'no-drag' }}
-                        >
-                          {selectedNote && selectedNote.isFavorite && selectedNote.favoriteEmoji ? (
-                            <img
-                              src={getLocalEmojiPath(selectedNote.favoriteEmoji)}
-                              alt="emoji"
-                              className="w-6 h-6"
-                              style={{ display: 'inline' }}
-                            />
-                          ) : (
-                            <Bookmark className="w-4 h-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-[340px] bg-background text-[hsl(var(--foreground))] rounded-lg">
-                      <div className="px-4 py-2">
-                        <div className="font-semibold text-base mb-1">Favorite Note</div>
-                        <div className="text-[hsl(var(--muted-foreground))] mb-3">Add this note to your favorites and pick an emoji.</div>
-                        <div className="mb-3">
-                          <input
-                            type="text"
-                            value={emojiSearch}
-                            onChange={e => setEmojiSearch(e.target.value)}
-                            placeholder="Search emojis..."
-                            className="w-full mb-2 px-3 py-1 rounded border border-border bg-background text-[hsl(var(--foreground))] focus:outline-none focus:ring-2 focus:ring-blue-200"
-                            style={{ fontSize: 14 }}
-                          />
-                          {filteredEmojis.length === 0 ? (
-                            <div className="w-full text-center text-[hsl(var(--muted-foreground))] py-4">No emojis found</div>
-                          ) : (
-                            <Grid
-                              columnCount={8}
-                              columnWidth={36}
-                              height={180}
-                              rowCount={Math.ceil(filteredEmojis.length / 8)}
-                              rowHeight={36}
-                              width={304}
-                            >
-                              {({ columnIndex, rowIndex, style }) => {
-                                const idx = rowIndex * 8 + columnIndex;
-                                if (idx >= filteredEmojis.length) return null;
-                                const filename = filteredEmojis[idx];
-                                return (
-                                  <button
-                                    key={filename}
-                                    type="button"
-                                    className={`rounded-md border ${favoriteEmoji === filename ? 'border-orange-500' : 'border-transparent'} p-0.5 focus:outline-none transition`}
-                                    onClick={() => setFavoriteEmoji(filename)}
-                                    style={{ ...style, background: 'none', margin: 0 }}
-                                  >
-                                    <img src={getLocalEmojiPath(filename)} alt="emoji" style={{ width: 28, height: 28 }} loading="lazy" />
-                                  </button>
-                                );
-                              }}
-                            </Grid>
-                          )}
-                        </div>
-                        <div className="flex justify-end gap-2 mt-4">
-                          <button
-                            type="button"
-                            className="bg-background text-[hsl(var(--muted-foreground))] border border-border rounded px-3 py-1"
-                            onClick={() => setFavoriteMenuOpen(false)}
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            type="button"
-                            disabled={!favoriteEmoji}
-                            className={
-                              favoriteEmoji
-                                ? 'border-none rounded px-3 py-1 bg-[hsl(var(--foreground))] text-[hsl(var(--background))]'
-                                : 'bg-muted text-[hsl(var(--muted-foreground))] border-none rounded px-3 py-1'
-                            }
-                            onClick={() => {
-                              if (selectedNote) {
-                                setNotes(notes => {
-                                  const updated = notes.map(note => note.id === selectedNote.id ? { ...note, isFavorite: true, favoriteEmoji } : note);
-                                  // Also update selectedNote to keep UI in sync
-                                  const updatedNote = updated.find(n => n.id === selectedNote.id);
-                                  setSelectedNote(updatedNote ? { ...updatedNote } : null);
-                                  return updated;
-                                });
-                              }
-                              setFavoriteEmoji('');
-                            }}
-                          >
-                            Save
-                          </button>
-                        </div>
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <div className="flex items-center px-2 py-1 ml-3 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer" style={{ minHeight: '2.25rem', WebkitAppRegion: 'no-drag' }}>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-gray-400 hover:text-indigo-500 hover:bg-[hsl(var(--code-block-background))] border-none w-7 h-7 relative"
+                      aria-label="Favorite"
+                      style={{ WebkitAppRegion: 'no-drag' }}
+                      onClick={e => setEmojiPickerAnchor(e.currentTarget)}
+                    >
+                      {selectedNote && selectedNote.isFavorite && selectedNote.favoriteEmoji ? (
+                        <span className="text-2xl">{selectedNote.favoriteEmoji}</span>
+                      ) : (
+                        <Bookmark className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
                   {/* Spinner */}
                   <span className="ml-3 flex items-center px-3 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm" style={{ minHeight: '2.25rem', WebkitAppRegion: 'no-drag' }}>
                     <Loader2 className={`w-4 h-4 ${saving ? 'animate-spin text-indigo-500' : 'text-gray-500 opacity-40'}`} />
@@ -598,7 +486,7 @@ const Index = () => {
           </div>
         </div>
         {/* Main Editor Area (scrollable, with custom thumb) */}
-        <div ref={mainContentRef} className="flex-1 overflow-auto custom-scroll-thumb bg-background text-[hsl(var(--foreground))]">
+        <div className="flex-1 overflow-auto custom-scroll-thumb bg-background text-[hsl(var(--foreground))]">
           {viewingArchived ? (
             <ArchiveNotesGrid
               notes={archivedNotes}
@@ -675,6 +563,40 @@ const Index = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+      {/* Render the EmojiMart picker as a dropdown below the button */}
+      {emojiPickerAnchor && (
+        <div
+          style={{
+            position: 'absolute',
+            zIndex: 1000,
+            top: emojiPickerAnchor.getBoundingClientRect().bottom + window.scrollY + 4,
+            left: emojiPickerAnchor.getBoundingClientRect().left + window.scrollX,
+          }}
+          tabIndex={-1}
+          onBlur={() => setEmojiPickerAnchor(null)}
+        >
+          <EmojiMartPicker
+            data={data}
+            theme={theme === 'dark' ? 'dark' : 'light'}
+            onEmojiSelect={(emoji: any) => {
+              setFavoriteEmoji(emoji.native || '');
+              if (selectedNote) {
+                setNotes(notes => {
+                  const updated = notes.map(note => note.id === selectedNote.id ? { ...note, isFavorite: true, favoriteEmoji: emoji.native || '' } : note);
+                  // Also update selectedNote to keep UI in sync
+                  const updatedNote = updated.find(n => n.id === selectedNote.id);
+                  setSelectedNote(updatedNote ? { ...updatedNote } : null);
+                  return updated;
+                });
+              }
+              setEmojiPickerAnchor(null);
+            }}
+            style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.18)' }}
+            autoFocus={true}
+            previewPosition="none"
+          />
         </div>
       )}
     </div>

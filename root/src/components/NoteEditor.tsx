@@ -1,7 +1,7 @@
 // =========================
 // Imports
 // =========================
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { createEditor, type Descendant, Editor, Transforms, Range, Element as SlateElement } from 'slate';
 import { Slate, Editable, withReact, ReactEditor } from 'slate-react';
 import { withHistory } from 'slate-history';
@@ -9,6 +9,10 @@ import type { Note } from '../pages/Index';
 import { formatRelativeDate } from '../lib/utils';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu';
 import {ArchiveRestore, Trash2, RotateCcw, Smile } from 'lucide-react';
+import Picker from '@emoji-mart/react';
+import data from '@emoji-mart/data';
+import EmojiMartPicker from '@emoji-mart/react';
+import { useTheme } from '../lib/theme';
 
 // =========================
 // Props and Custom Types
@@ -1225,26 +1229,35 @@ const GeneralContextMenu = ({
   isVisible: boolean;
   position: { x: number; y: number };
   onClose: () => void;
-  onInsertEmoji: () => void;
+  onInsertEmoji: (emoji: string) => void;
   onImageUpload: () => void;
   onPaste: () => void;
   onCopy: () => void;
   onInsertDivider: () => void;
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
   const [menuStyle, setMenuStyle] = useState<{ left: number; top: number } | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPickerDirection, setEmojiPickerDirection] = useState<'down' | 'up'>('down');
+  const { theme } = useTheme();
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
+      if (
+        (menuRef.current && menuRef.current.contains(e.target as Node)) ||
+        (emojiPickerRef.current && emojiPickerRef.current.contains(e.target as Node))
+      ) {
+        return; // Click inside menu or emoji picker, do nothing
       }
+      onClose();
+      setShowEmojiPicker(false);
     };
     if (isVisible) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isVisible, onClose]);
+  }, [isVisible, onClose, showEmojiPicker]);
 
   useEffect(() => {
     if (!isVisible) return;
@@ -1272,14 +1285,61 @@ const GeneralContextMenu = ({
       className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-xl border border-[hsl(var(--context-menu-border))]"
       style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
     >
-      <div className="flex flex-row items-center gap-1 px-2 py-1 min-w-[0]">
+      <div className="flex flex-row items-center gap-1 px-2 py-1 min-w-[0] relative">
         <button
           className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
           title="Emoji"
-          onClick={() => { onInsertEmoji(); onClose(); }}
+          onClick={e => {
+            e.stopPropagation();
+            if (!showEmojiPicker && menuRef.current) {
+              const menuRect = menuRef.current.getBoundingClientRect();
+              const pickerHeight = 400; // Approximate height of emoji picker
+              const spaceBelow = window.innerHeight - menuRect.bottom;
+              const spaceAbove = menuRect.top;
+              if (spaceBelow < pickerHeight && spaceAbove > pickerHeight) {
+                setEmojiPickerDirection('up');
+              } else {
+                setEmojiPickerDirection('down');
+              }
+            }
+            setShowEmojiPicker(v => !v);
+          }}
         >
           <Smile className="w-5 h-5" />
         </button>
+        {showEmojiPicker && (
+          <div
+            ref={emojiPickerRef}
+            style={{
+              position: 'absolute',
+              zIndex: 100,
+              left: 0,
+              top: emojiPickerDirection === 'down' ? '110%' : undefined,
+              bottom: emojiPickerDirection === 'up' ? '110%' : undefined,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <Suspense fallback={<div className="p-4 text-center">Loading…</div>}>
+              <EmojiMartPicker
+                data={data}
+                theme={theme === 'dark' ? 'dark' : 'light'}
+                onEmojiSelect={(emoji: any) => {
+                  onInsertEmoji(emoji.native || '');
+                  setShowEmojiPicker(false);
+                }}
+                previewPosition="none"
+                skinTonePosition="search"
+                autoFocus={false}
+                style={{
+                  width: 320,
+                  maxHeight: 380,
+                  minHeight: 200,
+                  overflowY: 'auto',
+                }}
+              />
+            </Suspense>
+          </div>
+        )}
         <button
           className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
           title="Image Upload"
@@ -1595,15 +1655,12 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     }
   };
   // General menu actions
-  const handleInsertEmoji = () => {
-    const char = window.prompt('Enter emoji or special character:');
-    if (!char) return;
+  const handleInsertEmoji = (emoji: string) => {
     const { selection } = editor;
     if (!selection) {
-      // Insert at end if no selection
-      Transforms.insertNodes(editor, { type: 'emoji', character: char, children: [{ text: '' }] });
+      Transforms.insertText(editor, emoji);
     } else {
-      Transforms.insertNodes(editor, { type: 'emoji', character: char, children: [{ text: '' }] }, { at: selection });
+      Transforms.insertText(editor, emoji, { at: selection });
     }
     ReactEditor.focus(editor);
   };

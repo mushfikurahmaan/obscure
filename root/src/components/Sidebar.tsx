@@ -743,12 +743,7 @@ export const Sidebar = ({
                   onClick={() => { onNoteSelect(note); setActiveSection(`favorite-${note.id}`); }}
                 >
                   {note.favoriteEmoji ? (
-                    <img
-                      src={getLocalEmojiPath(note.favoriteEmoji)}
-                      alt="emoji"
-                      className="w-5 h-5 favorite-icon"
-                      style={{ display: 'inline' }}
-                    />
+                    <span className="text-xl">{note.favoriteEmoji}</span>
                   ) : (
                     <span className="text-sm favorite-icon">❤️</span>
                   )}
