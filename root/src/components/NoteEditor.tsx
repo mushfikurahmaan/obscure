@@ -1,3 +1,6 @@
+// =========================
+// Imports
+// =========================
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createEditor, type Descendant, Editor, Transforms, Range, Element as SlateElement } from 'slate';
 import { Slate, Editable, withReact, ReactEditor } from 'slate-react';
@@ -7,6 +10,11 @@ import { formatRelativeDate } from '../lib/utils';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu';
 import {ArchiveRestore, Trash2, RotateCcw, Smile } from 'lucide-react';
 
+// =========================
+// Props and Custom Types
+// =========================
+
+// Props for NoteEditor component
 interface NoteEditorProps {
   note: Note;
   onUpdate: (note: Note) => void;
@@ -22,7 +30,7 @@ interface NoteEditorProps {
   onDeletePermanently?: (noteId: string) => void;
 }
 
-// Custom types for Slate
+// Custom Slate text node type
 type CustomText = {
   text: string;
   bold?: boolean;
@@ -35,7 +43,7 @@ type CustomText = {
   code?: boolean;
   strikethrough?: boolean;
   fontFamily?: string;
-}
+};
 
 type CustomElement =
   | { type: 'paragraph' | 'code-block'; alignment?: 'left' | 'center' | 'right' | 'justify'; children: CustomText[] }
@@ -55,15 +63,19 @@ declare module 'slate' {
   }
 }
 
-// Helper functions for Slate
+// =========================
+// Helper Functions
+// =========================
+
+// Check if a mark is active in the current selection
 const isMarkActive = (editor: Editor, format: string) => {
   const marks = Editor.marks(editor);
   return marks ? marks[format as keyof Omit<CustomText, "text">] === true : false;
 };
 
+// Toggle a mark (bold, italic, etc.) on/off
 const toggleMark = (editor: Editor, format: string, value?: any) => {
   const isActive = isMarkActive(editor, format);
-  
   if (isActive) {
     Editor.removeMark(editor, format);
   } else {
@@ -71,14 +83,11 @@ const toggleMark = (editor: Editor, format: string, value?: any) => {
   }
 };
 
-
-
-// Convert content to Slate value - handles both plain text and rich text JSON
+// Convert content string to Slate value (handles both plain text and rich text JSON)
 export const contentToSlateValue = (content: string): Descendant[] => {
   if (!content || content.trim() === '') {
     return [{ type: 'paragraph', children: [{ text: '' }] }];
   }
-  
   // Try to parse as JSON first (rich text data)
   try {
     const parsed = JSON.parse(content);
@@ -88,7 +97,6 @@ export const contentToSlateValue = (content: string): Descendant[] => {
   } catch (e) {
     // If JSON parsing fails, treat as plain text
   }
-  
   // Convert plain text to Slate value
   const lines = content.split('\n');
   return lines.map(line => ({
@@ -186,7 +194,11 @@ const FONT_FAMILIES = [
   { label: 'Courier New', value: 'Courier New, monospace' },
 ];
 
-// Rich text context menu component
+// =========================
+// UI Subcomponents
+// =========================
+
+// Rich text context menu for formatting selected text
 const RichTextContextMenu = ({ 
   editor, 
   isVisible, 
@@ -1123,7 +1135,7 @@ const handleInsertEmoji = () => {
           const { selection } = editor;
           if (!selection) return;
           // Remove all known marks
-          const marksToRemove = ['bold', 'italic', 'underline', 'strikethrough', 'fontSize', 'color', 'highlight', 'highlightColor', 'code'];
+          const marksToRemove = ['bold', 'italic', 'underline', 'strikethrough', 'fontSize', 'color', 'highlight', 'highlightColor', 'code', 'fontFamily'];
           marksToRemove.forEach(mark => {
             Editor.removeMark(editor, mark);
           });
@@ -1158,21 +1170,25 @@ const handleInsertEmoji = () => {
 );
 };
 
-// Add withLinks plugin to treat 'link' as inline
+// =========================
+// Slate Editor Plugins
+// =========================
+
+// Plugin: Treat 'link' elements as inline
 const withLinks = (editor: ReactEditor) => {
   const { isInline } = editor;
   editor.isInline = element => element.type === 'link' ? true : isInline(element);
   return editor;
 };
 
-// Add withDividers plugin to treat 'divider' as void
+// Plugin: Treat 'divider' elements as void
 const withDividers = (editor: ReactEditor) => {
   const { isVoid } = editor;
   editor.isVoid = element => element.type === 'divider' ? true : isVoid(element);
   return editor;
 };
 
-// Add withTrailingParagraph plugin to always ensure a paragraph at the end
+// Plugin: Always ensure a trailing paragraph at the end of the document
 const withTrailingParagraph = (editor: ReactEditor) => {
   const { normalizeNode } = editor;
   editor.normalizeNode = entry => {
@@ -1297,24 +1313,32 @@ const GeneralContextMenu = ({
   );
 };
 
+// =========================
+// Main NoteEditor Component
+// =========================
+
+// The main note editor component with rich text editing, context menus, and metadata
 export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClose, setSaving, contextType, onRemoveFromArchive, onRestore, onDeletePermanently }: NoteEditorProps) => {
+  // -------------------------
+  // State and Refs
+  // -------------------------
   const [title, setTitle] = useState(note.title || '');
   const [content, setContent] = useState(note.content);
   const [isContentEmpty, setIsContentEmpty] = useState(true);
-  
   // Rich text context menu state
   const [showRichTextMenu, setShowRichTextMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-
-  // Add state for general context menu
+  // General context menu state
   const [showGeneralMenu, setShowGeneralMenu] = useState(false);
   const [generalMenuPosition, setGeneralMenuPosition] = useState({ x: 0, y: 0 });
-
   const titleRef = useRef<HTMLHeadingElement>(null);
   const prevNoteId = useRef(note.id);
   const editorRef = useRef<ReactEditor | null>(null);
-  
-  // Slate editor setup - create new editor for each note
+
+  // -------------------------
+  // Slate Editor Setup
+  // -------------------------
+  // Create a new editor instance for each note
   const editor = useMemo(() => {
     const e = withTrailingParagraph(
       withDividers(
@@ -1330,7 +1354,9 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   }, [note.id]);
   const [slateValue, setSlateValue] = useState<Descendant[]>(() => contentToSlateValue(note.content));
 
-  // Custom render functions for Slate
+  // -------------------------
+  // Slate Render Functions
+  // -------------------------
   const renderElement = useCallback((props: any) => {
     const alignment = props.element.alignment || 'left';
     switch (props.element.type) {
@@ -1483,6 +1509,9 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     );
   }, []);
 
+  // -------------------------
+  // Effects: Sync note changes and auto-save
+  // -------------------------
   useEffect(() => {
     // Only update when switching to a different note
     setTitle(note.title || '');
@@ -1510,6 +1539,23 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     prevNoteId.current = note.id;
   }, [note.id, note.archived, note.deleted, note.content, editor]);
 
+  // Auto-save functionality (debounced)
+  useEffect(() => {
+    if (setSaving) setSaving(true);
+    const timeoutId = setTimeout(() => {
+      const currentRichTextContent = slateValueToJSON(slateValue);
+      if (title !== note.title || currentRichTextContent !== note.content) {
+        handleSave();
+      }
+      if (setSaving) setSaving(false);
+    }, 800);
+
+    return () => clearTimeout(timeoutId);
+  }, [title, slateValue, note.title, note.content]);
+
+  // -------------------------
+  // Handlers: Save, Slate change, blur, context menus, etc.
+  // -------------------------
   const handleSave = () => {
     // Save rich text data as JSON, but also maintain plain text for backward compatibility
     const richTextContent = slateValueToJSON(slateValue);
@@ -1522,20 +1568,16 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     };
     onUpdate(updatedNote);
   };
-
   const handleSlateChange = (newValue: Descendant[]) => {
     setSlateValue(newValue);
     const plainTextContent = slateValueToText(newValue);
     setContent(plainTextContent); // Keep plain text in state for empty check
     setIsContentEmpty(!plainTextContent || plainTextContent.trim() === '');
   };
-
   const handleSlateBlur = () => {
     // Only save on blur, not on every change
     handleSave();
   };
-
-  // Handle right-click context menu for rich text
   const handleContextMenu = (e: React.MouseEvent) => {
     const { selection } = editor;
     
@@ -1552,22 +1594,7 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
       setShowRichTextMenu(false);
     }
   };
-
-  // Auto-save functionality (debounced)
-  useEffect(() => {
-    if (setSaving) setSaving(true);
-    const timeoutId = setTimeout(() => {
-      const currentRichTextContent = slateValueToJSON(slateValue);
-      if (title !== note.title || currentRichTextContent !== note.content) {
-        handleSave();
-      }
-      if (setSaving) setSaving(false);
-    }, 800);
-
-    return () => clearTimeout(timeoutId);
-  }, [title, slateValue, note.title, note.content]);
-
-  // --- General menu actions ---
+  // General menu actions
   const handleInsertEmoji = () => {
     const char = window.prompt('Enter emoji or special character:');
     if (!char) return;
@@ -1622,8 +1649,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     const plainText = slateValueToText(slateValue);
     navigator.clipboard.writeText(plainText);
   };
-
-  
   const handleInsertDivider = () => {
     const { selection } = editor;
     let insertPath = null;
@@ -1652,6 +1677,9 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     ReactEditor.focus(editor);
   };
 
+  // -------------------------
+  // Editor Content Rendering
+  // -------------------------
   const editorContent = (
     <div className="h-full flex flex-col bg-[hsl(var(--background))] text-[hsl(var(--foreground))]"
       tabIndex={0}
@@ -1790,6 +1818,9 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     </div>
   );
 
+  // -------------------------
+  // Context Menu Wrapping (archive/trash)
+  // -------------------------
   return (
     contextType ? (
       <ContextMenu>
