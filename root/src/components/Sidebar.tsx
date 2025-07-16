@@ -132,6 +132,17 @@ export const Sidebar = ({
   // Add state for font selection
   const [fontSelectorOpen, setFontSelectorOpen] = useState(false);
   const [selectedFont, setSelectedFont] = useState(() => localStorage.getItem('appFontFamily') || 'spacegrotesk');
+  // Add state for inactivity drawer
+  const [inactivityDrawerOpen, setInactivityDrawerOpen] = useState(false);
+  const inactivityOptions = [
+    { value: 'off', label: 'Off' },
+    { value: '1', label: '1 minute' },
+    { value: '2', label: '2 minutes' },
+    { value: '5', label: '5 minutes' },
+    { value: '10', label: '10 minutes' },
+    { value: '30', label: '30 minutes' },
+  ];
+  const inactivityValue = localStorage.getItem('inactivityLockMinutes') || 'off';
 
   // Apply font to document body or root
   useEffect(() => {
@@ -139,6 +150,21 @@ export const Sidebar = ({
     document.body.classList.add(`font-${selectedFont}`);
     localStorage.setItem('appFontFamily', selectedFont);
   }, [selectedFont]);
+
+  // Listen for global search trigger (Ctrl+K)
+  useEffect(() => {
+    const handler = () => {
+      setIsSearchActive(true);
+      setActiveSection('search');
+      setTimeout(() => {
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+        }
+      }, 100);
+    };
+    window.addEventListener('trigger-app-search', handler);
+    return () => window.removeEventListener('trigger-app-search', handler);
+  }, []);
 
   // Handle search activation
   const handleSearchClick = () => {
@@ -748,7 +774,7 @@ export const Sidebar = ({
                       </DropdownMenuItem>
                       <DropdownMenuItem>
                         <Settings2 className="mr-2 h-4 w-4" />
-                        <span onClick={() => setDeveloperOptionsOpen(true)} style={{ width: '100%' }}>Developer options</span>
+                        <span onClick={() => setDeveloperOptionsOpen(true)} style={{ width: '100%' }}>Preferences</span>
                       </DropdownMenuItem>
                     </DropdownMenuSubContent>
                   </DropdownMenuSub>
@@ -1342,66 +1368,132 @@ export const Sidebar = ({
           {/* Developer Options Popup */}
           {developerOptionsOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-md flex flex-col items-center border border-[hsl(var(--border))] relative max-h-[32rem]">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
                 <button
                   onClick={() => setDeveloperOptionsOpen(false)}
                   className="absolute top-4 right-4 p-1 hover:bg-muted rounded-full transition"
                 >
                   <X className="w-5 h-5" />
                 </button>
-                <div className="text-2xl font-bold mb-2 text-center">Developer Options</div>
-                <div className="text-sm text-muted-foreground mb-6 text-center">Advanced tools for debugging and development. (Placeholders)</div>
-                <div className="flex flex-col w-full gap-3 mt-2 overflow-y-auto custom-scroll-thumb" style={{ maxHeight: '18rem' }}>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">View Raw Vault Data</button>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Download Raw Vault (JSON)</button>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Test Encryption/Decryption</button>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Reset UI State</button>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Simulate Loading/Error States</button>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Export App State</button>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Import Diagnostics</button>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Show Performance Metrics</button>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Toggle Experimental Features</button>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Open Dev Console</button>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Clear Emoji/Image Cache</button>
-                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">View App Logs</button>
-                  {/* Font Selector with Reserved Space */}
-                  <div className="w-full">
-                    {/* Drawer appears above the button and pushes other buttons down */}
+                <div className="text-2xl font-bold mb-2 text-center">Preferences</div>
+                <div className="text-sm text-muted-foreground mb-6 text-center">Customize your app experience, appearance, and security.</div>
+                <div className="flex flex-col w-full gap-3 mt-2 overflow-visible" style={{ maxHeight: '18rem' }}>
+                  {/* Reset UI State Button */}
+                  <button
+                    className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition"
+                    onClick={() => {
+                      setTheme('system');
+                      setSelectedFont('spacegrotesk');
+                      localStorage.removeItem('appFontFamily');
+                      localStorage.setItem('inactivityLockMinutes', 'off');
+                      window.dispatchEvent(new Event('inactivityLockSettingChanged'));
+                      if (typeof window !== 'undefined') {
+                        localStorage.removeItem('sidebarCollapsed');
+                      }
+                      window.location.reload();
+                    }}
+                  >
+                    Reset UI State
+                  </button>
+                  {/* Lock when inactive drawer */}
+                  <div className="w-full relative">
+                    {/* Drawer Content */}
                     <div
-                      className={`transition-all duration-300 ease-in-out overflow-hidden ${fontSelectorOpen ? 'mb-2' : ''}`}
-                      style={{
-                        height: fontSelectorOpen ? '240px' : '0px',
-                        transformOrigin: 'bottom',
-                      }}
+                      className={`absolute bottom-full left-0 right-0 transition-all duration-300 ease-out ${
+                        inactivityDrawerOpen ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-2 pointer-events-none'
+                      }`}
+                      style={{ marginBottom: '8px', zIndex: 100 }}
                     >
-                      <div className="w-full flex flex-col gap-2 border border-[hsl(var(--border))] bg-background rounded-xl p-3 shadow-lg h-full">
-                        {["roboto", "inter", "arial", "spacegrotesk"].map((font) => (
-                          <button
-                            key={font}
-                            className={`w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] text-lg transition ${
-                              selectedFont === font
-                                ? "bg-muted font-semibold border-[hsl(var(--border))]"
-                                : "bg-background text-foreground hover:bg-muted"
-                            }`}
-                            style={{ fontFamily: font }}
-                            onClick={() => {
-                              setSelectedFont(font);
-                              setFontSelectorOpen(false);
-                            }}
-                          >
-                            {font.charAt(0).toUpperCase() + font.slice(1)}
-                          </button>
-                        ))}
+                      <div className="w-full bg-background rounded-xl border border-[hsl(var(--border))] shadow-lg overflow-hidden">
+                        <div className="p-2 space-y-1">
+                          {inactivityOptions.map(opt => (
+                            <button
+                              key={opt.value}
+                              className={`w-full px-4 py-2.5 rounded-lg text-sm transition text-left ${
+                                inactivityValue === opt.value
+                                  ? 'bg-indigo-100 text-indigo-500 font-medium border border-indigo-300'
+                                  : 'text-foreground hover:bg-muted'
+                              }`}
+                              onClick={() => {
+                                localStorage.setItem('inactivityLockMinutes', opt.value);
+                                window.dispatchEvent(new Event('inactivityLockSettingChanged'));
+                                setInactivityDrawerOpen(false);
+                              }}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
+                    {/* Main Button */}
                     <button
-                      className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition flex items-center justify-between"
-                      onClick={() => setFontSelectorOpen((v) => !v)}
-                      style={{ zIndex: 1, position: 'relative' }}
+                      className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition flex items-center justify-between relative"
+                      onClick={() => {
+                        if (fontSelectorOpen) setFontSelectorOpen(false);
+                        setInactivityDrawerOpen(v => !v);
+                      }}
+                      style={{ zIndex: 1 }}
+                    >
+                      <span>Lock when inactive</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {inactivityOptions.find(opt => opt.value === inactivityValue)?.label}
+                        </span>
+                        <div className={`transform transition-transform duration-300 ${inactivityDrawerOpen ? 'rotate-180' : ''}`}> 
+                          <ChevronDown className="w-4 h-4" />
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                  {/* Font Selector */}
+                  <div className="w-full relative">
+                    {/* Drawer Content */}
+                    <div
+                      className={`absolute bottom-full left-0 right-0 transition-all duration-300 ease-out ${
+                        fontSelectorOpen ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-2 pointer-events-none'
+                      }`}
+                      style={{ marginBottom: '8px', zIndex: 100 }}
+                    >
+                      <div className="w-full bg-background rounded-xl border border-[hsl(var(--border))] shadow-lg overflow-hidden">
+                        <div className="p-2 space-y-1">
+                          {["roboto", "inter", "arial", "spacegrotesk"].map((font) => (
+                            <button
+                              key={font}
+                              className={`w-full px-4 py-2.5 rounded-lg text-sm transition text-left ${
+                                selectedFont === font
+                                  ? 'bg-indigo-100 text-indigo-500 font-medium border border-indigo-300'
+                                  : 'text-foreground hover:bg-muted'
+                              }`}
+                              style={{ fontFamily: font }}
+                              onClick={() => {
+                                setSelectedFont(font);
+                                setFontSelectorOpen(false);
+                              }}
+                            >
+                              {font.charAt(0).toUpperCase() + font.slice(1)}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    {/* Main Button */}
+                    <button
+                      className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition flex items-center justify-between relative"
+                      onClick={() => {
+                        if (inactivityDrawerOpen) setInactivityDrawerOpen(false);
+                        setFontSelectorOpen(v => !v);
+                      }}
+                      style={{ zIndex: 1 }}
                     >
                       <span>Change Font</span>
-                      <div className={`transform transition-transform duration-300 ${fontSelectorOpen ? 'rotate-180' : ''}`}>
-                        <ChevronDown className="w-4 h-4" />
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {selectedFont.charAt(0).toUpperCase() + selectedFont.slice(1)}
+                        </span>
+                        <div className={`transform transition-transform duration-300 ${fontSelectorOpen ? 'rotate-180' : ''}`}> 
+                          <ChevronDown className="w-4 h-4" />
+                        </div>
                       </div>
                     </button>
                   </div>
@@ -1564,7 +1656,7 @@ export const Sidebar = ({
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <Settings2 className="mr-2 h-4 w-4" />
-                    <span onClick={() => setDeveloperOptionsOpen(true)} style={{ width: '100%' }}>Developer options</span>
+                    <span onClick={() => setDeveloperOptionsOpen(true)} style={{ width: '100%' }}>Preferences</span>
                   </DropdownMenuItem>
                 </DropdownMenuSubContent>
               </DropdownMenuSub>
@@ -2155,66 +2247,132 @@ export const Sidebar = ({
       {/* Developer Options Popup */}
       {developerOptionsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-md flex flex-col items-center border border-[hsl(var(--border))] relative max-h-[32rem]">
+          <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
             <button
               onClick={() => setDeveloperOptionsOpen(false)}
               className="absolute top-4 right-4 p-1 hover:bg-muted rounded-full transition"
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="text-2xl font-bold mb-2 text-center">Developer Options</div>
-            <div className="text-sm text-muted-foreground mb-6 text-center">Advanced tools for debugging and development. (Placeholders)</div>
-            <div className="flex flex-col w-full gap-3 mt-2 overflow-y-auto custom-scroll-thumb" style={{ maxHeight: '18rem' }}>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">View Raw Vault Data</button>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Download Raw Vault (JSON)</button>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Test Encryption/Decryption</button>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Reset UI State</button>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Simulate Loading/Error States</button>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Export App State</button>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Import Diagnostics</button>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Show Performance Metrics</button>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Toggle Experimental Features</button>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Open Dev Console</button>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Clear Emoji/Image Cache</button>
-              <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">View App Logs</button>
-              {/* Font Selector with Reserved Space */}
-              <div className="w-full">
-                {/* Drawer appears above the button and pushes other buttons down */}
+            <div className="text-2xl font-bold mb-2 text-center">Preferences</div>
+            <div className="text-sm text-muted-foreground mb-6 text-center">Customize your app experience, appearance, and security.</div>
+            <div className="flex flex-col w-full gap-3 mt-2 overflow-visible" style={{ maxHeight: '18rem' }}>
+              {/* Reset UI State Button */}
+              <button
+                className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition"
+                onClick={() => {
+                  setTheme('system');
+                  setSelectedFont('spacegrotesk');
+                  localStorage.removeItem('appFontFamily');
+                  localStorage.setItem('inactivityLockMinutes', 'off');
+                  window.dispatchEvent(new Event('inactivityLockSettingChanged'));
+                  if (typeof window !== 'undefined') {
+                    localStorage.removeItem('sidebarCollapsed');
+                  }
+                  window.location.reload();
+                }}
+              >
+                Reset UI State
+              </button>
+              {/* Lock when inactive drawer */}
+              <div className="w-full relative">
+                {/* Drawer Content */}
                 <div
-                  className={`transition-all duration-300 ease-in-out overflow-hidden ${fontSelectorOpen ? 'mb-2' : ''}`}
-                  style={{
-                    height: fontSelectorOpen ? '240px' : '0px',
-                    transformOrigin: 'bottom',
-                  }}
+                  className={`absolute bottom-full left-0 right-0 transition-all duration-300 ease-out ${
+                    inactivityDrawerOpen ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-2 pointer-events-none'
+                  }`}
+                  style={{ marginBottom: '8px', zIndex: 100 }}
                 >
-                  <div className="w-full flex flex-col gap-2 border border-[hsl(var(--border))] bg-background rounded-xl p-3 shadow-lg h-full">
-                    {["roboto", "inter", "arial", "spacegrotesk"].map((font) => (
-                      <button
-                        key={font}
-                        className={`w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] text-lg transition ${
-                          selectedFont === font
-                            ? "bg-muted font-semibold border-[hsl(var(--border))]"
-                            : "bg-background text-foreground hover:bg-muted"
-                        }`}
-                        style={{ fontFamily: font }}
-                        onClick={() => {
-                          setSelectedFont(font);
-                          setFontSelectorOpen(false);
-                        }}
-                      >
-                        {font.charAt(0).toUpperCase() + font.slice(1)}
-                      </button>
-                    ))}
+                  <div className="w-full bg-background rounded-xl border border-[hsl(var(--border))] shadow-lg overflow-hidden">
+                    <div className="p-2 space-y-1">
+                      {inactivityOptions.map(opt => (
+                        <button
+                          key={opt.value}
+                          className={`w-full px-4 py-2.5 rounded-lg text-sm transition text-left ${
+                            inactivityValue === opt.value
+                              ? 'bg-indigo-100 text-indigo-500 font-medium border border-indigo-300'
+                              : 'text-foreground hover:bg-muted'
+                          }`}
+                          onClick={() => {
+                            localStorage.setItem('inactivityLockMinutes', opt.value);
+                            window.dispatchEvent(new Event('inactivityLockSettingChanged'));
+                            setInactivityDrawerOpen(false);
+                          }}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
+                {/* Main Button */}
                 <button
-                  className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition flex items-center justify-between"
-                  onClick={() => setFontSelectorOpen((v) => !v)}
-                  style={{ zIndex: 1, position: 'relative' }}
+                  className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition flex items-center justify-between relative"
+                  onClick={() => {
+                    if (fontSelectorOpen) setFontSelectorOpen(false);
+                    setInactivityDrawerOpen(v => !v);
+                  }}
+                  style={{ zIndex: 1 }}
+                >
+                  <span>Lock when inactive</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {inactivityOptions.find(opt => opt.value === inactivityValue)?.label}
+                    </span>
+                    <div className={`transform transition-transform duration-300 ${inactivityDrawerOpen ? 'rotate-180' : ''}`}> 
+                      <ChevronDown className="w-4 h-4" />
+                    </div>
+                  </div>
+                </button>
+              </div>
+              {/* Font Selector */}
+              <div className="w-full relative">
+                {/* Drawer Content */}
+                <div
+                  className={`absolute bottom-full left-0 right-0 transition-all duration-300 ease-out ${
+                    fontSelectorOpen ? 'opacity-100 transform translate-y-0' : 'opacity-0 transform translate-y-2 pointer-events-none'
+                  }`}
+                  style={{ marginBottom: '8px', zIndex: 100 }}
+                >
+                  <div className="w-full bg-background rounded-xl border border-[hsl(var(--border))] shadow-lg overflow-hidden">
+                    <div className="p-2 space-y-1">
+                      {["roboto", "inter", "arial", "spacegrotesk"].map((font) => (
+                        <button
+                          key={font}
+                          className={`w-full px-4 py-2.5 rounded-lg text-sm transition text-left ${
+                            selectedFont === font
+                              ? 'bg-indigo-100 text-indigo-500 font-medium border border-indigo-300'
+                              : 'text-foreground hover:bg-muted'
+                          }`}
+                          style={{ fontFamily: font }}
+                          onClick={() => {
+                            setSelectedFont(font);
+                            setFontSelectorOpen(false);
+                          }}
+                        >
+                          {font.charAt(0).toUpperCase() + font.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {/* Main Button */}
+                <button
+                  className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition flex items-center justify-between relative"
+                  onClick={() => {
+                    if (inactivityDrawerOpen) setInactivityDrawerOpen(false);
+                    setFontSelectorOpen(v => !v);
+                  }}
+                  style={{ zIndex: 1 }}
                 >
                   <span>Change Font</span>
-                  <div className={`transform transition-transform duration-300 ${fontSelectorOpen ? 'rotate-180' : ''}`}>
-                    <ChevronDown className="w-4 h-4" />
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">
+                      {selectedFont.charAt(0).toUpperCase() + selectedFont.slice(1)}
+                    </span>
+                    <div className={`transform transition-transform duration-300 ${fontSelectorOpen ? 'rotate-180' : ''}`}> 
+                      <ChevronDown className="w-4 h-4" />
+                    </div>
                   </div>
                 </button>
               </div>

@@ -26,6 +26,10 @@ const Login = ({ onLogin }: LoginProps) => {
   const [resetCount, setResetCount] = useState(0);
   const [resetSuccess, setResetSuccess] = useState(false);
   const [showResetSuccessPopup, setShowResetSuccessPopup] = useState(false);
+  const [showInactivityLockMsg, setShowInactivityLockMsg] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(() => parseInt(localStorage.getItem('loginFailedAttempts') || '0', 10));
+  const [lockoutExpiry, setLockoutExpiry] = useState(() => parseInt(localStorage.getItem('loginLockoutExpiry') || '0', 10));
+  const [lockoutRemaining, setLockoutRemaining] = useState(0);
 
   useEffect(() => {
     let unlistenResize: (() => void) | undefined;
@@ -59,6 +63,33 @@ const Login = ({ onLogin }: LoginProps) => {
     const count = parseInt(localStorage.getItem('recoveryCodeUses') || '0', 10);
     setResetCount(count);
   }, [showRecoveryPopup]);
+
+  useEffect(() => {
+    if (localStorage.getItem('lockedByInactivity')) {
+      setShowInactivityLockMsg(true);
+      localStorage.removeItem('lockedByInactivity');
+    }
+  }, []);
+
+  // Lockout timer effect
+  useEffect(() => {
+    if (lockoutExpiry > Date.now()) {
+      const interval = setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((lockoutExpiry - Date.now()) / 1000));
+        setLockoutRemaining(remaining);
+        if (remaining <= 0) {
+          setFailedAttempts(0);
+          localStorage.setItem('loginFailedAttempts', '0');
+          setLockoutExpiry(0);
+          localStorage.setItem('loginLockoutExpiry', '0');
+          clearInterval(interval);
+        }
+      }, 250);
+      return () => clearInterval(interval);
+    } else {
+      setLockoutRemaining(0);
+    }
+  }, [lockoutExpiry]);
 
   const hashRecoveryCode = async (code: string) => {
     const buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(code));
@@ -112,6 +143,7 @@ const Login = ({ onLogin }: LoginProps) => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (lockoutExpiry > Date.now()) return;
     setVerifying(true);
     setError('');
     setTimeout(async () => {
@@ -119,13 +151,26 @@ const Login = ({ onLogin }: LoginProps) => {
         await loadData(password);
         sessionStorage.setItem('masterPassword', password);
         setVerifying(false);
+        setFailedAttempts(0);
+        localStorage.setItem('loginFailedAttempts', '0');
+        setLockoutExpiry(0);
+        localStorage.setItem('loginLockoutExpiry', '0');
         if (onLogin) onLogin();
         else navigate('/');
       } catch {
         setVerifying(false);
+        const newAttempts = failedAttempts + 1;
+        setFailedAttempts(newAttempts);
+        localStorage.setItem('loginFailedAttempts', newAttempts.toString());
+        if (newAttempts >= 5) {
+          const expiry = Date.now() + 30000;
+          setLockoutExpiry(expiry);
+          localStorage.setItem('loginLockoutExpiry', expiry.toString());
+          setLockoutRemaining(30);
+        }
         setError('Incorrect password.');
       }
-    }, 2000); // 2 second delay
+    }, 2000);
   };
 
   const resetsLeft = 3 - resetCount;
@@ -173,6 +218,11 @@ const Login = ({ onLogin }: LoginProps) => {
           className="w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6 bg-background"
           style={{ WebkitAppRegion: 'no-drag' }}
         >
+          {showInactivityLockMsg && (
+            <div className="w-full mb-2 px-4 py-2 rounded-lg bg-yellow-100 text-yellow-800 text-center text-sm font-medium">
+              Your app has been locked due to inactivity.
+            </div>
+          )}
           <div className="flex flex-col items-center gap-2">
             <span className="text-2xl font-bold tracking-tight">Obscure</span>
             <span className="text-sm text-muted-foreground">Sign in to your account</span>
@@ -184,9 +234,14 @@ const Login = ({ onLogin }: LoginProps) => {
               value={password}
               onChange={setPassword}
               placeholder="Enter your master password"
-              disabled={verifying}
+              disabled={verifying || (lockoutExpiry > Date.now())}
               autoFocus
             />
+            {lockoutExpiry > Date.now() && (
+              <div className="text-xs text-red-500 text-center mt-1">
+                Too many failed attempts. Please wait {lockoutRemaining} second{lockoutRemaining !== 1 ? 's' : ''} before trying again.
+              </div>
+            )}
           </div>
           {error && <div className="text-red-500 text-xs text-center -mt-4">{error}</div>}
           {verifying ? (
@@ -213,7 +268,7 @@ const Login = ({ onLogin }: LoginProps) => {
             <Button
               type="submit"
               className="w-full h-10 text-base font-semibold rounded-lg bg-foreground text-background hover:bg-primary/90 transition"
-              disabled={verifying || password.length === 0}
+              disabled={verifying || password.length === 0 || (lockoutExpiry > Date.now())}
             >
               Sign In
             </Button>

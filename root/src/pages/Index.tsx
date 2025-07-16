@@ -337,6 +337,41 @@ const Index = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleCreateNote]);
 
+  // Inactivity lock effect
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    function resetTimer() {
+      const minutes = localStorage.getItem('inactivityLockMinutes');
+      if (!minutes || minutes === 'off') {
+        if (timer) clearTimeout(timer);
+        timer = null;
+        return;
+      }
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        localStorage.setItem('lockedByInactivity', '1');
+        handleLock();
+      }, parseInt(minutes, 10) * 60 * 1000);
+    }
+    function handleSettingChange() {
+      resetTimer();
+    }
+    window.addEventListener('mousemove', resetTimer);
+    window.addEventListener('keydown', resetTimer);
+    window.addEventListener('mousedown', resetTimer);
+    window.addEventListener('touchstart', resetTimer);
+    window.addEventListener('inactivityLockSettingChanged', handleSettingChange);
+    resetTimer();
+    return () => {
+      window.removeEventListener('mousemove', resetTimer);
+      window.removeEventListener('keydown', resetTimer);
+      window.removeEventListener('mousedown', resetTimer);
+      window.removeEventListener('touchstart', resetTimer);
+      window.removeEventListener('inactivityLockSettingChanged', handleSettingChange);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
   if (loading) {
     return (
       <div className="h-screen w-screen flex flex-col items-center justify-center bg-background text-[hsl(var(--foreground))]">
