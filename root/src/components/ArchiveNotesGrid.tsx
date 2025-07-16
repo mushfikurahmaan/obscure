@@ -67,12 +67,9 @@ export const ArchiveNotesGrid: React.FC<ArchiveNotesGridProps> = ({ notes, onSel
                     <div className="font-semibold text-lg text-[hsl(var(--foreground))] truncate" style={{width: note.isFavorite && note.favoriteEmoji ? '90%' : '100%'}}>{note.title || 'Untitled Note'}</div>
                     {note.isFavorite && note.favoriteEmoji && (
                       <div className="flex justify-end items-center ml-2" style={{width: '10%'}}>
-                        <img
-                          src={note.favoriteEmoji.startsWith('/') ? note.favoriteEmoji : `/emojis/${note.favoriteEmoji}`}
-                          alt="favorite emoji"
-                          className="w-7 h-7 drop-shadow"
-                          title="Favorite"
-                        />
+                        <span className="w-7 h-7 text-2xl drop-shadow" title="Favorite" role="img" aria-label="favorite emoji">
+                          {note.favoriteEmoji}
+                        </span>
                       </div>
                     )}
                   </div>

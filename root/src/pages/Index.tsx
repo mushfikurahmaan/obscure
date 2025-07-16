@@ -13,8 +13,6 @@ import { loadData, saveData } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../lib/theme';
 import { Progress } from '../components/ui/progress';
-// Remove: getLocalEmojiPath, emojiList, emojiSearch, filteredEmojis, and PNG logic
-// Add EmojiMart imports
 import EmojiMartPicker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 
@@ -131,6 +129,21 @@ const Index = () => {
   // Remove showEmojiMart modal logic
   // Add state for anchor element
   const [emojiPickerAnchor, setEmojiPickerAnchor] = useState<null | HTMLElement>(null);
+  // Add state for emoji picker position
+  const [emojiPickerPosition, setEmojiPickerPosition] = useState<'right' | 'left'>('right');
+
+  // Add state for responsive sidebar overlay
+  const [sidebarOverlayOpen, setSidebarOverlayOpen] = useState(false);
+  const [sidebarOverlayMode, setSidebarOverlayMode] = useState(window.innerWidth < 800);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setSidebarOverlayMode(window.innerWidth < 800);
+      if (window.innerWidth >= 800) setSidebarOverlayOpen(false);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Sync editorTitle with selectedNote when switching notes
   useEffect(() => {
@@ -282,7 +295,8 @@ const Index = () => {
 
   // Remove: useEffect(() => { ... });
 
-  // Remove: const [isMaximized, setIsMaximized] = useState(false);
+  // Add isMaximized state
+  const [isMaximized, setIsMaximized] = useState(false);
   // Remove: const [mainContentRef, useRef<HTMLDivElement>(null)];
 
   useEffect(() => {
@@ -291,12 +305,12 @@ const Index = () => {
     let unlistenUnmax: (() => void) | undefined;
     const setup = async () => {
       const win = getCurrentWindow();
-      // setIsMaximized(await win.isMaximized()); // This line is removed as per the new_code
+      setIsMaximized(await win.isMaximized());
       unlistenResize = await win.listen('tauri://resize', async () => {
-        // setIsMaximized(await win.isMaximized()); // This line is removed as per the new_code
+        setIsMaximized(await win.isMaximized());
       });
-      unlistenMax = await win.listen('tauri://maximize', () => { /* setIsMaximized(true); */ }); // This line is removed as per the new_code
-      unlistenUnmax = await win.listen('tauri://unmaximize', () => { /* setIsMaximized(false); */ }); // This line is removed as per the new_code
+      unlistenMax = await win.listen('tauri://maximize', () => setIsMaximized(true));
+      unlistenUnmax = await win.listen('tauri://unmaximize', () => setIsMaximized(false));
     };
     setup();
     return () => {
@@ -335,6 +349,7 @@ const Index = () => {
           setSelectedNote(note);
           setViewingDeleted(false);
           setViewingArchived(false);
+          if (sidebarOverlayMode) setSidebarOverlayOpen(false);
         }}
         onCreateNote={handleCreateNote}
         onDeleteNote={handleDeleteNote}
@@ -357,21 +372,26 @@ const Index = () => {
           setViewingDeleted(true);
           setViewingArchived(false);
           setSelectedNote(null);
+          if (sidebarOverlayMode) setSidebarOverlayOpen(false);
         }}
         onArchivedClick={() => {
           setViewingArchived(true);
           setViewingDeleted(false);
           setSelectedNote(null);
+          if (sidebarOverlayMode) setSidebarOverlayOpen(false);
         }}
         onLock={handleLock}
         deletedCount={deletedNotes.length}
         archivedCount={archivedNotes.length}
         theme={theme}
         setTheme={setTheme}
+        overlayMode={sidebarOverlayMode}
+        overlayOpen={sidebarOverlayOpen}
+        onOverlayClose={() => setSidebarOverlayOpen(false)}
       />
       {/* Main Content Area */}
       <div className="flex-1 h-full flex flex-col bg-background text-[hsl(var(--foreground))]">
-        {/* Replace the top bar section with a relative wrapper and absolutely positioned window controls: */}
+        {/* Top bar */}
         <div className="relative w-full">
           {/* Window Controls: absolutely positioned at top right */}
           <div className="absolute top-0 right-0 flex items-center gap-1 z-10" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
@@ -382,7 +402,23 @@ const Index = () => {
             >
               <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE921;</span>
             </button>
-            {/* isMaximized state is removed, so this block is simplified */}
+            {isMaximized ? (
+              <button
+                className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
+                title="Restore"
+                onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
+              >
+                <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE923;</span>
+              </button>
+            ) : (
+              <button
+                className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
+                title="Maximize"
+                onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
+              >
+                <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE922;</span>
+              </button>
+            )}
             <button
               className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowred hover:text-white transition-colors select-none"
               title="Close"
@@ -400,12 +436,14 @@ const Index = () => {
                 variant="ghost"
                 size="icon"
                 className="ml-6 mr-3 text-[hsl(var(--foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--code-block-background))] border-none w-7 h-7"
-                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                onClick={() => {
+                  if (sidebarOverlayMode) setSidebarOverlayOpen(true);
+                  else setSidebarCollapsed(!sidebarCollapsed);
+                }}
                 aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 style={{ WebkitAppRegion: 'no-drag' }}
               >
-                {/* Hamburger icon for expand/collapse */}
-                {sidebarCollapsed ? (
+                {sidebarCollapsed || sidebarOverlayMode ? (
                   <SquareChevronRight className="w-6 h-6" />
                 ) : (
                   <SquareChevronLeft className="w-6 h-6" />
@@ -465,7 +503,18 @@ const Index = () => {
                       className="text-gray-400 hover:text-indigo-500 hover:bg-[hsl(var(--code-block-background))] border-none w-7 h-7 relative"
                       aria-label="Favorite"
                       style={{ WebkitAppRegion: 'no-drag' }}
-                      onClick={e => setEmojiPickerAnchor(e.currentTarget)}
+                      onClick={e => {
+                        const anchor = e.currentTarget;
+                        const rect = anchor.getBoundingClientRect();
+                        const pickerWidth = 350; // Approximate width of EmojiMart picker
+                        const spaceRight = window.innerWidth - rect.right;
+                        if (spaceRight < pickerWidth && rect.left > pickerWidth) {
+                          setEmojiPickerPosition('left');
+                        } else {
+                          setEmojiPickerPosition('right');
+                        }
+                        setEmojiPickerAnchor(anchor);
+                      }}
                     >
                       {selectedNote && selectedNote.isFavorite && selectedNote.favoriteEmoji ? (
                         <span className="text-2xl">{selectedNote.favoriteEmoji}</span>
@@ -572,7 +621,9 @@ const Index = () => {
             position: 'absolute',
             zIndex: 1000,
             top: emojiPickerAnchor.getBoundingClientRect().bottom + window.scrollY + 4,
-            left: emojiPickerAnchor.getBoundingClientRect().left + window.scrollX,
+            left: emojiPickerPosition === 'right'
+              ? emojiPickerAnchor.getBoundingClientRect().left + window.scrollX
+              : emojiPickerAnchor.getBoundingClientRect().right + window.scrollX - 350, // 350 = picker width
           }}
           tabIndex={-1}
           onBlur={() => setEmojiPickerAnchor(null)}

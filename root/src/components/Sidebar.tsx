@@ -55,6 +55,9 @@ interface SidebarProps {
   theme: 'light' | 'dark' | 'system';
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   onLock: () => void;
+  overlayMode?: boolean;
+  overlayOpen?: boolean;
+  onOverlayClose?: () => void;
 }
 
 export const Sidebar = ({
@@ -73,6 +76,9 @@ export const Sidebar = ({
   theme,
   setTheme,
   onLock,
+  overlayMode = false,
+  overlayOpen = false,
+  onOverlayClose,
 }: SidebarProps) => {
   const [, setHoveredNote] = useState<string | null>(null);
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -123,7 +129,6 @@ export const Sidebar = ({
   // Add state for Developer Options popup
   const [developerOptionsOpen, setDeveloperOptionsOpen] = useState(false);
 
-  const getLocalEmojiPath = (filename: string) => filename || '';
 
   // Handle search activation
   const handleSearchClick = () => {
@@ -170,6 +175,23 @@ export const Sidebar = ({
       document.removeEventListener('keydown', handleEscape);
     };
   }, [isSearchActive]);
+
+  // Keyboard shortcuts: Ctrl+N (new note), Ctrl+K (search)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+        if (e.key.toLowerCase() === 'n') {
+          e.preventDefault();
+          onCreateNote();
+        } else if (e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          handleSearchClick();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const menuItems = [
     { icon: SquarePlus, label: 'New Note', active: false, onClick: onCreateNote },
@@ -529,10 +551,829 @@ export const Sidebar = ({
     setSingleNoteImportLoading(false);
   };
 
+  // Add effect to close overlay on Escape or click outside (only in overlay mode)
+  useEffect(() => {
+    if (!overlayMode || !overlayOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onOverlayClose && onOverlayClose();
+    };
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      // Check if click is inside sidebar
+      if (sidebarRef.current && sidebarRef.current.contains(target)) return;
+      // Check if click is inside any open menu (dropdown/context menu/popover/dialog)
+      const menuSelectors = [
+        '.dropdown-menu',
+        '.context-menu',
+        '.radix-dropdown-menu',
+        '.radix-context-menu',
+        '.menu',
+        '.DialogContent',
+        '.PopoverContent',
+        '[role="menu"]',
+        '[data-radix-popper-content-wrapper]',
+        '.fixed.inset-0.z-50', // Add selector for modals/popups
+      ];
+      for (const selector of menuSelectors) {
+        if (document.querySelector(selector) && (e.target instanceof Element) && (e.target.closest(selector))) {
+          return;
+        }
+      }
+      onOverlayClose && onOverlayClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('mousedown', handleClick);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('mousedown', handleClick);
+    };
+  }, [overlayMode, overlayOpen, onOverlayClose]);
+
+  // Sidebar container
+  if (overlayMode) {
+    return overlayOpen ? (
+      <>
+        <div className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm transition-all pointer-events-none" />
+        <div
+        
+          ref={sidebarRef}
+          className="fixed top-0 left-0 h-full w-64 min-w-64 z-50 bg-[hsl(var(--sidebar-background))] text-[hsl(var(--foreground))] border-r-[1.5px] border-r-[hsl(var(--sidebar-border))] shadow-xl transition-transform duration-200 pointer-events-auto flex flex-col"
+          style={{ transform: overlayOpen ? 'translateX(0)' : 'translateX(-100%)' }}
+        >
+          {/* Top Menu Section */}
+          <div className="px-3 py-2 flex-shrink-0">
+            <div className="space-y-1">
+              {/* New Note Button */}
+              <div
+                className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'new' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+                onClick={() => { onCreateNote(); setActiveSection('new'); }}
+              >
+                <div className="flex items-center space-x-3">
+                  <SquarePlus className="w-4 h-4" />
+                  <span className="font-normal">New Note</span>
+                </div>
+              </div>
+              {/* Search with Smooth Transition */}
+              <div className="relative overflow-hidden">
+                <div
+                  className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'search' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+                  onClick={!isSearchActive ? handleSearchClick : undefined}
+                >
+                  <div className="flex items-center w-full relative">
+                    {/* Search Icon - Always Fixed */}
+                    <Search className="w-4 h-4 flex-shrink-0 z-20 relative" />
+                    
+                    {/* Container for sliding elements */}
+                    <div className="flex-1 ml-3 relative h-5 overflow-hidden">
+                      {/* Search Label - Slides out to left */}
+                      <span 
+                        className={`font-normal absolute left-0 top-0 whitespace-nowrap transition-all duration-300 ease-in-out ${
+                          isSearchActive 
+                            ? 'transform -translate-x-full opacity-0' 
+                            : 'transform translate-x-0 opacity-100'
+                        }`}
+                      >
+                        Search
+                      </span>
+                      
+                      {/* Search Input - Slides in from right */}
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={`absolute left-0 top-0 w-full bg-transparent border-none outline-none text-[hsl(var(--sidebar-foreground))] placeholder-[hsl(var(--sidebar-foreground))] placeholder-opacity-60 transition-all duration-300 ease-in-out ${
+                          isSearchActive 
+                            ? 'transform translate-x-0 opacity-100 pointer-events-auto' 
+                            : 'transform translate-x-full opacity-0 pointer-events-none'
+                        }`}
+                        placeholder="Search notes..."
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Archive Button (main menu) */}
+              <div
+                className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'archive' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+                onClick={() => { onArchivedClick(); setActiveSection('archive'); }}
+              >
+                <div className="flex items-center space-x-3">
+                  <Archive className="w-4 h-4" />
+                  <span className="font-normal">Archive</span>
+                </div>
+                {archivedCount !== undefined && (
+                  <span className="text-xs text-[hsl(var(--sidebar-foreground))]">{archivedCount}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Folder Section */}
+          <div className="px-3 py-2 flex-shrink-0">
+            <div className="space-y-1">
+              {/* Settings Button with Dropdown Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div
+                    className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'settings' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+                    onClick={() => setActiveSection('settings')}
+                  >
+                    <div className="flex items-center space-x-3">
+                      <Settings className="w-4 h-4" />
+                      <span className="font-normal">Settings</span>
+                    </div>
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side="right" align="start" sideOffset={8} className="w-52 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
+                  {/* Appearance Section */}
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>Appearance</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-50 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
+                      <DropdownMenuRadioGroup
+                        value={theme}
+                        onValueChange={value => {
+                          if (value === 'light' || value === 'dark' || value === 'system') {
+                            setTheme(value);
+                          }
+                        }}
+                      >
+                        <DropdownMenuRadioItem value="light">
+                          <Sun className="mr-2 h-4 w-4" />
+                          Light
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="dark">
+                          <Moon className="mr-2 h-4 w-4" />
+                          Dark
+                        </DropdownMenuRadioItem>
+                        <DropdownMenuRadioItem value="system">
+                          <Laptop className="mr-2 h-4 w-4" />
+                          System
+                        </DropdownMenuRadioItem>
+                      </DropdownMenuRadioGroup>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  {/* Security & Privacy Section */}
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>Security & Privacy</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
+                      <DropdownMenuItem onClick={onLock}>
+                        <Lock className="mr-2 h-4 w-4" />
+                        Lock App
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setChangePwDialogOpen(true)}>
+                        <KeyRound className="mr-2 h-4 w-4" />
+                        Change master password
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className='border-t border-[hsl(var(--context-menu-border))]' />
+                      <DropdownMenuItem variant="destructive" onClick={() => setConfirmClearOpen(true)}>
+                        <Trash className="mr-2 h-4 w-4" />
+                        Clear all data
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  {/* Advanced Section */}
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>Advanced</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
+                      <DropdownMenuItem onClick={() => setExportDialogOpen(true)}>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Export notes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                        <Download className="mr-2 h-4 w-4" />
+                        Import notes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Settings2 className="mr-2 h-4 w-4" />
+                        <span onClick={() => setDeveloperOptionsOpen(true)} style={{ width: '100%' }}>Developer options</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                  {/* About Section */}
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger>About</DropdownMenuSubTrigger>
+                    <DropdownMenuSubContent className="w-56 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))]">
+                      <DropdownMenuItem>
+                        <Info className="mr-2 h-4 w-4" />
+                        App version
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <RefreshCw className="mr-2 h-4 w-4" />
+                        Check for updates
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Mail className="mr-2 h-4 w-4" />
+                        Contact support
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Scale className="mr-2 h-4 w-4" />
+                        Open source licenses
+                      </DropdownMenuItem>
+                    </DropdownMenuSubContent>
+                  </DropdownMenuSub>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              {/* Trash Button (unchanged) */}
+              <div
+                className={`flex items-center justify-between px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === 'trash' ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+                onClick={() => { onDeletedClick(); setActiveSection('trash'); }}
+              >
+                <div className="flex items-center space-x-3">
+                  <Trash className="w-4 h-4" />
+                  <span className="font-normal">Trash</span>
+                </div>
+                {deletedCount !== undefined && (
+                  <span className="text-xs text-[hsl(var(--sidebar-foreground))]">{deletedCount}</span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Horizontal line between Folder and Favourites */}
+          <div className="px-3 flex-shrink-0">
+            <div className="border-t border-[hsl(var(--border))] w-full my-2" />
+          </div>
+
+          {/* Favorites Section */}
+          <div className="px-3 py-2 flex-shrink-0">
+            <div className="mb-2">
+              <h3 className="text-xs font-normal text-[hsl(var(--sidebar-foreground))] px-3">Favourites</h3>
+            </div>
+            <div className="space-y-1 max-h-40 overflow-y-auto">
+              {notes.filter(note => note.isFavorite).map((note) => (
+                <ContextMenu key={note.id}>
+                  <ContextMenuTrigger asChild>
+                    <div
+                      className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === `favorite-${note.id}` ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+                      onClick={() => { onNoteSelect(note); setActiveSection(`favorite-${note.id}`); }}
+                    >
+                      {note.favoriteEmoji ? (
+                        <span className="text-lg">{note.favoriteEmoji}</span>
+                      ) : (
+                        <span className="text-sm favorite-icon">❤️</span>
+                      )}
+                      <span className="font-normal text-sm truncate">{note.title || 'Untitled Note'}</span>
+                    </div>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="min-w-[120px] bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))] border border-[hsl(var(--context-menu-border))] rounded-md p-1 animate-in fade-in-80">
+                  <ContextMenuItem
+                      onClick={() => onRemoveFavorite(note.id)}
+                      className="flex items-center space-x-2 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+                    >
+                      <Trash className="w-4 h-4 text-red-400" />
+                      <span className="font-normal text-red-400">Remove</span>
+                  </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              ))}
+            </div>
+          </div>
+
+          {/* Horizontal line between Favourites and My Notes */}
+          <div className="px-3 flex-shrink-0">
+            <div className="border-t border-[hsl(var(--border))] w-full my-2" />
+          </div>
+
+          {/* My Notes Section - This is the key fix */}
+          <div className="px-3 py-2 flex-1 flex flex-col min-h-0">
+            <div className="flex items-center justify-between mb-2 flex-shrink-0">
+              <h3 className="text-xs font-normal text-[hsl(var(--sidebar-foreground))] px-3">My Notes</h3>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-5 w-5 p-0 text-[hsl(var(--sidebar-foreground))] hover:text-[hsl(var(--foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  side="right"
+                  align="start"
+                  className="w-44 ml-2 bg-[hsl(var(--sidebar-background))] text-xs border border-[hsl(var(--context-menu-border))] text-[hsl(var(--sidebar-foreground))]"
+                >
+                  <DropdownMenuItem
+                    onClick={() => {
+                      onCreateNote();
+                    }}
+                    className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+                  >
+                    <SquarePlus className="w-4 h-4 mr-2" />
+                    New Note
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setSingleNoteImportDialogOpen(true);
+                    }}
+                    className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Import Note
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="space-y-1">
+                {notes
+                  .filter(note => !note.deleted && !note.archived)
+                  .filter(note => {
+                    // Filter by search query if search is active
+                    if (isSearchActive && searchQuery) {
+                      return note.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                             note.content?.toLowerCase().includes(searchQuery.toLowerCase());
+                    }
+                    return true;
+                  })
+                  .map((note) => (
+                  <ContextMenu key={note.id}>
+                    <ContextMenuTrigger asChild>
+                      <div
+                        className={`flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors ${
+                          selectedNote && note.id === selectedNote.id ? 'bg-[hsl(var(--sidebar-active))] text-[hsl(var(--foreground))]' : 'text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNoteSelect(note);
+                          setActiveSection(`note-${note.id}`);
+                        }}
+                        onMouseEnter={() => setHoveredNote(note.id)}
+                        onMouseLeave={() => setHoveredNote(null)}
+                      >
+                        <BookOpen className="w-4 h-4"/>
+                        <span className="font-normal text-sm flex-1 truncate">{note.title || 'Untitled Note'}</span>
+                      </div>
+                    </ContextMenuTrigger>
+                    <ContextMenuContent className="w-44 bg-[hsl(var(--sidebar-background))] text-xs border border-[hsl(var(--context-menu-border))] text-[hsl(var(--sidebar-foreground))]">
+                      <ContextMenuSub>
+                        <ContextMenuSubTrigger className="flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]">
+                          <Upload className="w-4 h-4 mr-2" />
+                          Export As
+                        </ContextMenuSubTrigger>
+                        <ContextMenuSubContent className="w-40 bg-[hsl(var(--sidebar-background))] border border-[hsl(var(--context-menu-border))] rounded-md p-1">
+                          <ContextMenuItem
+                            className="flex items-center px-3 py-1.5 rounded-md text-xs w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+                            onClick={() => handleExportNotePdf(note)}
+                          >
+                            <FileDown className="w-4 h-4 mr-2" />
+                            PDF
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            className="flex items-center px-3 py-1.5 rounded-md text-xs w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+                            onClick={() => handleExportNoteMarkdown(note)}
+                          >
+                            <FileCode2 className="w-4 h-4 mr-2" />
+                            Markdown
+                          </ContextMenuItem>
+                          <ContextMenuItem
+                            className="flex items-center px-3 py-1.5 rounded-md text-xs w-full cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))]"
+                            onClick={() => handleExportNoteDat(note)}
+                          >
+                            <Lock className="w-4 h-4 mr-2" />
+                            Encrypted (.dat)
+                          </ContextMenuItem>
+                        </ContextMenuSubContent>
+                      </ContextMenuSub>
+                      {/* Archive Item */}
+                      <ContextMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onArchiveNote(note.id);
+                        }}
+                        className={`flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors
+      ${theme === 'dark' ? 'text-yellow-400 hover:text-yellow-300' : 'text-yellow-600 hover:text-yellow-700'} hover:bg-[hsl(var(--sidebar-hover)))`}
+                      >
+                        <Archive className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-600'}`} />
+                        Archive
+                      </ContextMenuItem>
+                      {/* Trash Item */}
+                      <ContextMenuItem
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDeleteNote(note.id);
+                        }}
+                        className={`flex items-center px-3 py-1.5 rounded-md text-sm w-full cursor-pointer transition-colors
+      ${theme === 'dark' ? 'text-red-400 hover:text-red-300' : 'text-red-600 hover:text-red-700'} hover:bg-[hsl(var(--sidebar-hover)))`}
+                      >
+                        <Trash className={`w-4 h-4 mr-2 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`} />
+                        Trash
+                      </ContextMenuItem>
+                    </ContextMenuContent>
+                  </ContextMenu>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+          {/* Confirm dialog for clear all data */}
+          {confirmClearOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-2xl font-bold mb-2 text-center">Delete all data?</div>
+                <div className="text-sm text-muted-foreground mb-6 text-center">This will permanently delete all your notes and settings from this device. This action cannot be undone.<br/>To confirm, enter your master password.</div>
+                <div className="flex flex-col w-full gap-3 mt-2">
+                  <CustomPasswordInput
+                    value={clearDataPassword}
+                    onChange={setClearDataPassword}
+                    placeholder="Enter master password to confirm"
+                    disabled={clearDataLoading}
+                    autoFocus
+                  />
+                  {clearDataError && <div className="text-red-500 text-xs text-center">{clearDataError}</div>}
+                  <button
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60"
+                    onClick={() => { setConfirmClearOpen(false); setClearDataPassword(''); setClearDataError(''); }}
+                    disabled={clearDataLoading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-red-700 transition disabled:opacity-60 bg-red-600 text-white"
+                    onClick={handleClearAllData}
+                    disabled={!clearDataPassword || clearDataLoading}
+                  >
+                    {clearDataLoading ? (
+                      <>
+                        <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="white"
+                            strokeWidth="4"
+                            fill="none"
+                            strokeDasharray="60"
+                            strokeDashoffset="20"
+                          />
+                        </svg>
+                        Deleting…
+                      </>
+                    ) : (
+                      'Delete'
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Export Dialog */}
+          {exportDialogOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-2xl font-bold mb-2 text-center">Export Notes</div>
+                <div className="text-sm text-muted-foreground mb-6 text-center">Backup your notes securely or export as readable JSON.</div>
+                <button
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-4
+                    ${exportingType === 'dat' ? 'bg-indigo-500 text-white' : 'bg-foreground text-background'}`}
+                  onClick={handleExportDat}
+                  disabled={exportingType !== null}
+                >
+                  {exportingType === 'dat' ? (
+                    <>
+                      <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="white"
+                          strokeWidth="4"
+                          fill="none"
+                          strokeDasharray="60"
+                          strokeDashoffset="20"
+                        />
+                      </svg>
+                      Exporting…
+                    </>
+                  ) : (
+                    <>
+                  <Lock className="w-5 h-5" />
+                      Export Encrypted (.dat)
+                    </>
+                  )}
+                </button>
+                <div className="flex items-center w-full my-2">
+                  <div className="flex-grow border-t border-border" />
+                  <span className="mx-3 text-xs text-muted-foreground font-medium">or</span>
+                  <div className="flex-grow border-t border-border" />
+                </div>
+                <div className="w-full flex flex-col gap-2 mb-6">
+                  <CustomPasswordInput
+                    value={exportJsonPassword}
+                    onChange={setExportJsonPassword}
+                    placeholder="Master password for JSON export"
+                    disabled={exportingType !== null}
+                    autoFocus
+                  />
+                </div>
+                  <button
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-secondary/80 transition disabled:opacity-60
+    ${exportingType === 'json' ? 'bg-indigo-500 text-white' : theme === 'dark' ? 'bg-foreground text-background' : 'bg-foreground text-background'}`}
+                    onClick={handleExportJson}
+                    disabled={!exportJsonPassword || exportingType !== null}
+                  >
+                    {exportingType === 'json' ? (
+                      <>
+                        <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="white"
+                            strokeWidth="4"
+                            fill="none"
+                            strokeDasharray="60"
+                            strokeDashoffset="20"
+                          />
+                        </svg>
+                        Exporting…
+                      </>
+                    ) : (
+                      <>
+                  <LockOpen className="w-5 h-5" />
+                        Export Decrypted (.json)
+                      </>
+                    )}
+                  </button>
+                  {exportJsonError && <div className="text-red-500 text-xs mt-1 text-center">{exportJsonError}</div>}
+                <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setExportDialogOpen(false); resetExportDialog(); }} disabled={exportingType !== null}>Cancel</button>
+              </div>
+            </div>
+          )}
+          {/* Import Dialog */}
+          {importDialogOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-2xl font-bold mb-2 text-center">Import Notes</div>
+                <div className="text-sm text-muted-foreground mb-6 text-center">Restore your notes from a backup file.</div>
+                <input
+                  type="file"
+                  accept=".dat,.json"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
+                  onChange={e => setImportFile(e.target.files?.[0] || null)}
+                  disabled={importLoading}
+                />
+                <div className="flex flex-col w-full gap-2 mb-6">
+                <CustomPasswordInput
+                  value={importPassword}
+                  onChange={setImportPassword}
+                  placeholder="Master password to decrypt"
+                  disabled={importLoading}
+                  autoFocus
+                />
+                </div>
+                {importError && <div className="text-red-500 text-xs mb-2 text-center">{importError}</div>}
+                <button
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2
+                    ${importLoading ? 'bg-indigo-500 text-white' : 'bg-foreground text-background'}`}
+                  onClick={handleImportNotes}
+                  disabled={!importFile || !importPassword || importLoading}
+                >
+                  {importLoading ? (
+                    <>
+                      <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="white"
+                          strokeWidth="4"
+                          fill="none"
+                          strokeDasharray="60"
+                          strokeDashoffset="20"
+                        />
+                      </svg>
+                      Importing…
+                    </>
+                  ) : (
+                    <>
+                  <Download className="w-5 h-5" />
+                      Import Notes
+                    </>
+                  )}
+                </button>
+                <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setImportDialogOpen(false); resetImportDialog(); }} disabled={importLoading}>Cancel</button>
+              </div>
+            </div>
+          )}
+          {/* Full Backup Import Success Popup */}
+          {showImportSuccess && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-2xl font-bold mb-2 text-center">Notes imported successfully.</div>
+                <div className="text-sm text-muted-foreground mb-6 text-center">Your notes have been restored from backup.</div>
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2 bg-foreground text-background"
+                  onClick={() => { setShowImportSuccess(false); window.location.reload(); }}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          )}
+          {/* Change Master Password Dialog */}
+          {changePwDialogOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-card rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative text-card-foreground bg-background">
+                <div className="text-xl font-bold mb-2 text-center">Change Master Password</div>
+                <div className="text-sm text-muted-foreground mb-4 text-center">Enter your current password and choose a new one.</div>
+                <div className="flex flex-col w-full gap-3 mb-2">
+                  <CustomPasswordInput
+                    value={currentPw}
+                    onChange={setCurrentPw}
+                    placeholder="Current password"
+                    disabled={changePwLoading}
+                    autoFocus
+                  />
+                  <CustomPasswordInput
+                    value={newPw}
+                    onChange={setNewPw}
+                    placeholder="New password"
+                    disabled={changePwLoading}
+                  />
+                  <CustomPasswordInput
+                    value={confirmNewPw}
+                    onChange={setConfirmNewPw}
+                    placeholder="Confirm new password"
+                    disabled={changePwLoading}
+                  />
+                </div>
+                {changePwError && <div className="text-red-500 text-xs mb-1">{changePwError}</div>}
+                <div className="flex flex-col w-full gap-2 mt-4">
+                  <button
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 ${changePwLoading ? 'bg-indigo-500 text-white' : 'bg-foreground text-[hsl(var(--background))]'}`}
+                    onClick={handleChangePassword}
+                    disabled={changePwLoading}
+                  >
+                    {changePwLoading ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                          <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="white"
+                            strokeWidth="4"
+                            fill="none"
+                            strokeDasharray="60"
+                            strokeDashoffset="20"
+                          />
+                        </svg>
+                        Changing…
+                      </span>
+                    ) : (
+                      'Change Password'
+                    )}
+                  </button>
+                  <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setChangePwDialogOpen(false); resetChangePwDialog(); }}>Cancel</button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Password Change Success Popup */}
+          {showPwChangeSuccess && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-2xl font-bold mb-2 text-center">Password Changed</div>
+                <div className="text-sm text-muted-foreground mb-6 text-center">Your password has been changed successfully. Please re-login to continue.</div>
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2 bg-foreground text-background"
+                  onClick={() => {
+                    setShowPwChangeSuccess(false);
+                    sessionStorage.removeItem('masterPassword');
+                    window.location.href = '/login';
+                  }}
+                >
+                  Re-login
+                </button>
+              </div>
+            </div>
+          )}
+          {/* Clear Data Success Popup */}
+          {showClearDataSuccess && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-2xl font-bold mb-2 text-center">All Data Deleted</div>
+                <div className="text-sm text-muted-foreground mb-6 text-center">Your data has been deleted. Please create a new account or import an existing one if available.</div>
+                <div className="text-base font-semibold text-center mb-4">Redirecting in {clearDataCountdown}…</div>
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2 bg-foreground text-background"
+                  onClick={() => { setShowClearDataSuccess(false); window.location.href = '/'; }}
+                >
+                  Go to Setup Now
+                </button>
+              </div>
+            </div>
+          )}
+          {/* Single Note Import Dialog (for Notes > Plus > Import) */}
+          {singleNoteImportDialogOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-2xl font-bold mb-2 text-center">Import Note</div>
+                <div className="text-sm text-muted-foreground mb-6 text-center">Import a single encrypted note (.dat file).</div>
+                <input
+                  type="file"
+                  accept=".dat"
+                  className="w-full border rounded-lg px-3 py-2 text-base mb-2 bg-[hsl(var(--background))]"
+                  onChange={e => setSingleNoteImportFile(e.target.files?.[0] || null)}
+                  disabled={singleNoteImportLoading}
+                />
+                <div className="flex flex-col w-full gap-2 mb-6">
+                  <CustomPasswordInput
+                    value={singleNoteImportPassword}
+                    onChange={setSingleNoteImportPassword}
+                    placeholder="Master password to decrypt"
+                    disabled={singleNoteImportLoading}
+                    autoFocus
+                  />
+                </div>
+                {singleNoteImportError && <div className="text-red-500 text-xs mb-2 text-center">{singleNoteImportError}</div>}
+                <button
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2
+                    ${singleNoteImportLoading ? 'bg-indigo-500 text-white' : 'bg-foreground text-background'}`}
+                  onClick={handleSingleNoteImport}
+                  disabled={!singleNoteImportFile || !singleNoteImportPassword || singleNoteImportLoading}
+                >
+                  {singleNoteImportLoading ? (
+                    <>
+                      <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                        <circle
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="white"
+                          strokeWidth="4"
+                          fill="none"
+                          strokeDasharray="60"
+                          strokeDashoffset="20"
+                        />
+                      </svg>
+                      Importing…
+                    </>
+                  ) : (
+                    <>
+                  <Download className="w-5 h-5" />
+                      Import Note
+                    </>
+                  )}
+                </button>
+                <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setSingleNoteImportDialogOpen(false); resetSingleNoteImportDialog(); }} disabled={singleNoteImportLoading}>Cancel</button>
+              </div>
+            </div>
+          )}
+          {/* Single Note Import Success Popup */}
+          {showSingleNoteImportSuccess && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-sm flex flex-col items-center border border-[hsl(var(--border))] relative">
+                <div className="text-2xl font-bold mb-2 text-center">Note imported successfully.</div>
+                <div className="text-sm text-muted-foreground mb-6 text-center">Your note has been added to your vault.</div>
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 mb-2 bg-foreground text-background"
+                  onClick={() => { setShowSingleNoteImportSuccess(false); window.location.reload(); }}
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          )}
+          {/* Developer Options Popup */}
+          {developerOptionsOpen && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+              <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-md flex flex-col items-center border border-[hsl(var(--border))] relative max-h-[32rem]">
+                <div className="text-2xl font-bold mb-2 text-center">Developer Options</div>
+                <div className="text-sm text-muted-foreground mb-6 text-center">Advanced tools for debugging and development. (Placeholders)</div>
+                <div className="flex flex-col w-full gap-3 mt-2 overflow-y-auto custom-scroll-thumb" style={{ maxHeight: '18rem' }}>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">View Raw Vault Data</button>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Download Raw Vault (JSON)</button>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Test Encryption/Decryption</button>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Reset UI State</button>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Simulate Loading/Error States</button>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Export App State</button>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Import Diagnostics</button>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Show Performance Metrics</button>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Toggle Experimental Features</button>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Open Dev Console</button>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Clear Emoji/Image Cache</button>
+                  <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">View App Logs</button>
+                </div>
+                <button
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-foreground text-background hover:bg-muted transition disabled:opacity-60 mt-4"
+                  onClick={() => setDeveloperOptionsOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+      </>
+    ) : null;
+  }
+
   return (
     <div 
       ref={sidebarRef} // <-- Attach ref to sidebar container
-      className={`flex flex-col h-screen min-h-0 transition-all duration-200 ${collapsed ? 'w-0 overflow-hidden' : 'w-64'} overflow-hidden bg-[hsl(var(--sidebar-background))] text-[hsl(var(--foreground))] border-r-[1.5px] border-r-[hsl(var(--sidebar-border))]`}
+      className={`flex flex-col h-screen min-h-0 transition-all duration-200 ${collapsed ? 'w-0 min-w-0 overflow-hidden' : 'w-64 min-w-64'} bg-[hsl(var(--sidebar-background))] text-[hsl(var(--foreground))] border-r-[1.5px] border-r-[hsl(var(--sidebar-border))]`}
     >
       {/* Top Menu Section */}
       <div className="px-3 py-2">
@@ -739,11 +1580,11 @@ export const Sidebar = ({
             <ContextMenu key={note.id}>
               <ContextMenuTrigger asChild>
                 <div
-                  className={`flex items-center space-x-3 px-3 py-1.5 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === `favorite-${note.id}` ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
+                  className={`flex items-center space-x-2 px-3 py-1 rounded-md text-sm cursor-pointer transition-colors text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-hover))] ${activeSection === `favorite-${note.id}` ? 'bg-[hsl(var(--sidebar-active))]' : ''}`}
                   onClick={() => { onNoteSelect(note); setActiveSection(`favorite-${note.id}`); }}
                 >
                   {note.favoriteEmoji ? (
-                    <span className="text-xl">{note.favoriteEmoji}</span>
+                    <span className="text-lg">{note.favoriteEmoji}</span>
                   ) : (
                     <span className="text-sm favorite-icon">❤️</span>
                   )}
