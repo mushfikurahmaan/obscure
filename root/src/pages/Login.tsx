@@ -114,16 +114,18 @@ const Login = ({ onLogin }: LoginProps) => {
     e.preventDefault();
     setVerifying(true);
     setError('');
-    try {
-      await loadData(password);
-      sessionStorage.setItem('masterPassword', password);
-      setVerifying(false);
-      if (onLogin) onLogin();
-      else navigate('/');
-    } catch {
-      setVerifying(false);
-      setError('Incorrect password.');
-    }
+    setTimeout(async () => {
+      try {
+        await loadData(password);
+        sessionStorage.setItem('masterPassword', password);
+        setVerifying(false);
+        if (onLogin) onLogin();
+        else navigate('/');
+      } catch {
+        setVerifying(false);
+        setError('Incorrect password.');
+      }
+    }, 2000); // 2 second delay
   };
 
   const resetsLeft = 3 - resetCount;

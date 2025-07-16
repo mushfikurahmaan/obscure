@@ -194,67 +194,73 @@ export const Sidebar = ({
   const handleClearAllData = async () => {
     setClearDataError('');
     setClearDataLoading(true);
-    try {
-      // Verify password before clearing data
-      await loadData(clearDataPassword);
-      setConfirmClearOpen(false);
-      await clearDataFile();
-      sessionStorage.removeItem('masterPassword');
-      sessionStorage.removeItem('loggedIn');
-      setShowClearDataSuccess(true);
-      setClearDataCountdown(5);
-      setClearDataPassword('');
-    } catch (e) {
-      setClearDataError('Incorrect master password. Data was not deleted.');
-    } finally {
-      setClearDataLoading(false);
-    }
+    setTimeout(async () => {
+      try {
+        // Verify password before clearing data
+        await loadData(clearDataPassword);
+        setConfirmClearOpen(false);
+        await clearDataFile();
+        sessionStorage.removeItem('masterPassword');
+        sessionStorage.removeItem('loggedIn');
+        setShowClearDataSuccess(true);
+        setClearDataCountdown(5);
+        setClearDataPassword('');
+      } catch (e) {
+        setClearDataError('Incorrect master password. Data was not deleted.');
+      } finally {
+        setClearDataLoading(false);
+      }
+    }, 2000); // 2 second delay
   };
 
   const handleExportDat = async () => {
     setExportingType('dat');
-    try {
-      const fileContent = await exportData();
-      const blob = new Blob([fileContent], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'vault.dat';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
-      setExportDialogOpen(false);
-    } catch (e) {
-      alert('Failed to export encrypted file.');
-    }
-    setExportingType(null);
+    setTimeout(async () => {
+      try {
+        const fileContent = await exportData();
+        const blob = new Blob([fileContent], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'vault.dat';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 100);
+        setExportDialogOpen(false);
+      } catch (e) {
+        alert('Failed to export encrypted file.');
+      }
+      setExportingType(null);
+    }, 2000); // 2 second delay
   };
 
   const handleExportJson = async () => {
     setExportingType('json');
     setExportJsonError('');
-    try {
-      const data = await loadData(exportJsonPassword);
-      const blob = new Blob([data], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'notes.json';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }, 100);
-      setExportDialogOpen(false);
-      setExportJsonPassword('');
-    } catch (e) {
-      setExportJsonError('Incorrect password or corrupt data.');
-    }
-    setExportingType(null);
+    setTimeout(async () => {
+      try {
+        const data = await loadData(exportJsonPassword);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'notes.json';
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 100);
+        setExportDialogOpen(false);
+        setExportJsonPassword('');
+      } catch (e) {
+        setExportJsonError('Incorrect password or corrupt data.');
+      }
+      setExportingType(null);
+    }, 2000); // 2 second delay
   };
 
   useEffect(() => {
@@ -276,40 +282,42 @@ export const Sidebar = ({
       return;
     }
     setImportLoading(true);
-    try {
-      const fileContent = await importFile.text();
-      await importData(fileContent);
-      // Try to decrypt and check format
-      let decrypted: any;
+    setTimeout(async () => {
       try {
-        decrypted = await loadData(importPassword);
+        const fileContent = await importFile.text();
+        await importData(fileContent);
+        // Try to decrypt and check format
+        let decrypted: any;
+        try {
+          decrypted = await loadData(importPassword);
+        } catch (e) {
+          setImportError('Failed to import. Check your password or file.');
+          setImportLoading(false);
+          return;
+        }
+        let vaultObj: any;
+        try {
+          vaultObj = JSON.parse(decrypted);
+        } catch {
+          setImportError('Imported file is not valid JSON.');
+          setImportLoading(false);
+          return;
+        }
+        if (!vaultObj || !Array.isArray(vaultObj.notes)) {
+          setImportError('This file is not a valid vault. If you want to import a single note, use the single note import feature.');
+          setImportLoading(false);
+          return;
+        }
+        setImportDialogOpen(false);
+        setImportFile(null);
+        setImportPassword('');
+        setShowImportSuccess(true);
       } catch (e) {
         setImportError('Failed to import. Check your password or file.');
+      } finally {
         setImportLoading(false);
-        return;
       }
-      let vaultObj: any;
-      try {
-        vaultObj = JSON.parse(decrypted);
-      } catch {
-        setImportError('Imported file is not valid JSON.');
-        setImportLoading(false);
-        return;
-      }
-      if (!vaultObj || !Array.isArray(vaultObj.notes)) {
-        setImportError('This file is not a valid vault. If you want to import a single note, use the single note import feature.');
-        setImportLoading(false);
-        return;
-      }
-      setImportDialogOpen(false);
-      setImportFile(null);
-      setImportPassword('');
-      setShowImportSuccess(true);
-    } catch (e) {
-      setImportError('Failed to import. Check your password or file.');
-    } finally {
-      setImportLoading(false);
-    }
+    }, 2000); // 2 second delay
   };
 
   // Password policy validation (copied from FirstSetup)

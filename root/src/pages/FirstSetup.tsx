@@ -103,24 +103,26 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
     if (passwordValidation) return;
     if (!passwordsMatch) return;
     setCreateLoading(true);
-    try {
-      await saveData(masterPassword, JSON.stringify({ notes: [] }));
-      // Generate and store recovery code
-      const code = generateRecoveryCode();
-      setRecoveryCode(code);
-      setShowRecoveryCode(true);
-      const hash = await hashRecoveryCode(code);
-      localStorage.setItem('recoveryCodeHash', hash);
-      localStorage.setItem('recoveryCodeUses', '0');
-      setShowCreatePassword(false);
-      setMasterPassword('');
-      setRetypePassword('');
-      setShowSuccessPopup(null); // Don't show default success popup
-    } catch (e) {
-      alert('Failed to initialize secure storage.');
-    } finally {
-      setCreateLoading(false);
-    }
+    setTimeout(async () => {
+      try {
+        await saveData(masterPassword, JSON.stringify({ notes: [] }));
+        // Generate and store recovery code
+        const code = generateRecoveryCode();
+        setRecoveryCode(code);
+        setShowRecoveryCode(true);
+        const hash = await hashRecoveryCode(code);
+        localStorage.setItem('recoveryCodeHash', hash);
+        localStorage.setItem('recoveryCodeUses', '0');
+        setShowCreatePassword(false);
+        setMasterPassword('');
+        setRetypePassword('');
+        setShowSuccessPopup(null); // Don't show default success popup
+      } catch (e) {
+        alert('Failed to initialize secure storage.');
+      } finally {
+        setCreateLoading(false);
+      }
+    }, 2000); // 2 second delay
   };
 
   const handleImportAuto = () => {

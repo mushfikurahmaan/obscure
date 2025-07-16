@@ -71,7 +71,7 @@ const Index = () => {
       .then(data => {
         clearInterval(interval);
         setProgress(100);
-        setTimeout(() => setLoading(false), 250); // brief pause at 100%
+        setTimeout(() => setLoading(false), 2000); // 3 second pause at 100%
         try {
           const parsed = JSON.parse(data);
           if (Array.isArray(parsed.notes)) {
@@ -95,7 +95,7 @@ const Index = () => {
           setLoading(false);
           sessionStorage.removeItem('masterPassword');
           navigate('/login', { state: { error: 'Incorrect password.' } });
-        }, 400);
+        },2000); // 3 second pause on error
       });
     return () => clearInterval(interval);
   }, [masterPassword, navigate]);
