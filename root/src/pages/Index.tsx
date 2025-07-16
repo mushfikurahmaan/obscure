@@ -15,6 +15,7 @@ import { useTheme } from '../lib/theme';
 import { Progress } from '../components/ui/progress';
 import EmojiMartPicker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
+import { HoldToConfirmButton } from '../components/HoldToConfirmButton';
 
 export interface Note {
   id: string;
@@ -134,12 +135,12 @@ const Index = () => {
 
   // Add state for responsive sidebar overlay
   const [sidebarOverlayOpen, setSidebarOverlayOpen] = useState(false);
-  const [sidebarOverlayMode, setSidebarOverlayMode] = useState(window.innerWidth < 800);
+  const [sidebarOverlayMode, setSidebarOverlayMode] = useState(window.innerWidth < 950);
 
   useEffect(() => {
     const handleResize = () => {
-      setSidebarOverlayMode(window.innerWidth < 800);
-      if (window.innerWidth >= 800) setSidebarOverlayOpen(false);
+      setSidebarOverlayMode(window.innerWidth < 950);
+      if (window.innerWidth >= 950) setSidebarOverlayOpen(false);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -319,6 +320,23 @@ const Index = () => {
       if (unlistenUnmax) unlistenUnmax();
     };
   }, []);
+
+  // Add keyboard shortcuts for new note and search (only on main notes page)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
+        if (e.key.toLowerCase() === 'n') {
+          e.preventDefault();
+          handleCreateNote();
+        } else if (e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          // Optionally focus search if you have a search input
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleCreateNote]);
 
   if (loading) {
     return (
@@ -600,16 +618,17 @@ const Index = () => {
               >
                 Cancel
               </button>
-              <button
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-red-700 transition disabled:opacity-60 bg-red-600 text-white"
-                onClick={() => {
+              <HoldToConfirmButton
+                onHoldComplete={() => {
                   setNotes(notes.filter(note => !note.deleted));
                   setSelectedNote(null);
                   setEmptyTrashDialogOpen(false);
                 }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow text-red-600 hover:text-[hsl(var(--foreground))] hover:bg-muted transition disabled:opacity-60 bg-[hsl(var(--background))] border border-[hsl(var(--border))]"
+                disabled={deletedNotes.length === 0}
               >
-                Empty Trash
-              </button>
+                Press & Hold to Clear Trash
+              </HoldToConfirmButton>
             </div>
           </div>
         </div>

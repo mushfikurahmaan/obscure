@@ -34,6 +34,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem
 } from './ui/dropdown-menu';
+import { HoldToConfirmButton } from './HoldToConfirmButton';
 
 interface SidebarProps {
   notes: Note[];
@@ -176,23 +177,7 @@ export const Sidebar = ({
     };
   }, [isSearchActive]);
 
-  // Keyboard shortcuts: Ctrl+N (new note), Ctrl+K (search)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
-        if (e.key.toLowerCase() === 'n') {
-          e.preventDefault();
-          onCreateNote();
-        } else if (e.key.toLowerCase() === 'k') {
-          e.preventDefault();
-          handleSearchClick();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
+  
   const menuItems = [
     { icon: SquarePlus, label: 'New Note', active: false, onClick: onCreateNote },
   ];
@@ -401,7 +386,7 @@ export const Sidebar = ({
         x: 24,
         y: 24,
         width: 550,
-        windowWidth: 800
+        windowWidth: 950
       });
     } catch (e) {
       alert('Failed to export as PDF.');
@@ -989,9 +974,9 @@ export const Sidebar = ({
                   >
                     Cancel
                   </button>
-                  <button
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-red-700 transition disabled:opacity-60 bg-red-600 text-white"
-                    onClick={handleClearAllData}
+                  <HoldToConfirmButton
+                    onHoldComplete={handleClearAllData}
+                   className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow text-red-600 hover:text-[hsl(var(--foreground))] hover:bg-muted transition disabled:opacity-60 bg-[hsl(var(--background))] border border-[hsl(var(--border))]"
                     disabled={!clearDataPassword || clearDataLoading}
                   >
                     {clearDataLoading ? (
@@ -1011,9 +996,9 @@ export const Sidebar = ({
                         Deleting…
                       </>
                     ) : (
-                      'Delete'
+                      'Press & Hold to Delete'
                     )}
-                  </button>
+                  </HoldToConfirmButton>
                 </div>
               </div>
             </div>
@@ -1761,9 +1746,9 @@ export const Sidebar = ({
               >
                 Cancel
               </button>
-              <button
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-red-700 transition disabled:opacity-60 bg-red-600 text-white"
-                onClick={handleClearAllData}
+              <HoldToConfirmButton
+                onHoldComplete={handleClearAllData}
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow text-red-600 hover:text-[hsl(var(--foreground))] hover:bg-muted transition disabled:opacity-60 bg-[hsl(var(--background))] border border-[hsl(var(--border))]"
                 disabled={!clearDataPassword || clearDataLoading}
               >
                 {clearDataLoading ? (
@@ -1783,9 +1768,9 @@ export const Sidebar = ({
                     Deleting…
                   </>
                 ) : (
-                  'Delete'
+                  'Press & Hold to Delete'
                 )}
-              </button>
+              </HoldToConfirmButton>
             </div>
           </div>
         </div>
@@ -1863,7 +1848,7 @@ export const Sidebar = ({
                   </>
                 ) : (
                   <>
-                <LockOpen className="w-5 h-5" />
+              <LockOpen className="w-5 h-5" />
                     Export Decrypted (.json)
                   </>
                 )}
