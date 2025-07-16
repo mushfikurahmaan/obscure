@@ -30,6 +30,7 @@ const Login = ({ onLogin }: LoginProps) => {
   const [failedAttempts, setFailedAttempts] = useState(() => parseInt(localStorage.getItem('loginFailedAttempts') || '0', 10));
   const [lockoutExpiry, setLockoutExpiry] = useState(() => parseInt(localStorage.getItem('loginLockoutExpiry') || '0', 10));
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
+  const [showFirstLoginMsg, setShowFirstLoginMsg] = useState(false);
 
   useEffect(() => {
     let unlistenResize: (() => void) | undefined;
@@ -68,6 +69,13 @@ const Login = ({ onLogin }: LoginProps) => {
     if (localStorage.getItem('lockedByInactivity')) {
       setShowInactivityLockMsg(true);
       localStorage.removeItem('lockedByInactivity');
+    }
+  }, []);
+
+  useEffect(() => {
+    if (localStorage.getItem('showFirstLoginMessage')) {
+      setShowFirstLoginMsg(true);
+      localStorage.removeItem('showFirstLoginMessage');
     }
   }, []);
 
@@ -180,7 +188,7 @@ const Login = ({ onLogin }: LoginProps) => {
       {/* Window Controls */}
       <div className="absolute top-0 right-0 flex items-center gap-1 z-20 p-2" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
         <button
-          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
+          className="w-10 h-10 px-0 flex items-center justify-center transition-colors select-none window-control-btn"
           title="Minimize"
           onClick={async () => { const window = getCurrentWindow(); await window.minimize(); }}
         >
@@ -188,7 +196,7 @@ const Login = ({ onLogin }: LoginProps) => {
         </button>
         {isMaximized ? (
           <button
-            className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
+            className="w-10 h-10 px-0 flex items-center justify-center transition-colors select-none window-control-btn"
             title="Restore"
             onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
           >
@@ -196,11 +204,11 @@ const Login = ({ onLogin }: LoginProps) => {
           </button>
         ) : (
           <button
-            className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
+            className="w-10 h-10 px-0 flex items-center justify-center transition-colors select-none window-control-btn"
             title="Maximize"
             onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
           >
-            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE922;</span>
+            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 10}}>&#xE922;</span>
           </button>
         )}
         <button
@@ -218,6 +226,11 @@ const Login = ({ onLogin }: LoginProps) => {
           className="w-full max-w-sm rounded-2xl p-8 flex flex-col gap-6 bg-background"
           style={{ WebkitAppRegion: 'no-drag' }}
         >
+          {showFirstLoginMsg && (
+            <div className="w-full mb-2 px-4 py-2 rounded-lg bg-yellow-100 text-yellow-800 text-center text-sm font-medium">
+              To ensure accuracy and enhance security, please enter your password twice.
+            </div>
+          )}
           {showInactivityLockMsg && (
             <div className="w-full mb-2 px-4 py-2 rounded-lg bg-yellow-100 text-yellow-800 text-center text-sm font-medium">
               Your app has been locked due to inactivity.
@@ -333,14 +346,7 @@ const Login = ({ onLogin }: LoginProps) => {
             ) : null}
             <div className="flex flex-col w-full gap-1 mt-2">
               <button
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60 cursor-pointer"
-                onClick={() => { setShowRecoveryPopup(false); setRecoveryCodeInput(''); setNewPassword(''); setConfirmPassword(''); setRecoveryError(''); setResetSuccess(false); }}
-                disabled={recoveryLoading}
-              >
-                Cancel
-              </button>
-              <button
-                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 ${recoveryLoading ? 'bg-indigo-500 text-white' : 'bg-black text-white'}`}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow transition disabled:opacity-60 bg-foreground text-background hover:bg-primary/90`}
                 onClick={handleRecoveryReset}
                 disabled={recoveryLoading || resetsLeft === 0}
               >
@@ -364,6 +370,8 @@ const Login = ({ onLogin }: LoginProps) => {
                   'Reset Password'
                 )}
               </button>
+              <button className="mt-2 text-xs text-muted-foreground hover:underline cursor-pointer" onClick={() => { setShowRecoveryPopup(false); setRecoveryCodeInput(''); setNewPassword(''); setConfirmPassword(''); setRecoveryError(''); setResetSuccess(false); }}
+                disabled={recoveryLoading}>Cancel</button>
             </div>
           </div>
         </div>

@@ -1322,7 +1322,7 @@ const GeneralContextMenu = ({
             <Suspense fallback={<div className="p-4 text-center">Loading…</div>}>
               <EmojiMartPicker
                 data={data}
-                theme={theme === 'dark' ? 'dark' : 'light'}
+                theme={theme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : (theme === 'dark' ? 'dark' : 'light')}
                 onEmojiSelect={(emoji: any) => {
                   onInsertEmoji(emoji.native || '');
                   setShowEmojiPicker(false);

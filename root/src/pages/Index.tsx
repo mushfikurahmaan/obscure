@@ -448,7 +448,7 @@ const Index = () => {
           {/* Window Controls: absolutely positioned at top right */}
           <div className="absolute top-0 right-0 flex items-center gap-1 z-10" style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}>
             <button
-              className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
+               className="w-10 h-10 px-0 flex items-center justify-center transition-colors select-none window-control-btn"
               title="Minimize"
               onClick={async () => { const window = getCurrentWindow(); await window.minimize(); }}
             >
@@ -456,7 +456,7 @@ const Index = () => {
             </button>
             {isMaximized ? (
               <button
-                className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
+                 className="w-10 h-10 px-0 flex items-center justify-center transition-colors select-none window-control-btn"
                 title="Restore"
                 onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
               >
@@ -464,7 +464,7 @@ const Index = () => {
               </button>
             ) : (
               <button
-                className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
+                 className="w-10 h-10 px-0 flex items-center justify-center transition-colors select-none window-control-btn"
                 title="Maximize"
                 onClick={async () => { const window = getCurrentWindow(); await window.toggleMaximize(); }}
               >
@@ -683,7 +683,7 @@ const Index = () => {
         >
           <EmojiMartPicker
             data={data}
-            theme={theme === 'dark' ? 'dark' : 'light'}
+            theme={theme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : (theme === 'dark' ? 'dark' : 'light')}
             onEmojiSelect={(emoji: any) => {
               setFavoriteEmoji(emoji.native || '');
               if (selectedNote) {

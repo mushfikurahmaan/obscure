@@ -463,3 +463,21 @@ body {
   z-index: 1;
 }
 
+.window-control-btn {
+  --hover-bg: #e5e5e5;
+  transition: background-color 0.15s;
+}
+.window-control-btn:hover {
+  background-color: var(--hover-bg);
+}
+.dark .window-control-btn {
+  --hover-bg: #333333;
+}
+
+.window-control-btn > span {
+  color: #000000; /* Light mode icon color */
+}
+
+.dark .window-control-btn > span {
+  color: #fff; /* Dark mode icon color */
+}

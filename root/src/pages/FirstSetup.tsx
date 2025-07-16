@@ -117,6 +117,7 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
         setMasterPassword('');
         setRetypePassword('');
         setShowSuccessPopup(null); // Don't show default success popup
+        localStorage.setItem('showFirstLoginMessage', '1');
       } catch (e) {
         alert('Failed to initialize secure storage.');
       } finally {
@@ -173,6 +174,7 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
       setManualImportPassword('');
       setManualImportLoading(false);
       setShowSuccessPopup('import');
+      localStorage.setItem('showFirstLoginMessage', '1');
     } catch (e) {
       setManualImportLoading(false);
       setManualImportError('Failed to decrypt file. Check your password or file.');
@@ -209,62 +211,62 @@ useEffect(() => {
   }, [carouselApi]);
 
   return (
-    <div className="min-h-screen w-screen h-screen flex items-center justify-center bg-background text-foreground transition-colors duration-300 overflow-hidden"
-      style={{
-        '--window-control-icon':
-          typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-            ? '#ffffff'
-            : '#000000',
-      } as React.CSSProperties}
-    >
-      {/* Window Controls */}
-      <div className="absolute top-0 right-0 flex items-center gap-1 z-10" style={{ WebkitAppRegion: 'drag', height: '2.5rem' }}>
+    <div className="min-h-screen w-screen h-screen flex flex-col items-center justify-center bg-background text-foreground transition-colors duration-300 overflow-hidden">
+      {/* Draggable Title Bar Area */}
+      <div 
+        className="absolute top-0 left-0 w-full h-12 z-10" 
+        style={{ WebkitAppRegion: 'drag' }}
+      >
+        {/* This creates a draggable area across the top */}
+      </div>
+
+      {/* Window Controls - Keep these as no-drag */}
+      <div 
+        className="absolute top-0 right-0 flex items-center gap-1 z-20" 
+        style={{ WebkitAppRegion: 'no-drag', height: '2.5rem' }}
+      >
         <button
-          className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
-          style={{ WebkitAppRegion: 'no-drag' }}
+          className="w-10 h-10 px-0 flex items-center justify-center transition-colors select-none window-control-btn"
           title="Minimize"
           onClick={async () => { 
             const window = getCurrentWindow(); 
             await window.minimize(); 
           }}
         >
-          <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11, color: 'var(--window-control-icon)' }}>&#xE921;</span>
+          <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE921;</span>
         </button>
         {isMaximized ? (
           <button
-            className="w-10 h-10 px-0 flex items-center justify-center hover:bg-gray-200 dark:hover:bg-windowgray transition-colors select-none"
-            style={{ WebkitAppRegion: 'no-drag' }}
+            className="w-10 h-10 px-0 flex items-center justify-center transition-colors select-none window-control-btn"
             title="Restore"
             onClick={async () => { 
               const window = getCurrentWindow(); 
               await window.toggleMaximize(); 
             }}
           >
-            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11, color: 'var(--window-control-icon)' }}>&#xE923;</span>
+            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE923;</span>
           </button>
         ) : (
           <button
-            className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowlight dark:hover:bg-windowgray transition-colors select-none"
-            style={{ WebkitAppRegion: 'no-drag' }}
+            className="w-10 h-10 px-0 flex items-center justify-center transition-colors select-none window-control-btn"
             title="Maximize"
             onClick={async () => { 
               const window = getCurrentWindow(); 
               await window.toggleMaximize(); 
             }}
           >
-            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11, color: 'var(--window-control-icon)' }}>&#xE922;</span>
+            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE922;</span>
           </button>
         )}
         <button
           className="w-10 h-10 px-0 flex items-center justify-center hover:bg-windowred hover:text-white transition-colors select-none"
-          style={{ WebkitAppRegion: 'no-drag' }}
           title="Close"
           onClick={async () => { 
             const window = getCurrentWindow(); 
             await window.close(); 
           }}
         >
-          <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11, color: 'var(--window-control-icon)'}}>&#xE8BB;</span>
+          <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE8BB;</span>
         </button>
       </div>
 
@@ -297,7 +299,8 @@ useEffect(() => {
         />
       </div>
 
-      <div className="w-full h-full flex flex-col items-center justify-center p-0 md:p-8 gap-0 bg-transparent" style={{ WebkitAppRegion: 'no-drag' }}>
+      {/* Main Content - Remove WebkitAppRegion: 'no-drag' or set to 'drag' */}
+      <div className="w-full h-full flex flex-col items-center justify-center p-0 md:p-8 gap-0 bg-transparent">
         <Carousel className="w-full max-w-md mx-auto flex-1 flex flex-col justify-center bg-transparent" setApi={setCarouselApi}>
           <CarouselContent className="bg-transparent">
             {ONBOARDING_STEPS.map((step, idx) => (
@@ -372,13 +375,7 @@ useEffect(() => {
             </div>
             <div className="flex flex-col w-full gap-2 mt-4">
               <button
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60"
-                onClick={() => { setShowCreatePassword(false); setMasterPassword(''); setRetypePassword(''); }}
-              >
-                Cancel
-              </button>
-              <button
-                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 ${createLoading ? 'bg-indigo-500 text-white' : 'bg-black text-white'}`}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow transition disabled:opacity-60 ${createLoading ? 'bg-indigo-500 text-white' : 'bg-foreground text-background'} hover:bg-primary/90`}
                 onClick={handleCreatePassword}
                 disabled={!!passwordValidation || !passwordsMatch || createLoading}
               >
@@ -402,6 +399,7 @@ useEffect(() => {
                   'Set Password'
                 )}
               </button>
+              <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => { setShowCreatePassword(false); setMasterPassword(''); setRetypePassword(''); }}>Cancel</button>
             </div>
           </div>
         </div>
@@ -464,19 +462,7 @@ useEffect(() => {
             {manualImportError && <div className="text-red-500 text-xs mb-1">{manualImportError}</div>}
             <div className="flex flex-col w-full gap-2 mt-4">
               <button
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60"
-                onClick={() => {
-                  setShowImportManualDialog(false);
-                  setManualImportFile(null);
-                  setManualImportPassword('');
-                  setManualImportError('');
-                  setManualImportLoading(false);
-                }}
-              >
-                Cancel
-              </button>
-              <button
-                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow hover:bg-primary/90 transition disabled:opacity-60 cursor-pointer ${manualImportLoading ? 'bg-indigo-500 text-white' : 'bg-black text-white'}`}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow transition disabled:opacity-60 ${manualImportLoading ? 'bg-indigo-500 text-white' : 'bg-foreground text-background'} hover:bg-primary/90 cursor-pointer`}
                 onClick={handleImportManual}
                 disabled={!manualImportFile || !manualImportPassword || manualImportLoading}
               >
@@ -500,6 +486,13 @@ useEffect(() => {
                   'Import and Unlock'
                 )}
               </button>
+              <button className="mt-2 text-xs text-muted-foreground hover:underline" onClick={() => {
+                  setShowImportManualDialog(false);
+                  setManualImportFile(null);
+                  setManualImportPassword('');
+                  setManualImportError('');
+                  setManualImportLoading(false);
+                }}>Cancel</button>
             </div>
           </div>
         </div>
