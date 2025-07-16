@@ -297,7 +297,8 @@ const Index = () => {
 
   // Add isMaximized state
   const [isMaximized, setIsMaximized] = useState(false);
-  // Remove: const [mainContentRef, useRef<HTMLDivElement>(null)];
+  // Ref for main scrollable content
+  const mainContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let unlistenResize: (() => void) | undefined;
@@ -323,6 +324,12 @@ const Index = () => {
   // Add keyboard shortcuts for new note and search (only on main notes page)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Shift+L to lock the app
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'l') {
+        e.preventDefault();
+        handleLock();
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey) {
         if (e.key.toLowerCase() === 'n') {
           e.preventDefault();
@@ -335,7 +342,7 @@ const Index = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleCreateNote]);
+  }, [handleCreateNote, handleLock]);
 
   // Inactivity lock effect
   useEffect(() => {
@@ -532,8 +539,11 @@ const Index = () => {
                     className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate cursor-pointer"
                     style={{ minHeight: '2.25rem', maxWidth: '100%', cursor: 'pointer' }}
                     title={editorTitle}
-                    // Add scroll-to-top on click
-                    onClick={() => { /* mainContentRef.current?.scrollTo({ top: 0, behavior: 'smooth' }); */ }} // mainContentRef is removed
+                    onClick={() => {
+                      if (mainContentRef.current) {
+                        mainContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                    }}
                   >
                     <span
                       className="w-2 h-2 rounded-full mr-2"
@@ -587,7 +597,7 @@ const Index = () => {
           </div>
         </div>
         {/* Main Editor Area (scrollable, with custom thumb) */}
-        <div className="flex-1 overflow-auto custom-scroll-thumb bg-background text-[hsl(var(--foreground))]">
+        <div ref={mainContentRef} className="flex-1 overflow-auto custom-scroll-thumb bg-background text-[hsl(var(--foreground))]">
           {viewingArchived ? (
             <ArchiveNotesGrid
               notes={archivedNotes}
