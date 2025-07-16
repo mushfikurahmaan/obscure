@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Trash, Settings, Archive, SquarePlus, Sun, Moon, Laptop, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, Lock, FileDown, Eye, EyeOff, LockOpen, FileCode2, Scale } from 'lucide-react';
+import { Search, Plus, Trash, Settings, Archive, SquarePlus, Sun, Moon, Laptop, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, Lock, FileDown, Eye, EyeOff, LockOpen, FileCode2, Scale, X, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import type { Note } from '../pages/Index';
 import {
@@ -129,7 +129,16 @@ export const Sidebar = ({
   const [clearDataLoading, setClearDataLoading] = useState(false);
   // Add state for Developer Options popup
   const [developerOptionsOpen, setDeveloperOptionsOpen] = useState(false);
+  // Add state for font selection
+  const [fontSelectorOpen, setFontSelectorOpen] = useState(false);
+  const [selectedFont, setSelectedFont] = useState(() => localStorage.getItem('appFontFamily') || 'spacegrotesk');
 
+  // Apply font to document body or root
+  useEffect(() => {
+    document.body.classList.remove('font-roboto', 'font-inter', 'font-arial', 'font-spacegrotesk');
+    document.body.classList.add(`font-${selectedFont}`);
+    localStorage.setItem('appFontFamily', selectedFont);
+  }, [selectedFont]);
 
   // Handle search activation
   const handleSearchClick = () => {
@@ -1326,6 +1335,12 @@ export const Sidebar = ({
           {developerOptionsOpen && (
             <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
               <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-md flex flex-col items-center border border-[hsl(var(--border))] relative max-h-[32rem]">
+                <button
+                  onClick={() => setDeveloperOptionsOpen(false)}
+                  className="absolute top-4 right-4 p-1 hover:bg-muted rounded-full transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
                 <div className="text-2xl font-bold mb-2 text-center">Developer Options</div>
                 <div className="text-sm text-muted-foreground mb-6 text-center">Advanced tools for debugging and development. (Placeholders)</div>
                 <div className="flex flex-col w-full gap-3 mt-2 overflow-y-auto custom-scroll-thumb" style={{ maxHeight: '18rem' }}>
@@ -1341,13 +1356,48 @@ export const Sidebar = ({
                   <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Open Dev Console</button>
                   <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Clear Emoji/Image Cache</button>
                   <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">View App Logs</button>
+                  {/* Font Selector with Reserved Space */}
+                  <div className="w-full">
+                    {/* Drawer appears above the button and pushes other buttons down */}
+                    <div
+                      className={`transition-all duration-300 ease-in-out overflow-hidden ${fontSelectorOpen ? 'mb-2' : ''}`}
+                      style={{
+                        height: fontSelectorOpen ? '240px' : '0px',
+                        transformOrigin: 'bottom',
+                      }}
+                    >
+                      <div className="w-full flex flex-col gap-2 border border-[hsl(var(--border))] bg-background rounded-xl p-3 shadow-lg h-full">
+                        {["roboto", "inter", "arial", "spacegrotesk"].map((font) => (
+                          <button
+                            key={font}
+                            className={`w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] text-lg transition ${
+                              selectedFont === font
+                                ? "bg-muted font-semibold border-[hsl(var(--border))]"
+                                : "bg-background text-foreground hover:bg-muted"
+                            }`}
+                            style={{ fontFamily: font }}
+                            onClick={() => {
+                              setSelectedFont(font);
+                              setFontSelectorOpen(false);
+                            }}
+                          >
+                            {font.charAt(0).toUpperCase() + font.slice(1)}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition flex items-center justify-between"
+                      onClick={() => setFontSelectorOpen((v) => !v)}
+                      style={{ zIndex: 1, position: 'relative' }}
+                    >
+                      <span>Change Font</span>
+                      <div className={`transform transition-transform duration-300 ${fontSelectorOpen ? 'rotate-180' : ''}`}>
+                        <ChevronDown className="w-4 h-4" />
+                      </div>
+                    </button>
+                  </div>
                 </div>
-                <button
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-foreground text-background hover:bg-muted transition disabled:opacity-60 mt-4"
-                  onClick={() => setDeveloperOptionsOpen(false)}
-                >
-                  Close
-                </button>
               </div>
             </div>
           )}
@@ -1849,8 +1899,8 @@ export const Sidebar = ({
                 ) : (
                   <>
               <LockOpen className="w-5 h-5" />
-                    Export Decrypted (.json)
-                  </>
+                  Export Decrypted (.json)
+                </>
                 )}
               </button>
               {exportJsonError && <div className="text-red-500 text-xs mt-1 text-center">{exportJsonError}</div>}
@@ -2098,6 +2148,12 @@ export const Sidebar = ({
       {developerOptionsOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-background rounded-2xl shadow-2xl p-8 w-full max-w-md flex flex-col items-center border border-[hsl(var(--border))] relative max-h-[32rem]">
+            <button
+              onClick={() => setDeveloperOptionsOpen(false)}
+              className="absolute top-4 right-4 p-1 hover:bg-muted rounded-full transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
             <div className="text-2xl font-bold mb-2 text-center">Developer Options</div>
             <div className="text-sm text-muted-foreground mb-6 text-center">Advanced tools for debugging and development. (Placeholders)</div>
             <div className="flex flex-col w-full gap-3 mt-2 overflow-y-auto custom-scroll-thumb" style={{ maxHeight: '18rem' }}>
@@ -2113,13 +2169,48 @@ export const Sidebar = ({
               <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Open Dev Console</button>
               <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">Clear Emoji/Image Cache</button>
               <button className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition disabled:opacity-60">View App Logs</button>
+              {/* Font Selector with Reserved Space */}
+              <div className="w-full">
+                {/* Drawer appears above the button and pushes other buttons down */}
+                <div
+                  className={`transition-all duration-300 ease-in-out overflow-hidden ${fontSelectorOpen ? 'mb-2' : ''}`}
+                  style={{
+                    height: fontSelectorOpen ? '240px' : '0px',
+                    transformOrigin: 'bottom',
+                  }}
+                >
+                  <div className="w-full flex flex-col gap-2 border border-[hsl(var(--border))] bg-background rounded-xl p-3 shadow-lg h-full">
+                    {["roboto", "inter", "arial", "spacegrotesk"].map((font) => (
+                      <button
+                        key={font}
+                        className={`w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] text-lg transition ${
+                          selectedFont === font
+                            ? "bg-muted font-semibold border-[hsl(var(--border))]"
+                            : "bg-background text-foreground hover:bg-muted"
+                        }`}
+                        style={{ fontFamily: font }}
+                        onClick={() => {
+                          setSelectedFont(font);
+                          setFontSelectorOpen(false);
+                        }}
+                      >
+                        {font.charAt(0).toUpperCase() + font.slice(1)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <button
+                  className="w-full px-4 py-2 rounded-lg border border-[hsl(var(--border))] bg-background text-foreground hover:bg-muted transition flex items-center justify-between"
+                  onClick={() => setFontSelectorOpen((v) => !v)}
+                  style={{ zIndex: 1, position: 'relative' }}
+                >
+                  <span>Change Font</span>
+                  <div className={`transform transition-transform duration-300 ${fontSelectorOpen ? 'rotate-180' : ''}`}>
+                    <ChevronDown className="w-4 h-4" />
+                  </div>
+                </button>
+              </div>
             </div>
-            <button
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow border border-[hsl(var(--border))] bg-foreground text-background hover:bg-muted transition disabled:opacity-60 mt-4"
-              onClick={() => setDeveloperOptionsOpen(false)}
-            >
-              Close
-            </button>
           </div>
         </div>
       )}

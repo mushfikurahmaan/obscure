@@ -8,7 +8,6 @@ import { DeletedNotesGrid } from '../components/DeletedNotesGrid';
 import { ArchiveNotesGrid } from '../components/ArchiveNotesGrid';
 import "../styles/scroll-thumb-only.css";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { FixedSizeGrid as Grid } from 'react-window';
 import { loadData, saveData } from '../lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../lib/theme';

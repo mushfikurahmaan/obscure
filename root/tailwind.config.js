@@ -8,6 +8,10 @@ module.exports = {
       extend: {
         fontFamily: {
           sans: ['Space Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          roboto: ['Roboto', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          inter: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          arial: ['Arial', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          spacegrotesk: ['Space Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],
         },
         colors: {
           background: 'hsl(var(--background))',
