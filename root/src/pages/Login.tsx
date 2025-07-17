@@ -183,6 +183,18 @@ const Login = ({ onLogin }: LoginProps) => {
 
   const resetsLeft = 3 - resetCount;
 
+  // Add password validation helper
+  const validatePassword = (pw: string) => {
+    if (pw.length < 8) return 'Password must be at least 8 characters.';
+    if (!/[a-z]/.test(pw)) return 'Password must include a lowercase letter.';
+    if (!/[A-Z]/.test(pw)) return 'Password must include an uppercase letter.';
+    if (!/[0-9]/.test(pw)) return 'Password must include a number.';
+    if (!/[^a-zA-Z0-9]/.test(pw)) return 'Password must include a special character.';
+    return '';
+  };
+  const passwordValidation = validatePassword(newPassword);
+  const passwordsMatch = newPassword === confirmPassword && newPassword.length > 0;
+
   return (
     <div className="h-screen min-h-0 flex flex-row bg-background transition-colors relative" style={{ WebkitAppRegion: 'drag' }}>
       {/* Window Controls */}
@@ -307,9 +319,11 @@ const Login = ({ onLogin }: LoginProps) => {
               Enter your recovery code and set a new password.<br />
               <span className="font-semibold">Resets left: {3 - resetCount}</span>
             </div>
-            <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2 mb-2 text-center">
-              <b>Warning:</b> Resetting your password will <u>wipe all your notes</u>. Only use this if you have lost your password and accept losing all your data.
-            </div>
+            {resetsLeft > 0 && (
+              <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded p-2 mb-2 text-center">
+                <b>Warning:</b> Resetting your password will <u>wipe all your notes</u>. Only use this if you have lost your password and accept losing all your data.
+              </div>
+            )}
             {resetsLeft === 0 && (
               <div className="text-xs text-red-700 bg-red-100 border border-red-300 rounded p-2 mb-2 text-center font-semibold">
                 Your recovery code has expired. Password reset is no longer possible.
@@ -339,6 +353,13 @@ const Login = ({ onLogin }: LoginProps) => {
                 placeholder="Retype new password"
                 disabled={recoveryLoading || resetsLeft === 0}
               />
+              {/* Real-time feedback */}
+              {newPassword && passwordValidation && (
+                <div className="text-red-500 text-xs mb-1">{passwordValidation}</div>
+              )}
+              {newPassword && !passwordValidation && confirmPassword && !passwordsMatch && (
+                <div className="text-red-500 text-xs mb-1">Passwords do not match.</div>
+              )}
             </div>
             {recoveryError && <div className="text-red-500 text-xs mb-1 text-center">{recoveryError}</div>}
             {resetSuccess ? (
@@ -346,18 +367,26 @@ const Login = ({ onLogin }: LoginProps) => {
             ) : null}
             <div className="flex flex-col w-full gap-1 mt-2">
               <button
-                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow transition disabled:opacity-60 bg-foreground text-background hover:bg-primary/90`}
-                onClick={handleRecoveryReset}
+                className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow transition disabled:opacity-60 cursor-pointer ` +
+                  (recoveryLoading
+                    ? 'bg-indigo-500 text-foreground hover:bg-indigo-800'
+                    : 'bg-foreground text-background hover:bg-primary/90')}
+                onClick={async () => {
+                  setRecoveryLoading(true);
+                  await new Promise(res => setTimeout(res, 2000));
+                  await handleRecoveryReset();
+                  setRecoveryLoading(false);
+                }}
                 disabled={recoveryLoading || resetsLeft === 0}
               >
                 {recoveryLoading ? (
                   <span className="flex items-center gap-2">
-                    <svg className="mr-3 w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                    <svg className="mr-3 w-5 h-5 animate-spin text-foreground" viewBox="0 0 24 24">
                       <circle
                         cx="12"
                         cy="12"
                         r="10"
-                        stroke="white"
+                        stroke="currentColor"
                         strokeWidth="4"
                         fill="none"
                         strokeDasharray="60"

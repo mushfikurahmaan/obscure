@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
-import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { saveData, importData, loadData } from '../lib/utils';
 import { Card, CardContent } from '../components/ui/card';
 import {
@@ -13,6 +13,8 @@ import {
 import { type UseEmblaCarouselType } from 'embla-carousel-react';
 import CustomPasswordInput from '../components/CustomPasswordInput';
 import Orb from './Orb.tsx';
+import MatrixText from '../components/MatrixText';
+import { Progress } from '../components/ui/progress';
 
 interface FirstSetupProps {
   onSetupComplete?: () => void;
@@ -80,6 +82,8 @@ const FirstSetup = ({ }: FirstSetupProps) => {
   const [showRecoveryCode, setShowRecoveryCode] = useState(false);
   // Add state for copy feedback
   const [copied, setCopied] = useState(false);
+  const [showLoading, setShowLoading] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   // Password validation helpers
   const validatePassword = (pw: string) => {
@@ -196,16 +200,18 @@ useEffect(() => {
   }, [carouselApi]);
 
   useEffect(() => {
-    const win = getCurrentWindow();
-  
-    // Set smaller size only for onboarding screen
-    win.setMinSize(new LogicalSize(710, 740));
-  
-    return () => {
-      // Restore global default from tauri.conf.json
-      win.setMinSize(new LogicalSize(612, 626));
-    };
-  }, []);
+    if (!showLoading) return;
+    setLoadingProgress(0);
+    let progress = 0;
+    const interval = setInterval(() => {
+      progress = Math.min(progress + Math.random() * 20, 100);
+      setLoadingProgress(progress);
+      if (progress >= 100) {
+        clearInterval(interval);
+      }
+    }, 120);
+    return () => clearInterval(interval);
+  }, [showLoading]);
 
   return (
     <div className="min-h-screen w-screen h-screen flex flex-col items-center justify-center bg-background text-foreground transition-colors duration-300 overflow-hidden">
@@ -526,10 +532,31 @@ useEffect(() => {
             </div>
             <button
               className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-semibold text-base shadow bg-indigo-500 text-white hover:bg-indigo-800 transition mt-2"
-              onClick={() => { window.location.href = '/login'; }}
+              onClick={() => {
+                setShowLoading(true);
+                setTimeout(() => {
+                  window.location.href = '/login';
+                }, 3000);
+              }}
             >
               Go to Login
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Loading Overlay */}
+      {showLoading && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background text-foreground transition-colors duration-300">
+          <div className="flex flex-col items-center gap-6">
+            <div className="flex flex-col items-center gap-2">
+              <span className="text-2xl font-semibold tracking-wide">
+                <MatrixText text="setting up" /> your vault
+              </span>
+              <span className="text-lg text-muted-foreground">Your private space is being created</span>
+            </div>
+            <Progress value={loadingProgress} className="w-[320px] h-4 bg-secondary" />
+            <span className="text-sm text-muted-foreground mt-2">{Math.round(loadingProgress)}%</span>
           </div>
         </div>
       )}
