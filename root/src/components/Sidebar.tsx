@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Plus, Trash, Settings, Archive, SquarePlus, Sun, Moon, Laptop, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, Lock, FileDown, Eye, EyeOff, LockOpen, FileCode2, Scale, X, ChevronDown } from 'lucide-react';
+import { Search, Plus, Trash, Settings, Archive, SquarePlus, Sun, Moon, Laptop, KeyRound, Upload, Download, Settings2, Info, RefreshCw, Mail, BookOpen, Lock, FileDown, LockOpen, FileCode2, Scale, X, ChevronDown } from 'lucide-react';
 import { Button } from './ui/button';
 import type { Note } from '../pages/Index';
 import {
@@ -9,14 +9,8 @@ import {
   ContextMenuItem,
   ContextMenuSub,
   ContextMenuSubTrigger,
-  ContextMenuSubContent,
-  ContextMenuSeparator,
-  ContextMenuRadioGroup,
-  ContextMenuRadioItem
-} from './ui/context-menu';
-import { useNavigate } from 'react-router-dom';
+  ContextMenuSubContent} from './ui/context-menu';
 import { clearDataFile, exportData, loadData, importData, saveData } from '../lib/utils';
-import { useTheme } from '../lib/theme';
 import jsPDF from 'jspdf';
 import { slateToHtml } from '../lib/slateToHtml';
 import { slateToMarkdown } from '../lib/slateToMarkdown';
@@ -87,13 +81,12 @@ export const Sidebar = ({
   const [activeSection, setActiveSection] = useState<string>('notes'); // Track active sidebar section
   const searchInputRef = useRef<HTMLInputElement>(null);
   const sidebarRef = useRef<HTMLDivElement>(null); // <-- Add ref for sidebar
-  const navigate = useNavigate();
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
   const [exportJsonPassword, setExportJsonPassword] = useState('');
   const [exportJsonError, setExportJsonError] = useState('');
   const [exportingType, setExportingType] = useState<null | 'dat' | 'json'>(null);
-  const [showPassword, setShowPassword] = useState(false);
+  const [, setShowPassword] = useState(false);
   // Add import dialog state and related states
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -107,9 +100,9 @@ export const Sidebar = ({
   const [confirmNewPw, setConfirmNewPw] = useState('');
   const [changePwError, setChangePwError] = useState('');
   const [changePwLoading, setChangePwLoading] = useState(false);
-  const [showCurrentPw, setShowCurrentPw] = useState(false);
-  const [showNewPw, setShowNewPw] = useState(false);
-  const [showConfirmNewPw, setShowConfirmNewPw] = useState(false);
+  const [, setShowCurrentPw] = useState(false);
+  const [, setShowNewPw] = useState(false);
+  const [, setShowConfirmNewPw] = useState(false);
   // Add state for password change confirmation popup
   const [showPwChangeSuccess, setShowPwChangeSuccess] = useState(false);
   // Add state for clear data success popup and countdown
@@ -213,9 +206,6 @@ export const Sidebar = ({
   }, [isSearchActive]);
 
   
-  const menuItems = [
-    { icon: SquarePlus, label: 'New Note', active: false, onClick: onCreateNote },
-  ];
 
   const handleClearAllData = async () => {
     setClearDataError('');

@@ -9,7 +9,6 @@ import type { Note } from '../pages/Index';
 import { formatRelativeDate } from '../lib/utils';
 import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from './ui/context-menu';
 import {ArchiveRestore, Trash2, RotateCcw, Smile } from 'lucide-react';
-import Picker from '@emoji-mart/react';
 import data from '@emoji-mart/data';
 import EmojiMartPicker from '@emoji-mart/react';
 import { useTheme } from '../lib/theme';
@@ -57,7 +56,10 @@ type CustomElement =
   | { type: 'numbered-list'; children: CustomElement[] }
   | { type: 'list-item'; checked?: boolean; children: CustomText[] }
   | { type: 'divider'; children: CustomText[] }
-  | { type: 'emoji'; character: string; children: CustomText[] };
+  | { type: 'emoji'; character: string; children: CustomText[] }
+  | { type: 'table'; children: { type: 'table-row'; children: { type: 'table-cell'; children: CustomText[] }[] }[] }
+  | { type: 'table-row'; children: { type: 'table-cell'; children: CustomText[] }[] }
+  | { type: 'table-cell'; width?: number; height?: number; children: CustomText[] };
 
 declare module 'slate' {
   interface CustomTypes {
@@ -656,14 +658,6 @@ const handleInsertChecklist = () => {
 };
 
 
-const handleInsertEmoji = () => {
-  const char = window.prompt('Enter emoji or special character:');
-  if (!char) return;
-  const { selection } = editor;
-  if (!selection) return;
-  Transforms.insertNodes(editor, { type: 'emoji', character: char, children: [{ text: '' }] }, { at: selection });
-    ReactEditor.focus(editor);
-  };
 
   // Add handler for font family
   const handleFontFamily = (font: string) => {
@@ -1196,7 +1190,7 @@ const withDividers = (editor: ReactEditor) => {
 const withTrailingParagraph = (editor: ReactEditor) => {
   const { normalizeNode } = editor;
   editor.normalizeNode = entry => {
-    const [node, path] = entry;
+    const [, path] = entry;
     // Only check the root node
     if (path.length === 0) {
       const lastNode = editor.children[editor.children.length - 1];
@@ -1225,6 +1219,7 @@ const GeneralContextMenu = ({
   onPaste,
   onCopy,
   onInsertDivider,
+  onInsertTable,
 }: {
   isVisible: boolean;
   position: { x: number; y: number };
@@ -1234,6 +1229,7 @@ const GeneralContextMenu = ({
   onPaste: () => void;
   onCopy: () => void;
   onInsertDivider: () => void;
+  onInsertTable: () => void;
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -1349,6 +1345,14 @@ const GeneralContextMenu = ({
         </button>
         <button
           className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+          title="Table"
+          onClick={() => { onInsertTable(); onClose(); }}
+        >
+          {/* Table icon SVG */}
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
+        </button>
+        <button
+          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
           title="Paste"
           onClick={() => { onPaste(); onClose(); }}
         >
@@ -1373,6 +1377,68 @@ const GeneralContextMenu = ({
   );
 };
 
+// Add TableContextMenu component
+const TableContextMenu = ({
+  isVisible,
+  position,
+  onClose,
+}: {
+  isVisible: boolean;
+  position: { x: number; y: number };
+  onClose: () => void;
+}) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuStyle, setMenuStyle] = useState<{ left: number; top: number } | null>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isVisible, onClose]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const reposition = () => {
+      if (!menuRef.current) return;
+      const menuRect = menuRef.current.getBoundingClientRect();
+      let left = position.x;
+      let top = position.y;
+      if (left + menuRect.width > window.innerWidth) {
+        left = Math.max(8, window.innerWidth - menuRect.width - 8);
+      }
+      if (top + menuRect.height > window.innerHeight) {
+        top = Math.max(8, window.innerHeight - menuRect.height - 8);
+      }
+      setMenuStyle({ left, top });
+    };
+    setTimeout(reposition, 0);
+  }, [isVisible, position.x, position.y]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div
+      ref={menuRef}
+      className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-xl border border-[hsl(var(--context-menu-border))] min-w-[180px] text-sm"
+      style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
+    >
+      <div className="flex flex-col py-1">
+        <button className="px-4 py-2 text-left hover:bg-[hsl(var(--context-menu-hover))] text-sm" disabled>Add Row Above</button>
+        <button className="px-4 py-2 text-left hover:bg-[hsl(var(--context-menu-hover))] text-sm" disabled>Add Row Below</button>
+        <button className="px-4 py-2 text-left hover:bg-[hsl(var(--context-menu-hover))] text-sm" disabled>Add Column Left</button>
+        <button className="px-4 py-2 text-left hover:bg-[hsl(var(--context-menu-hover))] text-sm" disabled>Add Column Right</button>
+        <button className="px-4 py-2 text-left hover:bg-[hsl(var(--context-menu-hover))] text-sm" disabled>Resize Table</button>
+      </div>
+    </div>
+  );
+};
+
 // =========================
 // Main NoteEditor Component
 // =========================
@@ -1383,8 +1449,8 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   // State and Refs
   // -------------------------
   const [title, setTitle] = useState(note.title || '');
-  const [content, setContent] = useState(note.content);
-  const [isContentEmpty, setIsContentEmpty] = useState(true);
+  const [, setContent] = useState(note.content);
+  const [, setIsContentEmpty] = useState(true);
   // Rich text context menu state
   const [showRichTextMenu, setShowRichTextMenu] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -1394,6 +1460,9 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   const titleRef = useRef<HTMLHeadingElement>(null);
   const prevNoteId = useRef(note.id);
   const editorRef = useRef<ReactEditor | null>(null);
+  // Add state for table context menu
+  const [showTableMenu, setShowTableMenu] = useState(false);
+  const [tableMenuPosition, setTableMenuPosition] = useState({ x: 0, y: 0 });
 
   // -------------------------
   // Slate Editor Setup
@@ -1493,6 +1562,89 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
         );
       case 'emoji':
         return <span {...props.attributes} role="img" aria-label="emoji" style={{ fontSize: '1.5em', lineHeight: 1 }}>{props.element.character}{props.children}</span>;
+      // --- Table rendering ---
+      case 'table':
+        return (
+          <div {...props.attributes} className="overflow-auto my-4">
+            <table className="min-w-[200px] border border-[hsl(var(--popover-border))] bg-[hsl(var(--background))]">
+              <tbody>{props.children}</tbody>
+            </table>
+          </div>
+        );
+      case 'table-row':
+        return <tr {...props.attributes}>{props.children}</tr>;
+      case 'table-cell': {
+        // Add resizing logic
+        const cell = props.element;
+        const width = cell.width || 100;
+        const height = cell.height || 40;
+        // Handlers for resizing
+        const startResize = (direction: 'right' | 'bottom', e: React.MouseEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const startX = e.clientX;
+          const startY = e.clientY;
+          const startWidth = width;
+          const startHeight = height;
+          const path = ReactEditor.findPath(editor, cell);
+          const onMouseMove = (moveEvent: MouseEvent) => {
+            if (direction === 'right') {
+              const newWidth = Math.max(40, startWidth + moveEvent.clientX - startX);
+              Transforms.setNodes(editor, { width: newWidth }, { at: path });
+            } else if (direction === 'bottom') {
+              const newHeight = Math.max(20, startHeight + moveEvent.clientY - startY);
+              Transforms.setNodes(editor, { height: newHeight }, { at: path });
+            }
+          };
+          const onMouseUp = () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+          };
+          window.addEventListener('mousemove', onMouseMove);
+          window.addEventListener('mouseup', onMouseUp);
+        };
+        return (
+          <td
+            {...props.attributes}
+            className="border border-[hsl(var(--popover-border))] px-3 py-2 min-w-[40px] min-h-[20px] align-top bg-[hsl(var(--background))] relative group"
+            style={{ verticalAlign: 'top', width, height, position: 'relative' }}
+          >
+            {props.children}
+            {/* Right resizer */}
+            <div
+              onMouseDown={e => startResize('right', e)}
+              style={{
+                position: 'absolute',
+                right: 0,
+                top: 0,
+                width: 6,
+                height: '100%',
+                cursor: 'col-resize',
+                zIndex: 10,
+                background: 'transparent',
+                display: 'block',
+              }}
+              className="group-hover:bg-[hsl(var(--muted))]"
+            />
+            {/* Bottom resizer */}
+            <div
+              onMouseDown={e => startResize('bottom', e)}
+              style={{
+                position: 'absolute',
+                left: 0,
+                bottom: 0,
+                width: '100%',
+                height: 6,
+                cursor: 'row-resize',
+                zIndex: 10,
+                background: 'transparent',
+                display: 'block',
+              }}
+              className="group-hover:bg-[hsl(var(--muted))]"
+            />
+          </td>
+        );
+      }
       default:
         return <p {...props.attributes} style={{ textAlign: alignment }}>{props.children}</p>;
     }
@@ -1639,6 +1791,24 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     handleSave();
   };
   const handleContextMenu = (e: React.MouseEvent) => {
+    // Check if right-clicked on a table
+    let node = e.target as HTMLElement | null;
+    let foundTable = false;
+    while (node) {
+      if (node.tagName === 'TABLE') {
+        foundTable = true;
+        break;
+      }
+      node = node.parentElement;
+    }
+    if (foundTable) {
+      e.preventDefault();
+      setTableMenuPosition({ x: e.clientX, y: e.clientY });
+      setShowTableMenu(true);
+      setShowRichTextMenu(false);
+      setShowGeneralMenu(false);
+      return;
+    }
     const { selection } = editor;
     
     // Only show rich text menu if there's a selection
@@ -1647,11 +1817,13 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
       setMenuPosition({ x: e.clientX, y: e.clientY });
       setShowRichTextMenu(true);
       setShowGeneralMenu(false);
+      setShowTableMenu(false);
     } else {
       e.preventDefault();
       setGeneralMenuPosition({ x: e.clientX, y: e.clientY });
       setShowGeneralMenu(true);
       setShowRichTextMenu(false);
+      setShowTableMenu(false);
     }
   };
   // General menu actions
@@ -1731,6 +1903,35 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     );
     // Move selection to the start of the new paragraph
     Transforms.select(editor, Editor.start(editor, nextPath));
+    ReactEditor.focus(editor);
+  };
+  const handleInsertTable = () => {
+    const { selection } = editor;
+    // Insert a 2x2 table node
+    const tableNode: CustomElement = {
+      type: 'table',
+      children: [
+        {
+          type: 'table-row',
+          children: [
+            { type: 'table-cell', children: [{ text: '' }] },
+            { type: 'table-cell', children: [{ text: '' }] },
+          ],
+        },
+        {
+          type: 'table-row',
+          children: [
+            { type: 'table-cell', children: [{ text: '' }] },
+            { type: 'table-cell', children: [{ text: '' }] },
+          ],
+        },
+      ],
+    };
+    if (!selection) {
+      Transforms.insertNodes(editor, tableNode);
+    } else {
+      Transforms.insertNodes(editor, tableNode, { at: selection });
+    }
     ReactEditor.focus(editor);
   };
 
@@ -1871,6 +2072,13 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
             onPaste={handlePaste}
             onCopy={handleCopy}
             onInsertDivider={handleInsertDivider}
+            onInsertTable={handleInsertTable}
+          />
+          {/* Table context menu */}
+          <TableContextMenu
+            isVisible={showTableMenu}
+            position={tableMenuPosition}
+            onClose={() => setShowTableMenu(false)}
           />
         </div>
       </div>
