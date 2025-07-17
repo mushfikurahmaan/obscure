@@ -18,6 +18,8 @@
         "resizable": true,
         "fullscreen": false,
         "decorations": false,
+        "minHeight": 626,
+        "minWidth": 612,
         "additionalBrowserArgs": "--disable-features=PasswordManager,AutofillPasswordGeneration"
       }
     ],

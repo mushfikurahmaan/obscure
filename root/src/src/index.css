@@ -1,0 +1,16 @@
+html, body {
+  background-color: #18181b;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  html, body {
+    background-color: #fafafa;
+    color-scheme: light;
+  }
+}
+.orb-container {
+  position: relative;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+} 

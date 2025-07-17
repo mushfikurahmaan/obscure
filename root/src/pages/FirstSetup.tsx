@@ -1,9 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/button';
 import { getCurrentWindow, LogicalSize } from "@tauri-apps/api/window";
 import { saveData, importData, loadData } from '../lib/utils';
-import { listen } from "@tauri-apps/api/event";
 import { Card, CardContent } from '../components/ui/card';
 import {
   Carousel,
@@ -12,10 +10,9 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from '../components/ui/carousel';
-import useEmblaCarousel, { type UseEmblaCarouselType } from 'embla-carousel-react';
+import { type UseEmblaCarouselType } from 'embla-carousel-react';
 import CustomPasswordInput from '../components/CustomPasswordInput';
-import crypto from 'crypto';
-import MatrixText from '../components/MatrixText';
+import Orb from './Orb.tsx';
 
 interface FirstSetupProps {
   onSetupComplete?: () => void;
@@ -60,16 +57,15 @@ const hashRecoveryCode = (code: string) => {
   });
 };
 
-const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
-  const navigate = useNavigate();
+const FirstSetup = ({ }: FirstSetupProps) => {
   const [showCreatePassword, setShowCreatePassword] = useState(false);
-  const [showImportAuto, setShowImportAuto] = useState(false);
-  const [showImportManual, setShowImportManual] = useState(false);
+  const [] = useState(false);
+  const [] = useState(false);
   const [masterPassword, setMasterPassword] = useState('');
   const [retypePassword, setRetypePassword] = useState('');
-  const [importPassword, setImportPassword] = useState('');
-  const [importFile, setImportFile] = useState<File | null>(null);
-  const [importError, setImportError] = useState('');
+  const [] = useState('');
+  const [] = useState<File | null>(null);
+  const [] = useState('');
   const [showImportManualDialog, setShowImportManualDialog] = useState(false);
   const [manualImportFile, setManualImportFile] = useState<File | null>(null);
   const [manualImportPassword, setManualImportPassword] = useState('');
@@ -126,17 +122,6 @@ const FirstSetup = ({ onSetupComplete }: FirstSetupProps) => {
     }, 2000); // 2 second delay
   };
 
-  const handleImportAuto = () => {
-    if (localStorage.getItem('userData')) {
-      setShowImportAuto(false);
-      setImportPassword('');
-      if (onSetupComplete) onSetupComplete();
-      else navigate('/login');
-    } else {
-      setShowImportAuto(false);
-      setShowImportManual(true);
-    }
-  };
 
   const handleImportManual = async () => {
     if (!manualImportFile || !manualImportPassword) {
@@ -210,6 +195,18 @@ useEffect(() => {
     return () => { carouselApi.off('select', onSelect); };
   }, [carouselApi]);
 
+  useEffect(() => {
+    const win = getCurrentWindow();
+  
+    // Set smaller size only for onboarding screen
+    win.setMinSize(new LogicalSize(710, 740));
+  
+    return () => {
+      // Restore global default from tauri.conf.json
+      win.setMinSize(new LogicalSize(612, 626));
+    };
+  }, []);
+
   return (
     <div className="min-h-screen w-screen h-screen flex flex-col items-center justify-center bg-background text-foreground transition-colors duration-300 overflow-hidden">
       {/* Draggable Title Bar Area */}
@@ -270,38 +267,21 @@ useEffect(() => {
         </button>
       </div>
 
-      {/* Improved Light Bar Effect */}
-      <div className="absolute top-0 left-0 w-full flex justify-center pointer-events-none" style={{ zIndex: 20, height: '100vh' }}>
-        {/* Light bar right at the top edge */}
-        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-24 h-1">
-          {/* Main light bar */}
-          <div className="w-24 h-1 bg-indigo-500 rounded-full"></div>
-          {/* Inner bright glow */}
-          <div className="absolute top-0 left-0 w-24 h-1 bg-indigo-400 rounded-full blur-sm opacity-80"></div>
-          {/* Medium glow */}
-          <div className="absolute -top-0.5 -left-1 w-26 h-2 bg-indigo-400 rounded-full blur-md opacity-40"></div>
-          {/* Outer soft glow */}
-          <div className="absolute -top-1 -left-2 w-28 h-3 bg-indigo-300 rounded-full blur-lg opacity-25"></div>
-        </div>
-        {/* Smooth radial light effect for light mode */}
-        <div
-          className="absolute top-0 left-0 w-full h-screen pointer-events-none dark:hidden"
-          style={{
-            background: 'radial-gradient(circle at 50% 0%, rgba(99,102,241,0.45) 0%, rgba(99,102,241,0.10) 60%, transparent 100%)',
-          }}
-        />
-        {/* Smooth radial light effect for dark mode */}
-        <div
-          className="hidden dark:block absolute top-0 left-0 w-full h-screen pointer-events-none"
-          style={{
-            background: 'radial-gradient(circle at 50% 0%, rgba(99,102,241,0.30) 0%, rgba(99,102,241,0.08) 55%, transparent 100%)',
-          }}
+      {/* Main Content - Orb with carousel inside */}
+      <div className="w-full h-full flex flex-col items-center justify-center p-0 md:p-8 gap-0 bg-transparent flex-1">
+        <div className="relative flex items-center justify-center w-full h-full" style={{ minHeight: '800px' }}>
+          {/* Orb as background */}
+          <div className="absolute left-1/2 top-1/2" style={{ transform: 'translate(-50%, -50%)', width: '800px', height: '800px', zIndex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Orb
+              hoverIntensity={0.5}
+              rotateOnHover={true}
+              hue={0}
+              forceHoverState={false}
         />
       </div>
-
-      {/* Main Content - Remove WebkitAppRegion: 'no-drag' or set to 'drag' */}
-      <div className="w-full h-full flex flex-col items-center justify-center p-0 md:p-8 gap-0 bg-transparent">
-        <Carousel className="w-full max-w-md mx-auto flex-1 flex flex-col justify-center bg-transparent" setApi={setCarouselApi}>
+          {/* Carousel content overlayed in the center of the orb */}
+          <div className="absolute left-1/2 top-1/2 flex flex-col items-center justify-center w-full" style={{ transform: 'translate(-50%, -50%)', width: '500px', maxWidth: '90vw', zIndex: 2 }}>
+            <Carousel className="w-full mx-auto flex-1 flex flex-col justify-center bg-transparent" setApi={setCarouselApi}>
           <CarouselContent className="bg-transparent">
             {ONBOARDING_STEPS.map((step, idx) => (
               <CarouselItem key={idx} className="bg-transparent">
@@ -327,10 +307,44 @@ useEffect(() => {
               </CarouselItem>
             ))}
           </CarouselContent>
-          <CarouselPrevious />
-          <CarouselNext />
+          {/* Carousel Navigation */}
+          <CarouselPrevious 
+            className="-left-12 rounded-full border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-md hover:bg-white/20 transition-all duration-300"
+            style={{
+              boxShadow: '0 4px 32px 0 rgba(0,0,0,0.15)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              background: 'rgba(255,255,255,0.10)',
+              color: 'white',
+              width: '48px',
+              height: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.5rem',
+              zIndex: 10
+            }}
+          />
+          <CarouselNext 
+            className="-right-12 rounded-full border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-md hover:bg-white/20 transition-all duration-300"
+            style={{
+              boxShadow: '0 4px 32px 0 rgba(0,0,0,0.15)',
+              backdropFilter: 'blur(12px)',
+              WebkitBackdropFilter: 'blur(12px)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              background: 'rgba(255,255,255,0.10)',
+              color: 'white',
+              width: '48px',
+              height: '48px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.5rem',
+              zIndex: 10
+            }}
+          />
         </Carousel>
-        
         {/* Progress bar */}
         <div className="flex flex-row gap-2 mt-8 justify-center w-full bg-transparent">
           {ONBOARDING_STEPS.map((_, idx) => (
@@ -339,6 +353,8 @@ useEffect(() => {
               className={`w-2 h-2 rounded-full border-2 ${carouselIndex === idx ? 'bg-indigo-500 border-indigo-500' : 'bg-neutral-300 dark:bg-neutral-700 border-neutral-400 dark:border-neutral-500'} transition-all bg-transparent`}
             />
           ))}
+            </div>
+          </div>
         </div>
       </div>
 
