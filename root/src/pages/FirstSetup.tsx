@@ -255,7 +255,7 @@ useEffect(() => {
               await window.toggleMaximize(); 
             }}
           >
-            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 11 }}>&#xE922;</span>
+            <span style={{ fontFamily: 'Segoe MDL2 Assets', fontSize: 10 }}>&#xE922;</span>
           </button>
         )}
         <button
