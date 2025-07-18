@@ -3,7 +3,7 @@
 // =========================
 import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { createEditor, type Descendant, Editor, Transforms, Range, Element as SlateElement } from 'slate';
-import { Slate, Editable, withReact, ReactEditor } from 'slate-react';
+import { Slate, Editable, withReact, ReactEditor, useSelected, useFocused } from 'slate-react';
 import { withHistory } from 'slate-history';
 import type { Note } from '../pages/Index';
 import { formatRelativeDate } from '../lib/utils';
@@ -1209,6 +1209,13 @@ const withTrailingParagraph = (editor: ReactEditor) => {
   return editor;
 };
 
+// Plugin: Treat 'image' elements as void
+const withImages = (editor: ReactEditor) => {
+  const { isVoid } = editor;
+  editor.isVoid = element => element.type === 'image' ? true : isVoid(element);
+  return editor;
+};
+
 // --- Add: New context menu for no selection ---
 const GeneralContextMenu = ({
   isVisible,
@@ -1472,8 +1479,10 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     const e = withTrailingParagraph(
       withDividers(
         withLinks(
+          withImages(
           withHistory(
             withReact(createEditor())
+            )
           )
         )
       )
@@ -1512,13 +1521,121 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
             {props.children}
           </a>
         );
-      case 'image':
+      case 'image': {
+        // --- Image resizing logic ---
+        const selected = useSelected();
+        const focused = useFocused();
+        const isSelected = selected && focused;
+        const width = props.element.width || 320;
+        const height = props.element.height || 180;
+        // Handler for resizing
+        const startResize = (e: React.MouseEvent, direction: string) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const startX = e.clientX;
+          const startY = e.clientY;
+          const startWidth = width;
+          const startHeight = height;
+          const path = ReactEditor.findPath(editor, props.element);
+          const onMouseMove = (moveEvent: MouseEvent) => {
+            let newWidth = startWidth;
+            let newHeight = startHeight;
+            const dx = moveEvent.clientX - startX;
+            const dy = moveEvent.clientY - startY;
+            switch (direction) {
+              case 'right':
+                newWidth = Math.max(40, startWidth + dx);
+                break;
+              case 'left':
+                newWidth = Math.max(40, startWidth - dx);
+                break;
+              case 'bottom':
+                newHeight = Math.max(40, startHeight + dy);
+                break;
+              case 'top':
+                newHeight = Math.max(40, startHeight - dy);
+                break;
+              case 'bottom-right':
+                newWidth = Math.max(40, startWidth + dx);
+                newHeight = Math.max(40, startHeight + dy);
+                break;
+              case 'bottom-left':
+                newWidth = Math.max(40, startWidth - dx);
+                newHeight = Math.max(40, startHeight + dy);
+                break;
+              case 'top-right':
+                newWidth = Math.max(40, startWidth + dx);
+                newHeight = Math.max(40, startHeight - dy);
+                break;
+              case 'top-left':
+                newWidth = Math.max(40, startWidth - dx);
+                newHeight = Math.max(40, startHeight - dy);
+                break;
+            }
+            Transforms.setNodes(editor, { width: newWidth, height: newHeight }, { at: path });
+          };
+          const onMouseUp = () => {
+            window.removeEventListener('mousemove', onMouseMove);
+            window.removeEventListener('mouseup', onMouseUp);
+          };
+          window.addEventListener('mousemove', onMouseMove);
+          window.addEventListener('mouseup', onMouseUp);
+        };
+        // Handle positions and directions
+        const handles = [
+          { dir: 'top-left', style: { left: -8, top: -8, cursor: 'nwse-resize' } },
+          { dir: 'top', style: { left: '50%', top: -8, transform: 'translateX(-50%)', cursor: 'ns-resize' } },
+          { dir: 'top-right', style: { right: -8, top: -8, cursor: 'nesw-resize' } },
+          { dir: 'right', style: { right: -8, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize' } },
+          { dir: 'bottom-right', style: { right: -8, bottom: -8, cursor: 'nwse-resize' } },
+          { dir: 'bottom', style: { left: '50%', bottom: -8, transform: 'translateX(-50%)', cursor: 'ns-resize' } },
+          { dir: 'bottom-left', style: { left: -8, bottom: -8, cursor: 'nesw-resize' } },
+          { dir: 'left', style: { left: -8, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize' } },
+        ];
         return (
-          <div {...props.attributes} style={{ textAlign: alignment }}>
-            <img src={props.element.url} alt="" style={{ maxWidth: '100%', maxHeight: 320, borderRadius: 8, margin: '12px 0' }} />
+          <div {...props.attributes} style={{ textAlign: alignment, position: 'relative', display: 'inline-block' }}>
+            <img
+              src={props.element.url}
+              alt=""
+              style={{
+                maxWidth: '100%',
+                width,
+                height,
+                borderRadius: 8,
+                margin: '12px 0',
+                boxShadow: isSelected ? '0 0 0 2px #2563eb' : undefined,
+                transition: 'box-shadow 0.2s',
+                cursor: isSelected ? 'pointer' : undefined,
+                userSelect: 'none',
+                display: 'block',
+              }}
+              draggable={false}
+            />
+            {/* Resize handles: all corners and sides */}
+            {isSelected && handles.map(h => (
+              <div
+                key={h.dir}
+                style={{
+                  position: 'absolute',
+                  width: 10,
+                  height: 10,
+                  background: '#2563eb',
+                  borderRadius: '50%',
+                  zIndex: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  ...h.style,
+                }}
+                onMouseDown={e => startResize(e, h.dir)}
+              >
+                {/* No SVG needed, just a blue dot */}
+              </div>
+            ))}
             {props.children}
           </div>
         );
+      }
       case 'bulleted-list':
         return <ul {...props.attributes} className="list-disc list-outside" style={{ textAlign: alignment, paddingLeft: 24, margin: '8px 0' }}>{props.children}</ul>;
       case 'numbered-list':
