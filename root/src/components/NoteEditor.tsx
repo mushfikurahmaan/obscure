@@ -3,7 +3,7 @@
 // =========================
 import { useState, useEffect, useRef, useCallback, useMemo, Suspense } from 'react';
 import { createEditor, type Descendant, Editor, Transforms, Range, Element as SlateElement } from 'slate';
-import { Slate, Editable, withReact, ReactEditor, useSelected, useFocused } from 'slate-react';
+import { Slate, Editable, withReact, ReactEditor} from 'slate-react';
 import { withHistory } from 'slate-history';
 import type { Note } from '../pages/Index';
 import { formatRelativeDate } from '../lib/utils';
@@ -51,15 +51,11 @@ type CustomText = {
 type CustomElement =
   | { type: 'paragraph' | 'code-block'; alignment?: 'left' | 'center' | 'right' | 'justify'; children: CustomText[] }
   | { type: 'link'; url: string; children: CustomText[] }
-  | { type: 'image'; url: string; children: CustomText[] }
   | { type: 'bulleted-list'; children: CustomElement[] }
   | { type: 'numbered-list'; children: CustomElement[] }
   | { type: 'list-item'; checked?: boolean; children: CustomText[] }
   | { type: 'divider'; children: CustomText[] }
-  | { type: 'emoji'; character: string; children: CustomText[] }
-  | { type: 'table'; children: { type: 'table-row'; children: { type: 'table-cell'; children: CustomText[] }[] }[] }
-  | { type: 'table-row'; children: { type: 'table-cell'; children: CustomText[] }[] }
-  | { type: 'table-cell'; width?: number; height?: number; children: CustomText[] };
+  | { type: 'emoji'; character: string; children: CustomText[] };
 
 declare module 'slate' {
   interface CustomTypes {
@@ -216,6 +212,7 @@ const RichTextContextMenu = ({
   position: { x: number; y: number };
   onClose: () => void;
 }) => {
+  // --- ALL HOOKS AT THE TOP ---
   const [showHighlighterPalette, setShowHighlighterPalette] = useState(false);
   const [showTextColorPalette, setShowTextColorPalette] = useState(false);
   const [selectedHighlightColor, setSelectedHighlightColor] = useState('#FFFF00');
@@ -228,44 +225,49 @@ const RichTextContextMenu = ({
   const [showFontFamilyDropdown, setShowFontFamilyDropdown] = useState(false);
   const [fontFamilyDropdownDirection, setFontFamilyDropdownDirection] = useState<'down' | 'up'>('down');
   const fontFamilyDropdownButtonRef = useRef<HTMLButtonElement>(null);
-
   // --- NEW: Track menu and palette positions ---
   const [menuStyle, setMenuStyle] = useState<{ left: number; top: number } | null>(null);
   const [paletteDirection, setPaletteDirection] = useState<'right' | 'left'>('right');
-
   // Add state for dropdown direction
   const [fontSizeDropdownDirection, setFontSizeDropdownDirection] = useState<'down' | 'up'>('down');
   const textDropdownButtonRef = useRef<HTMLButtonElement>(null);
-
   // In RichTextContextMenu, replace the color palette for text color and highlighter with a hex input, preview, and apply button
   // Add state for hex input for both text color and highlighter
   const [textColorInput, setTextColorInput] = useState(selectedTextColor);
   const [highlightColorInput, setHighlightColorInput] = useState(selectedHighlightColor);
-
   // Helper to validate hex
   const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{6})$/.test(hex);
-
-  // Handle clicks outside the menu to close it
+  // --- NEW: State for Link Panel ---
+  const [showLinkPanel, setShowLinkPanel] = useState(false);
+  const [linkInput, setLinkInput] = useState('');
+  const linkPanelRef = useRef<HTMLDivElement>(null);
+  const linkButtonRef = useRef<HTMLButtonElement>(null);
+  // --- NEW: Helper to get current link (if any) ---
+  const getCurrentLink = () => {
+    const { selection } = editor;
+    if (!selection) return '';
+    const [match] = Editor.nodes(editor, {
+      at: selection,
+      match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link',
+    });
+    return match && SlateElement.isElement(match[0]) ? (match[0] as any).url || '' : '';
+  };
+  // --- NEW: Close Link Panel on outside click ---
   useEffect(() => {
+    if (!showLinkPanel) return;
     const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
+      if (
+        (linkPanelRef.current && linkPanelRef.current.contains(e.target as Node)) ||
+        (linkButtonRef.current && linkButtonRef.current.contains(e.target as Node))
+      ) {
+        return;
       }
-      if (highlighterRef.current && !highlighterRef.current.contains(e.target as Node)) {
-        setShowHighlighterPalette(false);
-      }
-      if (textColorRef.current && !textColorRef.current.contains(e.target as Node)) {
-        setShowTextColorPalette(false);
-      }
-      if (showFontSizeDropdown && !menuRef.current?.contains(e.target as Node)) {
-        setShowFontSizeDropdown(false);
-      }
+      setShowLinkPanel(false);
     };
-    if (isVisible) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isVisible, onClose, showFontSizeDropdown]);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showLinkPanel]);
+  // --- END HOOKS ---
 
   // --- NEW: Reposition menu and palettes to stay in viewport ---
   useEffect(() => {
@@ -296,6 +298,56 @@ const RichTextContextMenu = ({
     // Timeout to allow menu to render and get dimensions
     setTimeout(reposition, 0);
   }, [isVisible, position.x, position.y]);
+
+  // --- Restore: Close context menu and palettes on outside click ---
+  useEffect(() => {
+    if (!isVisible) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      // If click is inside the main menu, do nothing
+      if (menuRef.current && menuRef.current.contains(e.target as Node)) {
+        return;
+      }
+      // If click is inside the highlighter palette, do nothing
+      if (highlighterRef.current && highlighterRef.current.contains(e.target as Node)) {
+        return;
+      }
+      // If click is inside the text color palette, do nothing
+      if (textColorRef.current && textColorRef.current.contains(e.target as Node)) {
+        return;
+      }
+      // If click is inside the link panel, do nothing
+      if (linkPanelRef.current && linkPanelRef.current.contains(e.target as Node)) {
+        return;
+      }
+      // If click is inside the link button, do nothing
+      if (linkButtonRef.current && linkButtonRef.current.contains(e.target as Node)) {
+        return;
+      }
+      // Otherwise, close everything
+      onClose();
+      setShowHighlighterPalette(false);
+      setShowTextColorPalette(false);
+      setShowFontSizeDropdown(false);
+      setShowFontFamilyDropdown(false);
+      setShowLinkPanel(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isVisible, onClose]);
+
+  // --- New: Set link slider direction based on available space ---
+  useEffect(() => {
+    if (!showLinkPanel) return;
+    if (!linkButtonRef.current) return;
+    const rect = linkButtonRef.current.getBoundingClientRect();
+    const sliderWidth = 240;
+    // Check if there's enough space to the right
+    if (rect.right + sliderWidth > window.innerWidth) {
+      setPaletteDirection('left');
+    } else {
+      setPaletteDirection('right');
+    }
+  }, [showLinkPanel]);
 
   if (!isVisible) return null;
 
@@ -422,25 +474,54 @@ const RichTextContextMenu = ({
     setShowTextColorPalette(false);
   };
 
-  const insertLink = () => {
-    const url = window.prompt('Enter the URL for the link:');
-    if (!url) return;
+  // --- NEW: Open Link Panel ---
+  const handleLinkClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowLinkPanel(v => {
+      const next = !v;
+      if (next) {
+        setLinkInput(getCurrentLink());
+        setShowHighlighterPalette(false);
+        setShowTextColorPalette(false);
+        setShowFontSizeDropdown(false);
+        setShowFontFamilyDropdown(false);
+      }
+      return next;
+    });
+  };
+
+  // --- NEW: Apply Link ---
+  const handleApplyLink = () => {
+    if (!linkInput.trim()) return;
     if (editor.selection && !Range.isCollapsed(editor.selection)) {
+      // Remove existing link first
+      Transforms.unwrapNodes(editor, {
+        match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link',
+        split: true,
+        at: editor.selection,
+      });
+      // Wrap selection with new link
       Transforms.wrapNodes(
         editor,
-        { type: 'link', url, children: [] },
+        { type: 'link', url: linkInput.trim(), children: [] },
         { split: true, at: editor.selection }
       );
     }
     ReactEditor.focus(editor);
+    setShowLinkPanel(false);
   };
-  const removeLink = () => {
-    Transforms.unwrapNodes(editor, { match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link' });
+
+  // --- NEW: Remove Link ---
+  const handleRemoveLink = () => {
+    if (editor.selection) {
+      Transforms.unwrapNodes(editor, {
+        match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link',
+        split: true,
+        at: editor.selection,
+      });
+    }
     ReactEditor.focus(editor);
-  };
-  const isLinkActive = () => {
-    const [match] = Editor.nodes(editor, { match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link' });
-    return !!match;
+    setShowLinkPanel(false);
   };
 
   const getActiveAlignment = () => {
@@ -887,9 +968,9 @@ const handleInsertChecklist = () => {
               right: paletteDirection === 'left' ? '100%' : undefined,
               marginLeft: paletteDirection === 'right' ? 8 : undefined,
               marginRight: paletteDirection === 'left' ? 8 : undefined,
-              width: showTextColorPalette ? 190 : 0,
-              minWidth: showTextColorPalette ? 190 : 0,
-              maxWidth: 190,
+              width: showTextColorPalette ? 'auto' : 0,
+              minWidth: showTextColorPalette ? 0 : 0,
+              maxWidth: 'none',
               opacity: showTextColorPalette ? 1 : 0,
               borderRadius: 10,
               boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
@@ -936,7 +1017,8 @@ const handleInsertChecklist = () => {
                 height: 24,
                 borderRadius: '50%',
                 background: isValidHex(textColorInput) ? textColorInput : '#222',
-                border: '2px solid #222',
+                border: '2px solid #fff',
+                boxShadow: '0 0 0 2px #222',
                 marginRight: 8,
                 transition: 'background 0.2s',
                 flexShrink: 0,
@@ -952,20 +1034,54 @@ const handleInsertChecklist = () => {
               }}
               disabled={!isValidHex(textColorInput)}
               style={{
-                width: 24,
-                height: 24,
+                width: 28,
+                height: 28,
                 borderRadius: '50%',
-                background: isValidHex(textColorInput) ? '#6366F1' : '#888',
+                background: isValidHex(textColorInput)
+                  ? 'rgba(99,102,241,0.85)'
+                  : 'rgba(136,136,136,0.18)',
+                color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: 'none',
+                border: '1px solid rgba(255,255,255,0.18)',
                 cursor: isValidHex(textColorInput) ? 'pointer' : 'not-allowed',
                 transition: 'background 0.2s',
                 flexShrink: 0,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                marginRight: 4,
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </button>
+            {/* Close/Unapply Text Color Button */}
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                // Remove color mark from selection
+                Editor.removeMark(editor, 'color');
+                setShowTextColorPalette(false);
+              }}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: 'rgba(239,68,68,0.85)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(255,255,255,0.18)',
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+                flexShrink: 0,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+              title="Remove Text Color"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
         </div>
@@ -993,9 +1109,9 @@ const handleInsertChecklist = () => {
               right: paletteDirection === 'left' ? '100%' : undefined,
               marginLeft: paletteDirection === 'right' ? 8 : undefined,
               marginRight: paletteDirection === 'left' ? 8 : undefined,
-              width: showHighlighterPalette ? 190 : 0,
-              minWidth: showHighlighterPalette ? 190 : 0,
-              maxWidth: 190,
+              width: showHighlighterPalette ? 'auto' : 0,
+              minWidth: showHighlighterPalette ? 0 : 0,
+              maxWidth: 'none',
               opacity: showHighlighterPalette ? 1 : 0,
               borderRadius: 10,
               boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
@@ -1042,7 +1158,8 @@ const handleInsertChecklist = () => {
                 height: 24,
                 borderRadius: '50%',
                 background: isValidHex(highlightColorInput) ? highlightColorInput : '#222',
-                border: '2px solid #222',
+                border: '2px solid #fff',
+                boxShadow: '0 0 0 2px #222',
                 marginRight: 8,
                 transition: 'background 0.2s',
                 flexShrink: 0,
@@ -1058,20 +1175,55 @@ const handleInsertChecklist = () => {
               }}
               disabled={!isValidHex(highlightColorInput)}
               style={{
-                width: 24,
-                height: 24,
+                width: 28,
+                height: 28,
                 borderRadius: '50%',
-                background: isValidHex(highlightColorInput) ? '#6366F1' : '#888',
+                background: isValidHex(highlightColorInput)
+                  ? 'rgba(99,102,241,0.85)'
+                  : 'rgba(136,136,136,0.18)',
+                color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                border: 'none',
+                border: '1px solid rgba(255,255,255,0.18)',
                 cursor: isValidHex(highlightColorInput) ? 'pointer' : 'not-allowed',
                 transition: 'background 0.2s',
                 flexShrink: 0,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                marginRight: 4,
               }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </button>
+            {/* Close/Unapply Highlighter Button */}
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                // Remove highlight and highlightColor marks from selection
+                Editor.removeMark(editor, 'highlight');
+                Editor.removeMark(editor, 'highlightColor');
+                setShowHighlighterPalette(false);
+              }}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: 'rgba(239,68,68,0.85)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(255,255,255,0.18)',
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+                flexShrink: 0,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+              title="Remove Highlight"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
             </button>
           </div>
         </div>
@@ -1088,13 +1240,130 @@ const handleInsertChecklist = () => {
         </button>
 
       {/* Link Button */}
-      <button
+      <div className="relative">
+        <button
           className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
           title="Link"
-          onClick={() => (isLinkActive() ? removeLink() : insertLink())}
+          onClick={handleLinkClick}
+          ref={linkButtonRef}
         >
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
-      </button>
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+        </button>
+        {/* Link Panel Slider */}
+        <div
+          ref={linkPanelRef}
+          className="absolute flex items-center bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--code-block-background))] shadow-xl rounded-lg"
+          style={{
+            left: paletteDirection === 'right' ? '100%' : undefined,
+            right: paletteDirection === 'left' ? '100%' : undefined,
+            marginLeft: paletteDirection === 'right' ? 8 : undefined,
+            marginRight: paletteDirection === 'left' ? 8 : undefined,
+            width: showLinkPanel ? 240 : 0,
+            minWidth: showLinkPanel ? 240 : 0,
+            maxWidth: 240,
+            opacity: showLinkPanel ? 1 : 0,
+            borderRadius: 10,
+            boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+            zIndex: 100,
+            display: showLinkPanel ? 'flex' : 'none',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            padding: '0.25rem 0.5rem',
+            background: 'hsl(var(--background))',
+            transition: 'all 0.2s',
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 0,
+          }}
+        >
+          <input
+            type="text"
+            value={linkInput}
+            onChange={e => setLinkInput(e.target.value)}
+            placeholder="Paste or type URL"
+            className="px-2 py-1 text-base outline-none placeholder:text-[hsl(var(--muted-foreground))]"
+            style={{
+              border: '1px solid hsl(var(--input))',
+              height: 32,
+              fontSize: 14,
+              background: 'hsl(var(--background))',
+              color: 'hsl(var(--foreground))',
+              borderRadius: 6,
+              flex: 1,
+              minWidth: 0,
+              marginRight: 8,
+            }}
+            autoFocus
+            onKeyDown={e => {
+              if (e.key === 'Enter' && linkInput.trim()) {
+                handleApplyLink();
+              }
+              if (e.key === 'Escape') {
+                setShowLinkPanel(false);
+              }
+            }}
+          />
+          <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
+            {/* Apply Link Button */}
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                if (linkInput.trim()) handleApplyLink();
+              }}
+              disabled={!linkInput.trim()}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: linkInput.trim()
+                  ? 'rgba(99,102,241,0.85)'
+                  : 'rgba(136,136,136,0.18)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(255,255,255,0.18)',
+                cursor: linkInput.trim() ? 'pointer' : 'not-allowed',
+                transition: 'background 0.2s',
+                flexShrink: 0,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </button>
+            {/* Remove Link Button */}
+            <button
+              onClick={e => {
+                e.stopPropagation();
+                handleRemoveLink();
+              }}
+              disabled={!getCurrentLink()}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: getCurrentLink()
+                  ? 'rgba(239,68,68,0.85)'
+                  : 'rgba(136,136,136,0.18)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid rgba(255,255,255,0.18)',
+                cursor: getCurrentLink() ? 'pointer' : 'not-allowed',
+                transition: 'background 0.2s',
+                flexShrink: 0,
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+              }}
+              title="Remove Link"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+          </div>
+        </div>
+      </div>
       <button
         className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
         title="Numbered List"
@@ -1209,34 +1478,19 @@ const withTrailingParagraph = (editor: ReactEditor) => {
   return editor;
 };
 
-// Plugin: Treat 'image' elements as void
-const withImages = (editor: ReactEditor) => {
-  const { isVoid } = editor;
-  editor.isVoid = element => element.type === 'image' ? true : isVoid(element);
-  return editor;
-};
-
 // --- Add: New context menu for no selection ---
 const GeneralContextMenu = ({
   isVisible,
   position,
   onClose,
   onInsertEmoji,
-  onImageUpload,
-  onPaste,
-  onCopy,
   onInsertDivider,
-  onInsertTable,
 }: {
   isVisible: boolean;
   position: { x: number; y: number };
   onClose: () => void;
   onInsertEmoji: (emoji: string) => void;
-  onImageUpload: () => void;
-  onPaste: () => void;
-  onCopy: () => void;
   onInsertDivider: () => void;
-  onInsertTable: () => void;
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -1345,102 +1599,11 @@ const GeneralContextMenu = ({
         )}
         <button
           className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-          title="Image Upload"
-          onClick={() => { onImageUpload(); onClose(); }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.3 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10l-3.1-3.1a2 2 0 0 0-2.814.014L6 21"/><path d="m14 19.5 3-3 3 3"/><path d="M17 22v-5.5"/><circle cx="9" cy="9" r="2"/></svg>
-        </button>
-        <button
-          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-          title="Table"
-          onClick={() => { onInsertTable(); onClose(); }}
-        >
-          {/* Table icon SVG */}
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/><path d="M15 3v18"/></svg>
-        </button>
-        <button
-          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-          title="Paste"
-          onClick={() => { onPaste(); onClose(); }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
-        </button>
-        <button
-          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-          title="Copy"
-          onClick={() => { onCopy(); onClose(); }}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-        </button>
-        <button
-          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
           title="Horizontal Line"
           onClick={() => { onInsertDivider(); onClose(); }}
         >
           <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/></svg>
         </button>
-      </div>
-    </div>
-  );
-};
-
-// Add TableContextMenu component
-const TableContextMenu = ({
-  isVisible,
-  position,
-  onClose,
-}: {
-  isVisible: boolean;
-  position: { x: number; y: number };
-  onClose: () => void;
-}) => {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const [menuStyle, setMenuStyle] = useState<{ left: number; top: number } | null>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    if (isVisible) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isVisible, onClose]);
-
-  useEffect(() => {
-    if (!isVisible) return;
-    const reposition = () => {
-      if (!menuRef.current) return;
-      const menuRect = menuRef.current.getBoundingClientRect();
-      let left = position.x;
-      let top = position.y;
-      if (left + menuRect.width > window.innerWidth) {
-        left = Math.max(8, window.innerWidth - menuRect.width - 8);
-      }
-      if (top + menuRect.height > window.innerHeight) {
-        top = Math.max(8, window.innerHeight - menuRect.height - 8);
-      }
-      setMenuStyle({ left, top });
-    };
-    setTimeout(reposition, 0);
-  }, [isVisible, position.x, position.y]);
-
-  if (!isVisible) return null;
-
-  return (
-    <div
-      ref={menuRef}
-      className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-xl border border-[hsl(var(--context-menu-border))] min-w-[180px] text-sm"
-      style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
-    >
-      <div className="flex flex-col py-1">
-        <button className="px-4 py-2 text-left hover:bg-[hsl(var(--context-menu-hover))] text-sm" disabled>Add Row Above</button>
-        <button className="px-4 py-2 text-left hover:bg-[hsl(var(--context-menu-hover))] text-sm" disabled>Add Row Below</button>
-        <button className="px-4 py-2 text-left hover:bg-[hsl(var(--context-menu-hover))] text-sm" disabled>Add Column Left</button>
-        <button className="px-4 py-2 text-left hover:bg-[hsl(var(--context-menu-hover))] text-sm" disabled>Add Column Right</button>
-        <button className="px-4 py-2 text-left hover:bg-[hsl(var(--context-menu-hover))] text-sm" disabled>Resize Table</button>
       </div>
     </div>
   );
@@ -1467,9 +1630,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   const titleRef = useRef<HTMLHeadingElement>(null);
   const prevNoteId = useRef(note.id);
   const editorRef = useRef<ReactEditor | null>(null);
-  // Add state for table context menu
-  const [showTableMenu, setShowTableMenu] = useState(false);
-  const [tableMenuPosition, setTableMenuPosition] = useState({ x: 0, y: 0 });
 
   // -------------------------
   // Slate Editor Setup
@@ -1479,10 +1639,8 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     const e = withTrailingParagraph(
       withDividers(
         withLinks(
-          withImages(
           withHistory(
             withReact(createEditor())
-            )
           )
         )
       )
@@ -1521,121 +1679,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
             {props.children}
           </a>
         );
-      case 'image': {
-        // --- Image resizing logic ---
-        const selected = useSelected();
-        const focused = useFocused();
-        const isSelected = selected && focused;
-        const width = props.element.width || 320;
-        const height = props.element.height || 180;
-        // Handler for resizing
-        const startResize = (e: React.MouseEvent, direction: string) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const startX = e.clientX;
-          const startY = e.clientY;
-          const startWidth = width;
-          const startHeight = height;
-          const path = ReactEditor.findPath(editor, props.element);
-          const onMouseMove = (moveEvent: MouseEvent) => {
-            let newWidth = startWidth;
-            let newHeight = startHeight;
-            const dx = moveEvent.clientX - startX;
-            const dy = moveEvent.clientY - startY;
-            switch (direction) {
-              case 'right':
-                newWidth = Math.max(40, startWidth + dx);
-                break;
-              case 'left':
-                newWidth = Math.max(40, startWidth - dx);
-                break;
-              case 'bottom':
-                newHeight = Math.max(40, startHeight + dy);
-                break;
-              case 'top':
-                newHeight = Math.max(40, startHeight - dy);
-                break;
-              case 'bottom-right':
-                newWidth = Math.max(40, startWidth + dx);
-                newHeight = Math.max(40, startHeight + dy);
-                break;
-              case 'bottom-left':
-                newWidth = Math.max(40, startWidth - dx);
-                newHeight = Math.max(40, startHeight + dy);
-                break;
-              case 'top-right':
-                newWidth = Math.max(40, startWidth + dx);
-                newHeight = Math.max(40, startHeight - dy);
-                break;
-              case 'top-left':
-                newWidth = Math.max(40, startWidth - dx);
-                newHeight = Math.max(40, startHeight - dy);
-                break;
-            }
-            Transforms.setNodes(editor, { width: newWidth, height: newHeight }, { at: path });
-          };
-          const onMouseUp = () => {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-          };
-          window.addEventListener('mousemove', onMouseMove);
-          window.addEventListener('mouseup', onMouseUp);
-        };
-        // Handle positions and directions
-        const handles = [
-          { dir: 'top-left', style: { left: -8, top: -8, cursor: 'nwse-resize' } },
-          { dir: 'top', style: { left: '50%', top: -8, transform: 'translateX(-50%)', cursor: 'ns-resize' } },
-          { dir: 'top-right', style: { right: -8, top: -8, cursor: 'nesw-resize' } },
-          { dir: 'right', style: { right: -8, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize' } },
-          { dir: 'bottom-right', style: { right: -8, bottom: -8, cursor: 'nwse-resize' } },
-          { dir: 'bottom', style: { left: '50%', bottom: -8, transform: 'translateX(-50%)', cursor: 'ns-resize' } },
-          { dir: 'bottom-left', style: { left: -8, bottom: -8, cursor: 'nesw-resize' } },
-          { dir: 'left', style: { left: -8, top: '50%', transform: 'translateY(-50%)', cursor: 'ew-resize' } },
-        ];
-        return (
-          <div {...props.attributes} style={{ textAlign: alignment, position: 'relative', display: 'inline-block' }}>
-            <img
-              src={props.element.url}
-              alt=""
-              style={{
-                maxWidth: '100%',
-                width,
-                height,
-                borderRadius: 8,
-                margin: '12px 0',
-                boxShadow: isSelected ? '0 0 0 2px #2563eb' : undefined,
-                transition: 'box-shadow 0.2s',
-                cursor: isSelected ? 'pointer' : undefined,
-                userSelect: 'none',
-                display: 'block',
-              }}
-              draggable={false}
-            />
-            {/* Resize handles: all corners and sides */}
-            {isSelected && handles.map(h => (
-              <div
-                key={h.dir}
-                style={{
-                  position: 'absolute',
-                  width: 10,
-                  height: 10,
-                  background: '#2563eb',
-                  borderRadius: '50%',
-                  zIndex: 10,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  ...h.style,
-                }}
-                onMouseDown={e => startResize(e, h.dir)}
-              >
-                {/* No SVG needed, just a blue dot */}
-              </div>
-            ))}
-            {props.children}
-          </div>
-        );
-      }
       case 'bulleted-list':
         return <ul {...props.attributes} className="list-disc list-outside" style={{ textAlign: alignment, paddingLeft: 24, margin: '8px 0' }}>{props.children}</ul>;
       case 'numbered-list':
@@ -1679,89 +1722,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
         );
       case 'emoji':
         return <span {...props.attributes} role="img" aria-label="emoji" style={{ fontSize: '1.5em', lineHeight: 1 }}>{props.element.character}{props.children}</span>;
-      // --- Table rendering ---
-      case 'table':
-        return (
-          <div {...props.attributes} className="overflow-auto my-4">
-            <table className="min-w-[200px] border border-[hsl(var(--popover-border))] bg-[hsl(var(--background))]">
-              <tbody>{props.children}</tbody>
-            </table>
-          </div>
-        );
-      case 'table-row':
-        return <tr {...props.attributes}>{props.children}</tr>;
-      case 'table-cell': {
-        // Add resizing logic
-        const cell = props.element;
-        const width = cell.width || 100;
-        const height = cell.height || 40;
-        // Handlers for resizing
-        const startResize = (direction: 'right' | 'bottom', e: React.MouseEvent) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const startX = e.clientX;
-          const startY = e.clientY;
-          const startWidth = width;
-          const startHeight = height;
-          const path = ReactEditor.findPath(editor, cell);
-          const onMouseMove = (moveEvent: MouseEvent) => {
-            if (direction === 'right') {
-              const newWidth = Math.max(40, startWidth + moveEvent.clientX - startX);
-              Transforms.setNodes(editor, { width: newWidth }, { at: path });
-            } else if (direction === 'bottom') {
-              const newHeight = Math.max(20, startHeight + moveEvent.clientY - startY);
-              Transforms.setNodes(editor, { height: newHeight }, { at: path });
-            }
-          };
-          const onMouseUp = () => {
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('mouseup', onMouseUp);
-          };
-          window.addEventListener('mousemove', onMouseMove);
-          window.addEventListener('mouseup', onMouseUp);
-        };
-        return (
-          <td
-            {...props.attributes}
-            className="border border-[hsl(var(--popover-border))] px-3 py-2 min-w-[40px] min-h-[20px] align-top bg-[hsl(var(--background))] relative group"
-            style={{ verticalAlign: 'top', width, height, position: 'relative' }}
-          >
-            {props.children}
-            {/* Right resizer */}
-            <div
-              onMouseDown={e => startResize('right', e)}
-              style={{
-                position: 'absolute',
-                right: 0,
-                top: 0,
-                width: 6,
-                height: '100%',
-                cursor: 'col-resize',
-                zIndex: 10,
-                background: 'transparent',
-                display: 'block',
-              }}
-              className="group-hover:bg-[hsl(var(--muted))]"
-            />
-            {/* Bottom resizer */}
-            <div
-              onMouseDown={e => startResize('bottom', e)}
-              style={{
-                position: 'absolute',
-                left: 0,
-                bottom: 0,
-                width: '100%',
-                height: 6,
-                cursor: 'row-resize',
-                zIndex: 10,
-                background: 'transparent',
-                display: 'block',
-              }}
-              className="group-hover:bg-[hsl(var(--muted))]"
-            />
-          </td>
-        );
-      }
       default:
         return <p {...props.attributes} style={{ textAlign: alignment }}>{props.children}</p>;
     }
@@ -1908,39 +1868,18 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     handleSave();
   };
   const handleContextMenu = (e: React.MouseEvent) => {
-    // Check if right-clicked on a table
-    let node = e.target as HTMLElement | null;
-    let foundTable = false;
-    while (node) {
-      if (node.tagName === 'TABLE') {
-        foundTable = true;
-        break;
-      }
-      node = node.parentElement;
-    }
-    if (foundTable) {
-      e.preventDefault();
-      setTableMenuPosition({ x: e.clientX, y: e.clientY });
-      setShowTableMenu(true);
-      setShowRichTextMenu(false);
-      setShowGeneralMenu(false);
-      return;
-    }
     const { selection } = editor;
-    
     // Only show rich text menu if there's a selection
     if (selection && !Range.isCollapsed(selection)) {
       e.preventDefault();
       setMenuPosition({ x: e.clientX, y: e.clientY });
       setShowRichTextMenu(true);
       setShowGeneralMenu(false);
-      setShowTableMenu(false);
     } else {
       e.preventDefault();
       setGeneralMenuPosition({ x: e.clientX, y: e.clientY });
       setShowGeneralMenu(true);
       setShowRichTextMenu(false);
-      setShowTableMenu(false);
     }
   };
   // General menu actions
@@ -1952,48 +1891,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
       Transforms.insertText(editor, emoji, { at: selection });
     }
     ReactEditor.focus(editor);
-  };
-  const handleImageUpload = () => {
-    // Create a hidden file input
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.onchange = (e: any) => {
-      const file = e.target.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = (ev: any) => {
-        const url = ev.target.result;
-        const { selection } = editor;
-        if (!selection) {
-          Transforms.insertNodes(editor, { type: 'image', url, children: [{ text: '' }] });
-        } else {
-          Transforms.insertNodes(editor, { type: 'image', url, children: [{ text: '' }] }, { at: selection });
-        }
-        ReactEditor.focus(editor);
-      };
-      reader.readAsDataURL(file);
-    };
-    input.click();
-  };
-  const handlePaste = () => {
-    // Try to trigger paste (browser security may limit this)
-    navigator.clipboard.readText().then(text => {
-      if (text) {
-        const { selection } = editor;
-        if (!selection) {
-          Transforms.insertText(editor, text);
-        } else {
-          Transforms.insertText(editor, text, { at: selection });
-        }
-        ReactEditor.focus(editor);
-      }
-    });
-  };
-  const handleCopy = () => {
-    // Copy current note content as plain text
-    const plainText = slateValueToText(slateValue);
-    navigator.clipboard.writeText(plainText);
   };
   const handleInsertDivider = () => {
     const { selection } = editor;
@@ -2020,35 +1917,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     );
     // Move selection to the start of the new paragraph
     Transforms.select(editor, Editor.start(editor, nextPath));
-    ReactEditor.focus(editor);
-  };
-  const handleInsertTable = () => {
-    const { selection } = editor;
-    // Insert a 2x2 table node
-    const tableNode: CustomElement = {
-      type: 'table',
-      children: [
-        {
-          type: 'table-row',
-          children: [
-            { type: 'table-cell', children: [{ text: '' }] },
-            { type: 'table-cell', children: [{ text: '' }] },
-          ],
-        },
-        {
-          type: 'table-row',
-          children: [
-            { type: 'table-cell', children: [{ text: '' }] },
-            { type: 'table-cell', children: [{ text: '' }] },
-          ],
-        },
-      ],
-    };
-    if (!selection) {
-      Transforms.insertNodes(editor, tableNode);
-    } else {
-      Transforms.insertNodes(editor, tableNode, { at: selection });
-    }
     ReactEditor.focus(editor);
   };
 
@@ -2185,17 +2053,7 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
             position={generalMenuPosition}
             onClose={() => setShowGeneralMenu(false)}
             onInsertEmoji={handleInsertEmoji}
-            onImageUpload={handleImageUpload}
-            onPaste={handlePaste}
-            onCopy={handleCopy}
             onInsertDivider={handleInsertDivider}
-            onInsertTable={handleInsertTable}
-          />
-          {/* Table context menu */}
-          <TableContextMenu
-            isVisible={showTableMenu}
-            position={tableMenuPosition}
-            onClose={() => setShowTableMenu(false)}
           />
         </div>
       </div>
