@@ -1691,24 +1691,9 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   // =========================
   // LaTeX Formula Insertion (State & Handlers INSIDE COMPONENT)
   // =========================
-  const [showLatexModal, setShowLatexModal] = React.useState(false);
-  const [latexInitialValue, setLatexInitialValue] = React.useState('');
+  const [] = React.useState(false);
+  const [] = React.useState('');
   // Handler to insert LaTeX at cursor
-  const handleInsertLatex = (formula: string) => {
-    if (!formula.trim()) return;
-    const { selection } = editor;
-    const latexNode = {
-      type: 'latex' as const,
-      formula,
-      children: [{ text: '' }],
-    };
-    if (selection) {
-      Transforms.insertNodes(editor, latexNode, { at: selection });
-    } else {
-      Transforms.insertNodes(editor, latexNode);
-    }
-    setShowLatexModal(false);
-  };
   // Patch renderElement to support LaTeX
 
   // =========================
@@ -1806,27 +1791,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
         const value = props.element.value || '';
         const [inputValue, setInputValue] = React.useState(value);
         // Helper to parse mixed text and math
-        function parseLatexSegments(input: string) {
-          const regex = /(\\\([\s\S]+?\\\))|(\$\$[\s\S]+?\$\$)/g;
-          let lastIndex = 0;
-          const segments: { type: 'math' | 'block' | 'text', content: string }[] = [];
-          let match;
-          while ((match = regex.exec(input)) !== null) {
-            if (match.index > lastIndex) {
-              segments.push({ type: 'text', content: input.slice(lastIndex, match.index) });
-            }
-            if (match[1]) {
-              segments.push({ type: 'math', content: match[1].slice(2, -2).trim() });
-            } else if (match[2]) {
-              segments.push({ type: 'block', content: match[2].slice(2, -2).trim() });
-            }
-            lastIndex = regex.lastIndex;
-          }
-          if (lastIndex < input.length) {
-            segments.push({ type: 'text', content: input.slice(lastIndex) });
-          }
-          return segments;
-        }
         // Insert handler
         const handleInsert = () => {
           const latexNode = {
@@ -2290,117 +2254,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
 //    We'll use: { type: 'latex', formula: string, children: [{ text: '' }] }
 
 // 2. LaTeXModal: Two-pane modal for input and preview
-const LaTeXModal = ({
-  isOpen,
-  onClose,
-  onInsert,
-  initialValue = ''
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-  onInsert: (formula: string) => void;
-  initialValue?: string;
-}) => {
-  const [latex, setLatex] = React.useState(initialValue);
-  const [error, setError] = React.useState<string | null>(null);
-
-  // Helper to parse mixed text and math
-  function parseLatexSegments(input: string) {
-    const regex = /(\\\([\s\S]+?\\\))|(\$\$[\s\S]+?\$\$)/g;
-    let lastIndex = 0;
-    const segments: { type: 'math' | 'block' | 'text', content: string }[] = [];
-    let match;
-    while ((match = regex.exec(input)) !== null) {
-      if (match.index > lastIndex) {
-        segments.push({ type: 'text', content: input.slice(lastIndex, match.index) });
-      }
-      if (match[1]) {
-        // Inline math
-        segments.push({ type: 'math', content: match[1].slice(2, -2).trim() });
-      } else if (match[2]) {
-        // Block math
-        segments.push({ type: 'block', content: match[2].slice(2, -2).trim() });
-      }
-      lastIndex = regex.lastIndex;
-    }
-    if (lastIndex < input.length) {
-      segments.push({ type: 'text', content: input.slice(lastIndex) });
-    }
-    return segments;
-  }
-
-  React.useEffect(() => {
-    if (!isOpen) return;
-    setLatex(initialValue || '');
-    setError(null);
-  }, [isOpen, initialValue]);
-
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30" style={{backdropFilter:'blur(2px)'}}>
-      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-2xl p-6 flex flex-col min-w-[480px] max-w-[90vw]">
-        <div className="flex flex-row gap-6">
-          {/* Left: LaTeX input */}
-          <div className="flex-1 flex flex-col">
-            <label className="font-semibold mb-2">Latex</label>
-            <textarea
-              className="w-full h-40 p-2 border rounded bg-zinc-50 dark:bg-zinc-800 text-lg font-mono resize-none"
-              value={latex}
-              onChange={e => setLatex(e.target.value)}
-              autoFocus
-              spellCheck={false}
-              style={{fontSize:'1.3rem'}}
-            />
-          </div>
-          {/* Right: Preview */}
-          <div className="flex-1 flex flex-col">
-            <label className="font-semibold mb-2">Preview</label>
-            <div
-              className="w-full h-40 p-2 border rounded bg-yellow-300 flex items-center justify-center text-black overflow-auto text-2xl"
-              style={{ minHeight: '160px' }}
-            >
-              <span style={{ display: 'block', width: '100%', wordBreak: 'break-word' }}>
-                {parseLatexSegments(latex).map((seg, i) => {
-                  if (seg.type === 'text') {
-                    return <span key={i}>{seg.content}</span>;
-                  }
-                  try {
-                    return (
-                      <span
-                        key={i}
-                        dangerouslySetInnerHTML={{
-                          __html: katex.renderToString(seg.content, {
-                            throwOnError: false,
-                            displayMode: seg.type === 'block',
-                          }),
-                        }}
-                        style={{ margin: seg.type === 'block' ? '8px 0' : undefined, display: seg.type === 'block' ? 'block' : 'inline' }}
-                      />
-                    );
-                  } catch (e) {
-                    return <span key={i} style={{ color: 'red' }}>[Invalid LaTeX]</span>;
-                  }
-                })}
-              </span>
-            </div>
-            {error && <div className="text-red-500 mt-2 text-sm">{error}</div>}
-          </div>
-        </div>
-        <div className="flex flex-row justify-end gap-2 mt-6">
-          <button
-            className="px-4 py-2 rounded bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 text-black dark:text-white"
-            onClick={onClose}
-          >Cancel</button>
-          <button
-            className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
-            onClick={() => onInsert(latex)}
-            disabled={!latex.trim()}
-          >Insert</button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // 3. Add LaTeX rendering to Slate renderElement
 //    (Wrap the original renderElement)
