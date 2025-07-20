@@ -1914,7 +1914,7 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
       <div className="relative mb-2 w-full max-w-full overflow-hidden">
           <h1
             ref={titleRef}
-            className="text-4xl font-bold leading-tight outline-none bg-transparent text-[hsl(var(--foreground))] min-h-[48px] w-full max-w-full break-words"
+            className="text-4xl font-bold leading-tight outline-none bg-transparent text-[hsl(var(--foreground))] min-h-[48px] w-full max-w-full"
             contentEditable
             suppressContentEditableWarning
             spellCheck={false}
@@ -1925,6 +1925,17 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
               whiteSpace: 'pre-wrap',
               maxWidth: '100%',
               width: '100%'
+            }}
+            onPaste={e => {
+              e.preventDefault();
+              const text = e.clipboardData.getData('text/plain');
+              // Insert plain text at the caret position
+              if (document.queryCommandSupported && document.queryCommandSupported('insertText')) {
+                document.execCommand('insertText', false, text);
+              } else {
+                // Fallback for very old browsers
+                document.execCommand('paste', false, text);
+              }
             }}
             onBlur={() => {
               const newTitle = titleRef.current ? titleRef.current.innerText : '';
