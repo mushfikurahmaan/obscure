@@ -487,9 +487,9 @@ const Index = () => {
             </button>
           </div>
           {/* Main Top Bar Content with pt-2 pb-2 */}
-          <div className="flex items-center w-full pt-2 pb-2" style={{ WebkitAppRegion: 'drag' }}>
+          <div className="flex items-center w-full pt-2 pb-2 pr-24" style={{ WebkitAppRegion: 'drag' }}>
             {/* Left: Hamburger, Title, Spinner */}
-            <div className="flex items-center flex-shrink-0">
+            <div className="flex items-center flex-shrink-0 min-w-0">
               {/* Hamburger button (sidebar toggle) */}
               <Button
                 variant="ghost"
@@ -533,11 +533,16 @@ const Index = () => {
                   </Button>
                 </div>
               ) : selectedNote && (
-                <>
+                <div className="flex items-center min-w-0">
                   {/* Title and status dot */}
                   <span
-                    className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] truncate cursor-pointer"
-                    style={{ minHeight: '2.25rem', maxWidth: '100%', cursor: 'pointer' }}
+                    className="flex items-center px-4 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer min-w-0 truncate"
+                    style={{
+                      minHeight: '2.25rem',
+                      cursor: 'pointer',
+                      maxWidth: '40vw',
+                      width: '100%',
+                    }}
                     title={editorTitle}
                     onClick={() => {
                       if (mainContentRef.current) {
@@ -546,19 +551,32 @@ const Index = () => {
                     }}
                   >
                     <span
-                      className="w-2 h-2 rounded-full mr-2"
+                      className="w-2 h-2 rounded-full mr-2 flex-shrink-0"
                       style={{
                         backgroundColor: selectedNote?.deleted
-                          ? 'hsl(0, 100%, 60%)' // Trash
+                          ? 'hsl(0, 100%, 60%)'
                           : selectedNote?.archived
-                          ? 'hsl(35, 100%, 55%)' // Archive
-                          : 'rgb(34 197 94)', // Green for My Notes (tailwind green-500)
+                          ? 'hsl(35, 100%, 55%)'
+                          : 'rgb(34 197 94)',
                       }}
                     ></span>
-                    {truncatedTitle}
+                    <span
+                      className="block overflow-hidden whitespace-nowrap text-ellipsis"
+                      style={{
+                        maxWidth: '40vw',
+                        width: '100%',
+                        minWidth: 0,
+                        // Responsive maxWidth for <768px screens
+                        ...(typeof window !== 'undefined' && window.innerWidth < 768
+                          ? { maxWidth: '24vw' }
+                          : {}),
+                      }}
+                    >
+                      {truncatedTitle}
+                    </span>
                   </span>
                   {/* Favorite Button with Dropdown Menu */}
-                  <div className="flex items-center px-2 py-1 ml-3 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer" style={{ minHeight: '2.25rem', WebkitAppRegion: 'no-drag' }}>
+                  <div className="flex items-center px-2 py-1 ml-2 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm text-sm font-medium text-[hsl(var(--foreground))] cursor-pointer" style={{ minHeight: '2.25rem', WebkitAppRegion: 'no-drag' }}>
                     <Button
                       variant="ghost"
                       size="icon"
@@ -586,10 +604,10 @@ const Index = () => {
                     </Button>
                   </div>
                   {/* Spinner */}
-                  <span className="ml-3 flex items-center px-3 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm" style={{ minHeight: '2.25rem', WebkitAppRegion: 'no-drag' }}>
+                  <span className="ml-2 flex items-center px-3 py-1 rounded-lg bg-[hsl(var(--topbar-background))] backdrop-blur-sm" style={{ minHeight: '2.25rem', WebkitAppRegion: 'no-drag' }}>
                     <Loader2 className={`w-4 h-4 ${saving ? 'animate-spin text-indigo-500' : 'text-gray-500 opacity-40'}`} />
                   </span>
-                </>
+                </div>
               )}
             </div>
             {/* Spacer to push window controls to the right */}
