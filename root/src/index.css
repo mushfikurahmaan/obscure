@@ -139,6 +139,17 @@ body {
   height: 0;
 }
 
+.scrollbar-thin::-webkit-scrollbar {
+  height: 6px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: hsl(var(--popover));
+}
+
 @font-face {
   font-family: 'Space Grotesk';
   src: url('./assets/fonts/SpaceGrotesk-Regular.woff2') format('woff2'),

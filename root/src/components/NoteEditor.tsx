@@ -12,8 +12,6 @@ import {ArchiveRestore, Trash2, RotateCcw, Smile } from 'lucide-react';
 import data from '@emoji-mart/data';
 import EmojiMartPicker from '@emoji-mart/react';
 import { useTheme } from '../lib/theme';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
 import React from 'react';
 
 // =========================
@@ -58,9 +56,7 @@ type CustomElement =
   | { type: 'numbered-list'; children: CustomElement[] }
   | { type: 'list-item'; checked?: boolean; children: CustomText[] }
   | { type: 'divider'; children: CustomText[] }
-  | { type: 'emoji'; character: string; children: CustomText[] }
-  | { type: 'latex'; formula: string; children: CustomText[] }
-  | { type: 'latex-input'; value: string; children: CustomText[] };
+  | { type: 'emoji'; character: string; children: CustomText[] };
 
 declare module 'slate' {
   interface CustomTypes {
@@ -1490,14 +1486,12 @@ const GeneralContextMenu = ({
   onClose,
   onInsertEmoji,
   onInsertDivider,
-  onInsertLatex,
 }: {
   isVisible: boolean;
   position: { x: number; y: number };
   onClose: () => void;
   onInsertEmoji: (emoji: string) => void;
   onInsertDivider: () => void;
-  onInsertLatex?: () => void;
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
@@ -1611,16 +1605,6 @@ const GeneralContextMenu = ({
         >
           <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/></svg>
         </button>
-        {/* LaTeX Insert Button */}
-        {onInsertLatex && (
-          <button
-            className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-            title="Insert LaTeX Formula"
-            onClick={() => { onInsertLatex(); onClose(); }}
-          >
-            <span style={{fontSize: 20}}>∑</span>
-          </button>
-        )}
       </div>
     </div>
   );
@@ -1667,37 +1651,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
   }, [note.id]);
   const [slateValue, setSlateValue] = useState<Descendant[]>(() => contentToSlateValue(note.content));
 
-  // 2. Add handler to insert 'latex-input' node at cursor:
-  const handleInsertLatexInput = () => {
-    const { selection } = editor;
-    // Only allow one latex-input at a time
-    const [existing] = Editor.nodes(editor, {
-      match: n => SlateElement.isElement(n) && n.type === 'latex-input',
-    });
-    if (existing) return;
-    const latexInputNode = {
-      type: 'latex-input' as const,
-      value: '',
-      children: [{ text: '' }],
-    };
-    if (selection) {
-      Transforms.insertNodes(editor, latexInputNode, { at: selection });
-    } else {
-      Transforms.insertNodes(editor, latexInputNode);
-    }
-};
-
-
-  // =========================
-  // LaTeX Formula Insertion (State & Handlers INSIDE COMPONENT)
-  // =========================
-  const [] = React.useState(false);
-  const [] = React.useState('');
-  // Handler to insert LaTeX at cursor
-  // Patch renderElement to support LaTeX
-
-  // =========================
-
   // -------------------------
   // Slate Render Functions
   // -------------------------
@@ -1732,34 +1685,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
       case 'numbered-list':
         return <ol {...props.attributes} className="list-decimal list-outside" style={{ textAlign: alignment, paddingLeft: 24, margin: '8px 0' }}>{props.children}</ol>;
       case 'list-item':
-        if (typeof props.element.checked === 'boolean') {
-          // Checklist (interactive)
-          const checked = props.element.checked;
-          return (
-            <li {...props.attributes} style={{ display: 'flex', alignItems: 'center', textAlign: alignment }}>
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={e => {
-                  const path = ReactEditor.findPath(editor, props.element);
-                  Transforms.setNodes(
-                    editor,
-                    { checked: e.target.checked },
-                    { at: path }
-                  );
-                }}
-                style={{ marginRight: 8 }}
-              />
-              <span
-                className={checked ? "checklist-strikethrough" : ""}
-                style={checked ? { opacity: 0.7 } : {}}
-              >
-                {props.children}
-              </span>
-            </li>
-          );
-        }
-        // For normal list items, do NOT use display: flex or list-style: none
         return <li {...props.attributes} style={{ textAlign: alignment }}>{props.children}</li>;
       case 'divider':
         return (
@@ -1770,89 +1695,10 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
         );
       case 'emoji':
         return <span {...props.attributes} role="img" aria-label="emoji" style={{ fontSize: '1.5em', lineHeight: 1 }}>{props.element.character}{props.children}</span>;
-      case 'latex':
-        return (
-          <span {...props.attributes} contentEditable={false} style={{ display: 'inline-block', verticalAlign: 'middle', margin: '0 2px' }}>
-            <span
-              className="inline-block align-middle"
-              dangerouslySetInnerHTML={{
-                __html: katex.renderToString(props.element.formula || '', {
-                  throwOnError: false,
-                  displayMode: false,
-                })
-              }}
-            />
-            {props.children}
-          </span>
-        );
-      case 'latex-input': {
-        // Inline LaTeX input/preview panel (full width, app style)
-        const path = ReactEditor.findPath(editor, props.element);
-        const value = props.element.value || '';
-        const [inputValue, setInputValue] = React.useState(value);
-        // Helper to parse mixed text and math
-        // Insert handler
-        const handleInsert = () => {
-          const latexNode = {
-            type: 'latex' as const,
-            formula: inputValue,
-            children: [{ text: '' }],
-          };
-          Transforms.removeNodes(editor, { at: path });
-          Transforms.insertNodes(editor, latexNode, { at: path });
-        };
-        // Cancel handler
-        const handleCancel = () => {
-          Transforms.removeNodes(editor, { at: path });
-        };
-        return (
-          <div
-            {...props.attributes}
-            contentEditable={false}
-            className="w-full my-4 flex flex-col bg-[hsl(var(--code-block-background))] border border-[hsl(var(--border))] rounded-xl p-4 shadow-md"
-            style={{ boxSizing: 'border-box' }}
-          >
-            <div className="flex flex-col md:flex-row gap-4 items-stretch w-full">
-              <textarea
-                value={inputValue}
-                onChange={e => setInputValue(e.target.value)}
-                placeholder="Enter LaTeX..."
-                className="flex-1 min-w-0 h-40 md:h-48 text-base font-mono bg-transparent border border-[hsl(var(--input))] rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:focus:ring-blue-500 transition"
-                autoFocus
-                onKeyDown={e => { if (e.key === 'Escape') handleCancel(); }}
-                style={{ resize: 'vertical' }}
-              />
-              <div className="hidden md:block w-px bg-[hsl(var(--border))] mx-2" />
-              <div className="flex-1 min-w-0 h-40 md:h-48 bg-transparent border border-[hsl(var(--input))] rounded-lg p-3 overflow-x-auto max-w-full flex items-center justify-center text-base md:text-lg text-[hsl(var(--foreground))] relative">
-                <span
-                  style={{ display: 'block', minWidth: 'max-content', wordBreak: 'break-word' }}
-                  dangerouslySetInnerHTML={{
-                    __html: (() => {
-                      try {
-                        return katex.renderToString(inputValue, {
-                          throwOnError: false,
-                          displayMode: true,
-                        });
-                      } catch {
-                        return '<span style="color:red">[Invalid LaTeX]</span>';
-                      }
-                    })(),
-                  }}
-                />
-              </div>
-            </div>
-            <div className="flex flex-row justify-end gap-2 mt-4">
-              <button onClick={handleInsert} className="px-6 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold transition">Insert</button>
-              <button onClick={handleCancel} className="px-6 py-2 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-black dark:text-white font-semibold transition">Cancel</button>
-            </div>
-          </div>
-        );
-      }
       default:
         return <p {...props.attributes} style={{ textAlign: alignment }}>{props.children}</p>;
     }
   }, [editor]);
-  const patchedRenderElement = React.useCallback(withLatexRender(renderElement), [renderElement]);
   const renderLeaf = useCallback((props: any) => {
     let { attributes, children, leaf } = props;
     
@@ -2134,7 +1980,7 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
             <Editable
               className="flex-1 text-base text-[hsl(var(--foreground))] bg-transparent outline-none focus:outline-none min-h-[300px]"
               style={{ whiteSpace: 'pre-wrap' }}
-              renderElement={patchedRenderElement}
+              renderElement={renderElement}
               renderLeaf={renderLeaf}
               placeholder="Start writing your note..."
               spellCheck={true}
@@ -2180,7 +2026,6 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
             onClose={() => setShowGeneralMenu(false)}
             onInsertEmoji={handleInsertEmoji}
             onInsertDivider={handleInsertDivider}
-            onInsertLatex={() => { handleInsertLatexInput(); setShowGeneralMenu(false); }}
           />
         </div>
       </div>
@@ -2244,55 +2089,4 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     )
   );
 };
-
-// =========================
-// LaTeX Formula Insertion (Appended for easy management)
-// =========================
-
-// 1. Define a new Slate element type for inline LaTeX
-//    (Add to CustomElement type if you want full TS support)
-//    We'll use: { type: 'latex', formula: string, children: [{ text: '' }] }
-
-// 2. LaTeXModal: Two-pane modal for input and preview
-
-// 3. Add LaTeX rendering to Slate renderElement
-//    (Wrap the original renderElement)
-const withLatexRender = (origRenderElement: any) => (props: any) => {
-  if (props.element.type === 'latex') {
-    return (
-      <span {...props.attributes} contentEditable={false} style={{display:'inline-block', verticalAlign:'middle', margin:'0 2px'}}>
-        <span
-          className="inline-block align-middle"
-          dangerouslySetInnerHTML={{
-            __html: katex.renderToString(props.element.formula || '', {
-              throwOnError: false,
-              displayMode: false,
-            })
-          }}
-        />
-        {props.children}
-      </span>
-    );
-  }
-  return origRenderElement(props);
-};
-
-// 4. Add LaTeX element to Slate schema (for TS, add to CustomElement type)
-//    (If you want full TS, add this to your CustomElement type at the top)
-//    | { type: 'latex'; formula: string; children: CustomText[] }
-
-// 5. Main NoteEditor LaTeX integration (append to NoteEditor component)
-//    (All new state/handlers at the bottom for easy management)
-//
-//    - Add LaTeX modal state
-//    - Add handler to insert LaTeX node
-//    - Patch renderElement to support LaTeX
-//    - Add context menu item for LaTeX
-
-// =========================
-// END LaTeX Formula Insertion
-// =========================
-
-// 1. Add to CustomElement type:
-// | { type: 'latex-input'; value: string; children: CustomText[] }
 
