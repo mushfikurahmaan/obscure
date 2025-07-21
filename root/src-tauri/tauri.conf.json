@@ -32,7 +32,14 @@
     "targets": "all",
     "icon": [
       "../src/assets/favicon/obscure.png",
-      "../src/assets/favicon/obscure.ico"
+      "../src/assets/favicon/obscure_16.ico",
+      "../src/assets/favicon/obscure_24.ico",
+      "../src/assets/favicon/obscure_32.ico",
+      "../src/assets/favicon/obscure_48.ico",
+      "../src/assets/favicon/obscure_64.ico",
+      "../src/assets/favicon/obscure_96.ico",
+      "../src/assets/favicon/obscure_128.ico",
+      "../src/assets/favicon/obscure_512.ico"
     ]
   }
 }
