@@ -31,7 +31,8 @@
     "active": true,
     "targets": "all",
     "icon": [
-      "../src/assets/favicon/android-chrome-512x512.png"
+      "../src/assets/favicon/obscure.png",
+      "../src/assets/favicon/obscure.ico"
     ]
   }
 }
