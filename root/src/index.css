@@ -63,6 +63,7 @@ All colors MUST be HSL.
 
     --code-block-background: 0, 0%, 85%;
     --code-block-text: 0, 0%, 16%;
+    --selected-color-border: #222;
 
   }
 
@@ -112,6 +113,7 @@ All colors MUST be HSL.
 
     --code-block-background: 0 0% 18%;
     --code-block-text: 60 30% 96%;
+    --selected-color-border: #fff;
     
   }
 }

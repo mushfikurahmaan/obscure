@@ -53,7 +53,6 @@ type CustomElement =
   | { type: 'paragraph' | 'code-block'; alignment?: 'left' | 'center' | 'right' | 'justify'; children: CustomText[] }
   | { type: 'link'; url: string; children: CustomText[] }
   | { type: 'bulleted-list'; children: CustomElement[] }
-  | { type: 'numbered-list'; children: CustomElement[] }
   | { type: 'list-item'; checked?: boolean; children: CustomText[] }
   | { type: 'divider'; children: CustomText[] }
   | { type: 'emoji'; character: string; children: CustomText[] };
@@ -581,7 +580,7 @@ const isInChecklist = () => {
   return !!itemMatch;
 };
 
-const handleInsertList = (type: 'numbered-list' | 'bulleted-list') => {
+const handleInsertList = (type: 'bulleted-list') => {
   const { selection } = editor;
   if (!selection) return;
   
@@ -604,7 +603,7 @@ const handleInsertList = (type: 'numbered-list' | 'bulleted-list') => {
     
     // Then unwrap the list container
     Transforms.unwrapNodes(editor, {
-      match: n => SlateElement.isElement(n) && (n.type === 'numbered-list' || n.type === 'bulleted-list'),
+      match: n => SlateElement.isElement(n) && n.type === 'bulleted-list',
       split: true,
       at: currentSelection,
     });
@@ -616,7 +615,7 @@ const handleInsertList = (type: 'numbered-list' | 'bulleted-list') => {
   }
   
   // If we're in a different list type, first unwrap the existing list
-  if (isBlockActive('numbered-list') || isBlockActive('bulleted-list')) {
+  if (isBlockActive('bulleted-list')) {
     const currentSelection = editor.selection;
     if (!currentSelection) return; // Add null check
     
@@ -632,7 +631,7 @@ const handleInsertList = (type: 'numbered-list' | 'bulleted-list') => {
     
     // Then unwrap the existing list
     Transforms.unwrapNodes(editor, {
-      match: n => SlateElement.isElement(n) && (n.type === 'numbered-list' || n.type === 'bulleted-list'),
+      match: n => SlateElement.isElement(n) && n.type === 'bulleted-list',
       split: true,
       at: currentSelection,
     });
@@ -697,7 +696,7 @@ const handleInsertChecklist = () => {
   }
   
   // If we're in a different list type, first unwrap the existing list
-  if (isBlockActive('numbered-list') || isBlockActive('bulleted-list')) {
+  if (isBlockActive('bulleted-list')) {
     const currentSelection = editor.selection;
     if (!currentSelection) return; // Add null check
     
@@ -713,7 +712,7 @@ const handleInsertChecklist = () => {
     
     // Then unwrap the existing list
     Transforms.unwrapNodes(editor, {
-      match: n => SlateElement.isElement(n) && (n.type === 'numbered-list' || n.type === 'bulleted-list'),
+      match: n => SlateElement.isElement(n) && n.type === 'bulleted-list',
       split: true,
       at: currentSelection,
     });
@@ -759,7 +758,7 @@ const handleInsertChecklist = () => {
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-white text-black rounded-lg shadow-lg border border-gray-200"
+      className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-lg border border-[hsl(var(--context-menu-border))]"
       style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
     >
       {/* Main Toolbar - all buttons in a single row */}
@@ -942,13 +941,6 @@ const handleInsertChecklist = () => {
         <div className="w-px bg-gray-300 self-stretch max-h-10 mx-2"></div>
         <button
         className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-        title="Numbered List"
-        onClick={() => handleInsertList('numbered-list')}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
-        </button>
-      <button
-        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
         title="Bullet List"
         onClick={() => handleInsertList('bulleted-list')}
       >
@@ -978,7 +970,7 @@ const handleInsertChecklist = () => {
           </button>
           {/* Redesigned Color Popover */}
           <div
-            className="absolute flex flex-col items-center bg-white text-black border border-gray-200 shadow-xl rounded-lg"
+            className="absolute flex flex-col items-center bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--context-menu-border))] shadow-xl rounded-lg"
             style={{
               left: '50%',
               transform: 'translateX(-50%)',
@@ -994,20 +986,6 @@ const handleInsertChecklist = () => {
               display: showTextColorPalette ? 'flex' : 'none',
             }}
           >
-            {/* Arrow/pointer at the bottom */}
-            <div style={{
-              position: 'absolute',
-              left: '50%',
-              bottom: -10,
-              transform: 'translateX(-50%)',
-              width: 0,
-              height: 0,
-              borderLeft: '10px solid transparent',
-              borderRight: '10px solid transparent',
-              borderTop: '10px solid white',
-              filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.08))',
-              zIndex: 101,
-            }} />
             {/* Swatch grid or hex input, in place */}
             {!showTextColorHexInput ? (
               <>
@@ -1018,8 +996,8 @@ const handleInsertChecklist = () => {
                       className="w-7 h-7 rounded-full border flex items-center justify-center focus:outline-none"
                       style={{
                         background: color,
-                        borderWidth: selectedTextColor === color ? 1 : 1,
-                        borderColor: selectedTextColor === color ? '#222' : '#fff',
+                        borderWidth: selectedTextColor === color ? (document.documentElement.classList.contains('dark') ? 2 : 1) : 1,
+                        borderColor: selectedTextColor === color ? 'var(--selected-color-border)' : 'transparent',
                         boxShadow: selectedTextColor === color ? '0 0 0 1px #222' : 'none',
                         outline: 'none',
                         transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -1038,7 +1016,7 @@ const handleInsertChecklist = () => {
                   ))}
                 </div>
                 <button
-                  className="text-sm text-black font-medium py-1 px-2 rounded hover:bg-gray-100 transition"
+                  className="w-full text-sm font-medium py-1 px-2 rounded transition bg-[hsl(var(--context-menu-hover))] text-[hsl(var(--foreground))]"
                   style={{ marginBottom: 2 }}
                   onClick={() => setShowTextColorHexInput(true)}
                 >
@@ -1064,7 +1042,7 @@ const handleInsertChecklist = () => {
               }}
               placeholder="hex code"
               maxLength={7}
-              className="px-2 py-1 text-base outline-none border border-gray-300 rounded flex-grow w-full"
+              className="px-2 py-1 text-base outline-none border border-gray-300 rounded flex-grow w-full bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--foreground))] placeholder-[hsl(var(--muted-foreground))]"
               style={{ fontSize: 14 }}
               autoFocus
             />
@@ -1075,8 +1053,8 @@ const handleInsertChecklist = () => {
                 width: 32,
                 height: 32,
                 borderRadius: '50%',
-                background: isValidHex(textColorInput) ? textColorInput : '#e5e5e5',
-                border: isValidHex(textColorInput) ? '1px solid #bbb' : '1px dashed #bbb',
+                background: isValidHex(textColorInput) ? textColorInput : 'hsl(var(--context-menu-bg))',
+                border: isValidHex(textColorInput) ? '1px solid #bbb' : '1px dashed hsl(var(--context-menu-border))',
                 boxShadow: isValidHex(textColorInput) ? '0 0 0 1px #222' : 'none',
                 transition: 'background 0.2s, border 0.2s',
                 flexShrink: 0,
@@ -1085,7 +1063,7 @@ const handleInsertChecklist = () => {
                 </div>
             <button
                   onClick={() => setShowTextColorHexInput(false)}
-                  className="w-full text-sm text-gray-700 font-medium py-1 px-2 rounded hover:bg-gray-100 transition"
+                  className="w-full text-sm font-medium py-1 px-2 rounded transition bg-[hsl(var(--context-menu-hover))] text-[hsl(var(--foreground))]"
                   title="Back to swatches"
                 >
                   Back
@@ -1111,7 +1089,7 @@ const handleInsertChecklist = () => {
           </button>
           {/* Redesigned Highlighter Color Popover */}
           <div
-            className="absolute flex flex-col items-center bg-white text-black border border-gray-200 shadow-xl rounded-lg"
+            className="absolute flex flex-col items-center bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--context-menu-border))] shadow-xl rounded-lg"
             style={{
               left: '50%',
               transform: 'translateX(-50%)',
@@ -1127,20 +1105,6 @@ const handleInsertChecklist = () => {
               display: showHighlighterPalette ? 'flex' : 'none',
             }}
           >
-            {/* Arrow/pointer at the bottom */}
-            <div style={{
-              position: 'absolute',
-              left: '50%',
-              bottom: -10,
-              transform: 'translateX(-50%)',
-              width: 0,
-              height: 0,
-              borderLeft: '10px solid transparent',
-              borderRight: '10px solid transparent',
-              borderTop: '10px solid white',
-              filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.08))',
-              zIndex: 101,
-            }} />
             {/* Swatch grid or hex input, in place */}
             {!showHighlighterHexInput ? (
               <>
@@ -1151,8 +1115,8 @@ const handleInsertChecklist = () => {
                       className="w-7 h-7 rounded-full border flex items-center justify-center focus:outline-none"
                       style={{
                         background: color,
-                        borderWidth: selectedHighlightColor === color ? 1 : 1,
-                        borderColor: selectedHighlightColor === color ? '#222' : '#fff',
+                        borderWidth: selectedHighlightColor === color ? (document.documentElement.classList.contains('dark') ? 2 : 1) : 1,
+                        borderColor: selectedHighlightColor === color ? 'var(--selected-color-border)' : 'transparent',
                         boxShadow: selectedHighlightColor === color ? '0 0 0 1px #222' : 'none',
                         outline: 'none',
                         transition: 'border-color 0.2s, box-shadow 0.2s',
@@ -1172,7 +1136,7 @@ const handleInsertChecklist = () => {
                   ))}
                 </div>
                 <button
-                  className="text-sm text-black font-medium py-1 px-2 rounded hover:bg-gray-100 transition"
+                  className="w-full text-sm font-medium py-1 px-2 rounded transition bg-[hsl(var(--context-menu-hover))] text-[hsl(var(--foreground))]"
                   style={{ marginBottom: 2 }}
                   onClick={() => setShowHighlighterHexInput(true)}
                 >
@@ -1199,7 +1163,7 @@ const handleInsertChecklist = () => {
                     }}
                     placeholder="hex code"
                     maxLength={7}
-                    className="px-2 py-1 text-base outline-none border border-gray-300 rounded flex-grow w-full"
+                    className="px-2 py-1 text-base outline-none border border-gray-300 rounded flex-grow w-full bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--foreground))] placeholder-[hsl(var(--muted-foreground))]"
                     style={{ fontSize: 14 }}
                     autoFocus
                   />
@@ -1210,8 +1174,8 @@ const handleInsertChecklist = () => {
                       width: 32,
                       height: 32,
                       borderRadius: '50%',
-                      background: isValidHex(highlightColorInput) ? highlightColorInput : '#e5e5e5',
-                      border: isValidHex(highlightColorInput) ? '1px solid #bbb' : '1px dashed #bbb',
+                      background: isValidHex(highlightColorInput) ? highlightColorInput : 'hsl(var(--context-menu-bg))',
+                      border: isValidHex(highlightColorInput) ? '1px solid #bbb' : '1px dashed hsl(var(--context-menu-border))',
                       boxShadow: isValidHex(highlightColorInput) ? '0 0 0 1px #222' : 'none',
                       transition: 'background 0.2s, border 0.2s',
                       flexShrink: 0,
@@ -1220,7 +1184,7 @@ const handleInsertChecklist = () => {
                 </div>
                 <button
                   onClick={() => setShowHighlighterHexInput(false)}
-                  className="w-full text-sm text-gray-700 font-medium py-1 px-2 rounded hover:bg-gray-100 transition"
+                  className="w-full text-sm font-medium py-1 px-2 rounded transition bg-[hsl(var(--context-menu-hover))] text-[hsl(var(--foreground))]"
                   title="Back to swatches"
                 >
                   Back
@@ -1371,9 +1335,28 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
         );
       case 'bulleted-list':
         return <ul {...props.attributes} className="list-disc list-outside" style={{ textAlign: alignment, paddingLeft: 24, margin: '8px 0' }}>{props.children}</ul>;
-      case 'numbered-list':
-        return <ol {...props.attributes} className="list-decimal list-outside" style={{ textAlign: alignment, paddingLeft: 24, margin: '8px 0' }}>{props.children}</ol>;
       case 'list-item':
+        if (typeof props.element.checked === 'boolean') {
+          // Interactive checkbox: toggle checked state
+          return (
+            <li {...props.attributes} style={{ textAlign: alignment, listStyle: 'none', display: 'flex', alignItems: 'center' }}>
+              <input
+                type="checkbox"
+                checked={props.element.checked}
+                onChange={e => {
+                  const path = props.path || ReactEditor.findPath(editor, props.element);
+                  Transforms.setNodes(
+                    editor,
+                    { checked: e.target.checked },
+                    { at: path }
+                  );
+                }}
+                style={{ marginRight: 8 }}
+              />
+              <span style={props.element.checked ? { textDecoration: 'line-through', opacity: 0.7 } : {}}>{props.children}</span>
+            </li>
+          );
+        }
         return <li {...props.attributes} style={{ textAlign: alignment }}>{props.children}</li>;
       case 'divider':
         return (
@@ -1892,7 +1875,7 @@ const GeneralContextMenu = ({
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-xl border border-[hsl(var(--context-menu-border))]"
+      className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-lg border border-[hsl(var(--context-menu-border))]"
       style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
     >
       <div className="flex flex-row items-center gap-1 px-2 py-1 min-w-[0] relative">
