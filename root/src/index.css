@@ -468,9 +468,9 @@ body {
   position: absolute;
   left: 0;
   right: 0;
-  top: 50%;
-  height: 0.13em;
-  background: #aaa;
+  top: 55%;
+  height: 1px;
+  background: currentColor;
   transform: translateY(-50%);
   pointer-events: none;
   z-index: 1;
@@ -493,4 +493,14 @@ body {
 
 .dark .window-control-btn > span {
   color: #fff; /* Dark mode icon color */
+}
+
+/* Hide number input spinners for custom font size input */
+.hide-number-spin::-webkit-outer-spin-button,
+.hide-number-spin::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.hide-number-spin {
+  -moz-appearance: textfield;
 }

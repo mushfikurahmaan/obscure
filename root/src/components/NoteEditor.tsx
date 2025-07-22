@@ -220,17 +220,16 @@ const RichTextContextMenu = ({
   const highlighterRef = useRef<HTMLDivElement>(null);
   const textColorRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
-  const [showFontSizeDropdown, setShowFontSizeDropdown] = useState(false);
+  const [, setShowFontSizeDropdown] = useState(false);
   // Add state for font family dropdown
   const [showFontFamilyDropdown, setShowFontFamilyDropdown] = useState(false);
   const [fontFamilyDropdownDirection, setFontFamilyDropdownDirection] = useState<'down' | 'up'>('down');
   const fontFamilyDropdownButtonRef = useRef<HTMLButtonElement>(null);
   // --- NEW: Track menu and palette positions ---
   const [menuStyle, setMenuStyle] = useState<{ left: number; top: number } | null>(null);
-  const [paletteDirection, setPaletteDirection] = useState<'right' | 'left'>('right');
+  const [, setPaletteDirection] = useState<'right' | 'left'>('right');
   // Add state for dropdown direction
-  const [fontSizeDropdownDirection, setFontSizeDropdownDirection] = useState<'down' | 'up'>('down');
-  const textDropdownButtonRef = useRef<HTMLButtonElement>(null);
+  const [] = useState<'down' | 'up'>('down');
   // In RichTextContextMenu, replace the color palette for text color and highlighter with a hex input, preview, and apply button
   // Add state for hex input for both text color and highlighter
   const [textColorInput, setTextColorInput] = useState(selectedTextColor);
@@ -239,7 +238,7 @@ const RichTextContextMenu = ({
   const isValidHex = (hex: string) => /^#([0-9A-Fa-f]{6})$/.test(hex);
   // --- NEW: State for Link Panel ---
   const [showLinkPanel, setShowLinkPanel] = useState(false);
-  const [linkInput, setLinkInput] = useState('');
+  const [, setLinkInput] = useState('');
   const linkPanelRef = useRef<HTMLDivElement>(null);
   const linkButtonRef = useRef<HTMLButtonElement>(null);
   // --- NEW: Helper to get current link (if any) ---
@@ -254,6 +253,7 @@ const RichTextContextMenu = ({
   };
   const [showTextColorHexInput, setShowTextColorHexInput] = useState(false);
   const [showHighlighterHexInput, setShowHighlighterHexInput] = useState(false);
+  const [fontSizeInput, setFontSizeInput] = useState(16);
   // --- NEW: Close Link Panel on outside click ---
   useEffect(() => {
     if (!showLinkPanel) return;
@@ -404,55 +404,8 @@ const RichTextContextMenu = ({
     // DON'T close the menu
   };
 
-  const handleFontSize = (size: string) => {
-    if (size === 'default') {
-      Editor.removeMark(editor, 'fontSize');
-    } else {
-      toggleMark(editor, 'fontSize', size);
-    }
-    ReactEditor.focus(editor);
-    // DON'T close the menu
-  };
 
-  const handleHighlight = (color?: string) => {
-    const colorToUse = color || selectedHighlightColor;
-    
-    // Check if already highlighted
-    const marks = Editor.marks(editor);
-    const isHighlighted = marks?.highlight;
-    
-    if (isHighlighted) {
-      // Remove highlight
-      Editor.removeMark(editor, 'highlight');
-      Editor.removeMark(editor, 'highlightColor');
-    } else {
-      // Add highlight with color
-      Editor.addMark(editor, 'highlight', true);
-      Editor.addMark(editor, 'highlightColor', colorToUse);
-    }
-    
-    ReactEditor.focus(editor);
-    // DON'T close the menu when applying highlight
-  };
 
-  const handleTextColor = (color?: string) => {
-    const colorToUse = color || selectedTextColor;
-    
-    // Check if text already has this color
-    const marks = Editor.marks(editor);
-    const currentColor = marks?.color;
-    
-    if (currentColor === colorToUse) {
-      // Remove color (reset to default)
-      Editor.removeMark(editor, 'color');
-    } else {
-      // Set new color
-      Editor.addMark(editor, 'color', colorToUse);
-    }
-    
-    ReactEditor.focus(editor);
-    // DON'T close the menu when applying color
-  };
 
   const handleHighlighterClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -466,17 +419,7 @@ const RichTextContextMenu = ({
     setShowHighlighterPalette(false); // Close highlighter palette
   };
 
-  const handleHighlightColorSelect = (color: string) => {
-    setSelectedHighlightColor(color);
-    handleHighlight(color);
-    setShowHighlighterPalette(false);
-  };
 
-  const handleTextColorSelect = (color: string) => {
-    setSelectedTextColor(color);
-    handleTextColor(color);
-    setShowTextColorPalette(false);
-  };
 
   // --- NEW: Open Link Panel ---
   const handleLinkClick = (e: React.MouseEvent) => {
@@ -495,38 +438,8 @@ const RichTextContextMenu = ({
   };
 
   // --- NEW: Apply Link ---
-  const handleApplyLink = () => {
-    if (!linkInput.trim()) return;
-    if (editor.selection && !Range.isCollapsed(editor.selection)) {
-      // Remove existing link first
-      Transforms.unwrapNodes(editor, {
-        match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link',
-        split: true,
-        at: editor.selection,
-      });
-      // Wrap selection with new link
-      Transforms.wrapNodes(
-        editor,
-        { type: 'link', url: linkInput.trim(), children: [] },
-        { split: true, at: editor.selection }
-      );
-    }
-    ReactEditor.focus(editor);
-    setShowLinkPanel(false);
-  };
 
   // --- NEW: Remove Link ---
-  const handleRemoveLink = () => {
-    if (editor.selection) {
-      Transforms.unwrapNodes(editor, {
-        match: n => !Editor.isEditor(n) && SlateElement.isElement(n) && n.type === 'link',
-        split: true,
-        at: editor.selection,
-      });
-    }
-    ReactEditor.focus(editor);
-    setShowLinkPanel(false);
-  };
 
   const getActiveAlignment = () => {
     const { selection } = editor;
@@ -832,68 +745,93 @@ const handleInsertChecklist = () => {
         </div>
         {/* End of Font Family Dropdown */}
         
-        {/* Text Size Buttons (replace with dropdown) */}
-        <div className="relative" style={{ marginRight: 4 }}>
-          <button
-            className="px-2 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition flex items-center justify-center gap-1"
-            title="Font Size"
-            onClick={e => {
-              e.stopPropagation();
-              setShowFontSizeDropdown(v => {
-                const next = !v;
-                if (next && textDropdownButtonRef.current) {
-                  const rect = textDropdownButtonRef.current.getBoundingClientRect();
-                  const dropdownHeight = 176; // 4 options * 44px each (approx)
-                  const spaceBelow = window.innerHeight - rect.bottom;
-                  const spaceAbove = rect.top;
-                  if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
-                    setFontSizeDropdownDirection('up');
-                  } else {
-                    setFontSizeDropdownDirection('down');
-                  }
-                }
-                setShowHighlighterPalette(false);
-                setShowTextColorPalette(false);
-                return next;
-              });
+        {/* Font Size Number Input (replaces dropdown) */}
+        <div className="relative flex items-center" style={{ marginRight: 4, width: 56 }}>
+          <input
+            type="number"
+            min={8}
+            max={96}
+            step={1}
+            value={fontSizeInput}
+            onChange={e => {
+              const val = parseInt(e.target.value, 10);
+              if (!isNaN(val)) {
+                setFontSizeInput(val);
+              } else {
+                setFontSizeInput(16);
+              }
             }}
-            ref={textDropdownButtonRef}
-            style={{ lineHeight: 1 }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 12h6"/><path d="M15 6h6"/><path d="m3 13 3.553-7.724a.5.5 0 0 1 .894 0L11 13"/><path d="M3 18h18"/><path d="M3.92 11h6.16"/></svg>
-          </button>
-          {/* Dropdown menu */}
-          {showFontSizeDropdown && (
-            <div
-              className="absolute w-32 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--foreground))] rounded-lg shadow-xl z-50 border border-[hsl(var(--popover-border))]"
-              style={{
-                minWidth: 120,
-                left: 0,
-                marginTop: fontSizeDropdownDirection === 'down' ? '0.25rem' : undefined,
-                bottom: fontSizeDropdownDirection === 'up' ? '100%' : undefined,
-                marginBottom: fontSizeDropdownDirection === 'up' ? '0.25rem' : undefined
+            onBlur={e => {
+              let val = parseInt(e.target.value, 10);
+              if (isNaN(val)) val = 16;
+              if (val < 8) val = 8;
+              if (val > 96) val = 96;
+              setFontSizeInput(val);
+              Editor.addMark(editor, 'fontSize', val + 'px');
+              ReactEditor.focus(editor);
+            }}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                let val = parseInt((e.target as HTMLInputElement).value, 10);
+                if (isNaN(val)) val = 16;
+                if (val < 8) val = 8;
+                if (val > 96) val = 96;
+                setFontSizeInput(val);
+                Editor.addMark(editor, 'fontSize', val + 'px');
+                ReactEditor.focus(editor);
+                (e.target as HTMLInputElement).blur();
+              }
+            }}
+            style={{
+              width: 40,
+              height: 32,
+              border: 'none',
+              background: 'transparent',
+              textAlign: 'center',
+              fontSize: 16,
+              outline: 'none',
+              borderRadius: 6,
+              marginRight: 0,
+              MozAppearance: 'textfield',
+              appearance: 'textfield',
+            }}
+            className="font-medium focus:ring-2 focus:ring-[hsl(var(--context-menu-border))] hide-number-spin"
+          />
+          {/* Up/Down arrows */}
+          <div className="flex flex-col h-full justify-center ml-1">
+            <button
+              tabIndex={-1}
+              style={{ padding: 0, border: 'none', background: 'none', height: 12, cursor: 'pointer', lineHeight: 1 }}
+              onClick={() => {
+                let val = fontSizeInput;
+                if (val < 96) {
+                  val = val + 1;
+                  setFontSizeInput(val);
+                  Editor.addMark(editor, 'fontSize', val + 'px');
+                  ReactEditor.focus(editor);
+                }
               }}
             >
-              <button
-                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] rounded-t-lg text-sm"
-                onClick={() => { handleFontSize('h1'); setShowFontSizeDropdown(false); }}
-              >Heading 1</button>
-              <button
-                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] text-sm"
-                onClick={() => { handleFontSize('h2'); setShowFontSizeDropdown(false); }}
-              >Heading 2</button>
-              <button
-                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] text-sm"
-                onClick={() => { handleFontSize('h3'); setShowFontSizeDropdown(false); }}
-              >Heading 3</button>
-              <button
-                className="block w-full text-left px-4 py-2 hover:bg-[hsl(var(--context-menu-hover))] text-sm"
-                onClick={() => { handleFontSize('default'); setShowFontSizeDropdown(false); }}
-              >Normal</button>
-            </div>
-          )}
+              <svg width="12" height="8" viewBox="0 0 12 8"><path d="M2 6l4-4 4 4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>
+            </button>
+            <button
+              tabIndex={-1}
+              style={{ padding: 0, border: 'none', background: 'none', height: 12, cursor: 'pointer', lineHeight: 1 }}
+              onClick={() => {
+                let val = fontSizeInput;
+                if (val > 8) {
+                  val = val - 1;
+                  setFontSizeInput(val);
+                  Editor.addMark(editor, 'fontSize', val + 'px');
+                  ReactEditor.focus(editor);
+                }
+              }}
+            >
+              <svg width="12" height="8" viewBox="0 0 12 8"><path d="M2 2l4 4 4-4" stroke="currentColor" strokeWidth="1.5" fill="none" strokeLinecap="round"/></svg>
+            </button>
+          </div>
         </div>
-        {/* End of Text Size Dropdown */}
+        {/* End of Font Size Number Input */}
         <div className="w-px bg-gray-300 self-stretch max-h-10 mx-2"></div>
         <button
           className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
@@ -1353,7 +1291,11 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
                 }}
                 style={{ marginRight: 8 }}
               />
-              <span style={props.element.checked ? { textDecoration: 'line-through', opacity: 0.7 } : {}}>{props.children}</span>
+              {props.element.checked ? (
+                <span className="checklist-strikethrough">{props.children}</span>
+              ) : (
+                <span>{props.children}</span>
+              )}
             </li>
           );
         }
@@ -1405,19 +1347,10 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     const style: React.CSSProperties = {};
     
     if (leaf.fontSize) {
-      switch (leaf.fontSize) {
-        case 'h1':
-          style.fontSize = '2.5rem'; // 40px (text-4xl to text-6xl)
-          style.fontWeight = 700;
-          break;
-        case 'h2':
-          style.fontSize = '2rem'; // 32px (text-2xl to text-4xl)
-          style.fontWeight = 700;
-          break;
-        case 'h3':
-          style.fontSize = '1.5rem'; // 24px (text-xl to text-2xl)
-          style.fontWeight = 700;
-          break;
+      if (typeof leaf.fontSize === 'string' && leaf.fontSize.endsWith('px')) {
+        style.fontSize = leaf.fontSize;
+      } else if (!isNaN(Number(leaf.fontSize))) {
+        style.fontSize = leaf.fontSize + 'px';
       }
     }
     
