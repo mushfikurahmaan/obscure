@@ -253,6 +253,8 @@ const RichTextContextMenu = ({
     });
     return match && SlateElement.isElement(match[0]) ? (match[0] as any).url || '' : '';
   };
+  const [showTextColorHexInput, setShowTextColorHexInput] = useState(false);
+  const [showHighlighterHexInput, setShowHighlighterHexInput] = useState(false);
   // --- NEW: Close Link Panel on outside click ---
   useEffect(() => {
     if (!showLinkPanel) return;
@@ -278,17 +280,20 @@ const RichTextContextMenu = ({
       const menuRect = menuRef.current.getBoundingClientRect();
       let left = position.x;
       let top = position.y;
+      const margin = 8;
+      // Try to show above selection if enough space
+      if (top - menuRect.height - margin > 0) {
+        top = top - menuRect.height - margin;
+      } else if (top + menuRect.height + margin < window.innerHeight) {
+        // Otherwise, show below (with margin)
+        top = top + margin;
+      }
       // Shift left if overflowing right
       if (left + menuRect.width > window.innerWidth) {
         left = Math.max(8, window.innerWidth - menuRect.width - 8);
       }
-      // Shift up if overflowing bottom
-      if (top + menuRect.height > window.innerHeight) {
-        top = Math.max(8, window.innerHeight - menuRect.height - 8);
-      }
       setMenuStyle({ left, top });
       // Decide palette direction (right or left)
-      // Assume palette width is 200px
       const paletteWidth = 200;
       if (left + menuRect.width + paletteWidth > window.innerWidth) {
         setPaletteDirection('left');
@@ -296,7 +301,6 @@ const RichTextContextMenu = ({
         setPaletteDirection('right');
       }
     };
-    // Timeout to allow menu to render and get dimensions
     setTimeout(reposition, 0);
   }, [isVisible, position.x, position.y]);
 
@@ -755,18 +759,14 @@ const handleInsertChecklist = () => {
   return (
     <div
       ref={menuRef}
-      className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-xl border border-[hsl(var(--context-menu-border))]"
+      className="fixed z-50 bg-white text-black rounded-lg shadow-lg border border-gray-200"
       style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
-      // Removed onMouseDown to allow input fields to be editable
     >
-    {/* Arrow removed */}
-      
-      {/* Main Toolbar */}
+      {/* Main Toolbar - all buttons in a single row */}
       <div
-      className="flex items-center gap-1 rounded-lg px-2 py-1 relative"
-      // Removed inline background style for color consistency
+        className="flex items-center gap-0.5 rounded-xl px-2 py-0.5 relative"
+        style={{ minHeight: 40 }}
       >
-        
         {/* Font Family Dropdown Button */}
         <div className="relative" style={{ marginRight: 4 }}>
           <button
@@ -895,7 +895,7 @@ const handleInsertChecklist = () => {
           )}
         </div>
         {/* End of Text Size Dropdown */}
-        
+        <div className="w-px bg-gray-300 self-stretch max-h-10 mx-2"></div>
         <button
           className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
           title="Bold"
@@ -917,6 +917,7 @@ const handleInsertChecklist = () => {
         >
         <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><path stroke="currentColor" strokeWidth="2" d="M6 4v5a4 4 0 0 0 8 0V4M5 16h10"/></svg>
         </button>
+        <div className="w-px bg-gray-300 self-stretch max-h-10 mx-2"></div>
         <button
           className={`px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'left' ? ' bg-[hsl(var(--context-menu-hover))]' : ''}`}
           title="Align Left"
@@ -938,14 +939,29 @@ const handleInsertChecklist = () => {
         >
         <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="7" y="9" width="10" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
         </button>
+        <div className="w-px bg-gray-300 self-stretch max-h-10 mx-2"></div>
         <button
-          className={`px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center${getActiveAlignment() === 'justify' ? ' bg-[hsl(var(--context-menu-hover))]' : ''}`}
-          title="Justify"
-          onClick={() => setAlignment('justify')}
-        >
-        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" className="w-5 h-5"><rect x="3" y="5" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/><rect x="3" y="13" width="14" height="2" rx="1" fill="currentColor"/></svg>
+        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+        title="Numbered List"
+        onClick={() => handleInsertList('numbered-list')}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
         </button>
-
+      <button
+        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+        title="Bullet List"
+        onClick={() => handleInsertList('bulleted-list')}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>
+      </button>
+      <button
+        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+        title="Checklist"
+        onClick={handleInsertChecklist}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+      </button>
+      <div className="w-px bg-gray-300 self-stretch max-h-10 mx-2"></div>
         {/* Text Color with Color Palette */}
         <div ref={textColorRef} className="relative">
           <button
@@ -960,130 +976,122 @@ const handleInsertChecklist = () => {
               style={{ backgroundColor: selectedTextColor }}
             />
           </button>
-          
-          {/* Sliding Color Palette */}
+          {/* Redesigned Color Popover */}
           <div
-            className="absolute flex items-center bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--code-block-background))] shadow-xl rounded-lg"
+            className="absolute flex flex-col items-center bg-white text-black border border-gray-200 shadow-xl rounded-lg"
             style={{
-              left: paletteDirection === 'right' ? '100%' : undefined,
-              right: paletteDirection === 'left' ? '100%' : undefined,
-              marginLeft: paletteDirection === 'right' ? 8 : undefined,
-              marginRight: paletteDirection === 'left' ? 8 : undefined,
-              width: showTextColorPalette ? 'auto' : 0,
-              minWidth: showTextColorPalette ? 0 : 0,
-              maxWidth: 'none',
-              opacity: showTextColorPalette ? 1 : 0,
-              borderRadius: 10,
-              boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              bottom: 'calc(100% + 12px)',
+              minWidth: 160,
+              width: 180,
               zIndex: 100,
+              opacity: showTextColorPalette ? 1 : 0,
+              pointerEvents: showTextColorPalette ? 'auto' : 'none',
+              transition: 'opacity 0.2s',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+              padding: '16px 12px 8px 12px',
               display: showTextColorPalette ? 'flex' : 'none',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              padding: '0.25rem 0.5rem',
-              background: 'hsl(var(--background))',
-              transition: 'all 0.2s',
             }}
           >
+            {/* Arrow/pointer at the bottom */}
+            <div style={{
+              position: 'absolute',
+              left: '50%',
+              bottom: -10,
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '10px solid transparent',
+              borderRight: '10px solid transparent',
+              borderTop: '10px solid white',
+              filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.08))',
+              zIndex: 101,
+            }} />
+            {/* Swatch grid or hex input, in place */}
+            {!showTextColorHexInput ? (
+              <>
+                <div className="grid grid-cols-4 gap-2 mb-2">
+                  {TEXT_COLOR_SWATCHES.map(color => (
+                    <button
+                      key={color}
+                      className="w-7 h-7 rounded-full border flex items-center justify-center focus:outline-none"
+                      style={{
+                        background: color,
+                        borderWidth: selectedTextColor === color ? 1 : 1,
+                        borderColor: selectedTextColor === color ? '#222' : '#fff',
+                        boxShadow: selectedTextColor === color ? '0 0 0 1px #222' : 'none',
+                        outline: 'none',
+                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                      }}
+                      onClick={() => {
+                        setSelectedTextColor(color);
+                        // Apply text color but do NOT close the popover
+                        const marks = Editor.marks(editor);
+                        if (!marks?.color || marks?.color !== color) {
+                          Editor.addMark(editor, 'color', color);
+                        }
+                      }}
+                    >
+                      {/* No checkmark/tickmark inside the selected color */}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="text-sm text-black font-medium py-1 px-2 rounded hover:bg-gray-100 transition"
+                  style={{ marginBottom: 2 }}
+                  onClick={() => setShowTextColorHexInput(true)}
+                >
+                  More colors
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center w-full">
+                <div className="flex items-center gap-2 mb-2 w-full justify-center">
             <input
               type="text"
               value={textColorInput}
-              onChange={e => setTextColorInput(e.target.value)}
-              placeholder="Hex code"
-              maxLength={7}
-              className="px-2 py-1 text-base outline-none placeholder:text-[hsl(var(--muted-foreground))]"
-              style={{
-                border: '1px solid hsl(var(--input))',
-                width: 100,
-                height: 32,
-                fontSize: 14,
-                marginRight: 8,
-                background: 'hsl(var(--background))',
-                color: 'hsl(var(--foreground))',
-                flexShrink: 0,
-                borderRadius: 6,
-              }}
-              autoFocus
-              onKeyDown={e => {
-                if (e.key === 'Enter' && isValidHex(textColorInput)) {
-                  setSelectedTextColor(textColorInput);
-                  handleTextColorSelect(textColorInput);
+              onChange={e => {
+                setTextColorInput(e.target.value);
+                if (isValidHex(e.target.value)) {
+                  setSelectedTextColor(e.target.value);
+                  // Apply text color but do NOT close the popover
+                  const marks = Editor.marks(editor);
+                  if (!marks?.color || marks?.color !== e.target.value) {
+                    Editor.addMark(editor, 'color', e.target.value);
+                  }
                 }
               }}
+              placeholder="hex code"
+              maxLength={7}
+              className="px-2 py-1 text-base outline-none border border-gray-300 rounded flex-grow w-full"
+              style={{ fontSize: 14 }}
+              autoFocus
             />
             <span
               title={isValidHex(textColorInput) ? hexToColorName(textColorInput) : 'Invalid color'}
               style={{
                 display: 'inline-block',
-                width: 24,
-                height: 24,
+                width: 32,
+                height: 32,
                 borderRadius: '50%',
-                background: isValidHex(textColorInput) ? textColorInput : '#222',
-                border: '2px solid #fff',
-                boxShadow: '0 0 0 2px #222',
-                marginRight: 8,
-                transition: 'background 0.2s',
+                background: isValidHex(textColorInput) ? textColorInput : '#e5e5e5',
+                border: isValidHex(textColorInput) ? '1px solid #bbb' : '1px dashed #bbb',
+                boxShadow: isValidHex(textColorInput) ? '0 0 0 1px #222' : 'none',
+                transition: 'background 0.2s, border 0.2s',
                 flexShrink: 0,
               }}
             />
+                </div>
             <button
-              onClick={e => {
-                e.stopPropagation();
-                if (isValidHex(textColorInput)) {
-                  setSelectedTextColor(textColorInput);
-                  handleTextColorSelect(textColorInput);
-                }
-              }}
-              disabled={!isValidHex(textColorInput)}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: isValidHex(textColorInput)
-                  ? 'rgba(99,102,241,0.85)'
-                  : 'rgba(136,136,136,0.18)',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(255,255,255,0.18)',
-                cursor: isValidHex(textColorInput) ? 'pointer' : 'not-allowed',
-                transition: 'background 0.2s',
-                flexShrink: 0,
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                marginRight: 4,
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+                  onClick={() => setShowTextColorHexInput(false)}
+                  className="w-full text-sm text-gray-700 font-medium py-1 px-2 rounded hover:bg-gray-100 transition"
+                  title="Back to swatches"
+                >
+                  Back
             </button>
-            {/* Close/Unapply Text Color Button */}
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                // Remove color mark from selection
-                Editor.removeMark(editor, 'color');
-                setShowTextColorPalette(false);
-              }}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: 'rgba(239,68,68,0.85)',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(255,255,255,0.18)',
-                cursor: 'pointer',
-                transition: 'background 0.2s',
-                flexShrink: 0,
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}
-              title="Remove Text Color"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            </button>
+              </div>
+            )}
           </div>
         </div>
         
@@ -1101,137 +1109,128 @@ const handleInsertChecklist = () => {
               style={{ backgroundColor: selectedHighlightColor }}
             />
           </button>
-          
-          {/* Sliding Color Palette */}
+          {/* Redesigned Highlighter Color Popover */}
           <div
-            className="absolute flex items-center bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--code-block-background))] shadow-xl rounded-lg"
+            className="absolute flex flex-col items-center bg-white text-black border border-gray-200 shadow-xl rounded-lg"
             style={{
-              left: paletteDirection === 'right' ? '100%' : undefined,
-              right: paletteDirection === 'left' ? '100%' : undefined,
-              marginLeft: paletteDirection === 'right' ? 8 : undefined,
-              marginRight: paletteDirection === 'left' ? 8 : undefined,
-              width: showHighlighterPalette ? 'auto' : 0,
-              minWidth: showHighlighterPalette ? 0 : 0,
-              maxWidth: 'none',
-              opacity: showHighlighterPalette ? 1 : 0,
-              borderRadius: 10,
-              boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              bottom: 'calc(100% + 12px)',
+              minWidth: 160,
+              width: 180,
               zIndex: 100,
+              opacity: showHighlighterPalette ? 1 : 0,
+              pointerEvents: showHighlighterPalette ? 'auto' : 'none',
+              transition: 'opacity 0.2s',
+              boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
+              padding: '16px 12px 8px 12px',
               display: showHighlighterPalette ? 'flex' : 'none',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              padding: '0.25rem 0.5rem',
-              background: 'hsl(var(--background))',
-              transition: 'all 0.2s',
             }}
           >
-            <input
-              type="text"
-              value={highlightColorInput}
-              onChange={e => setHighlightColorInput(e.target.value)}
-              placeholder="Hex code"
-              maxLength={7}
-              className="px-2 py-1 text-base outline-none placeholder:text-[hsl(var(--muted-foreground))]"
-              style={{
-                border: '1px solid hsl(var(--input))',
-                width: 100,
-                height: 32,
-                fontSize: 14,
-                marginRight: 8,
-                background: 'hsl(var(--background))',
-                color: 'hsl(var(--foreground))',
-                flexShrink: 0,
-                borderRadius: 6,
-              }}
-              autoFocus
-              onKeyDown={e => {
-                if (e.key === 'Enter' && isValidHex(highlightColorInput)) {
-                  setSelectedHighlightColor(highlightColorInput);
-                  handleHighlightColorSelect(highlightColorInput);
-                }
-              }}
-            />
-            <span
-              title={isValidHex(highlightColorInput) ? hexToColorName(highlightColorInput) : 'Invalid color'}
-              style={{
-                display: 'inline-block',
-                width: 24,
-                height: 24,
-                borderRadius: '50%',
-                background: isValidHex(highlightColorInput) ? highlightColorInput : '#222',
-                border: '2px solid #fff',
-                boxShadow: '0 0 0 2px #222',
-                marginRight: 8,
-                transition: 'background 0.2s',
-                flexShrink: 0,
-              }}
-            />
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                if (isValidHex(highlightColorInput)) {
-                  setSelectedHighlightColor(highlightColorInput);
-                  handleHighlightColorSelect(highlightColorInput);
-                }
-              }}
-              disabled={!isValidHex(highlightColorInput)}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: isValidHex(highlightColorInput)
-                  ? 'rgba(99,102,241,0.85)'
-                  : 'rgba(136,136,136,0.18)',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(255,255,255,0.18)',
-                cursor: isValidHex(highlightColorInput) ? 'pointer' : 'not-allowed',
-                transition: 'background 0.2s',
-                flexShrink: 0,
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-                marginRight: 4,
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-            </button>
-            {/* Close/Unapply Highlighter Button */}
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                // Remove highlight and highlightColor marks from selection
-                Editor.removeMark(editor, 'highlight');
-                Editor.removeMark(editor, 'highlightColor');
-                setShowHighlighterPalette(false);
-              }}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: 'rgba(239,68,68,0.85)',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(255,255,255,0.18)',
-                cursor: 'pointer',
-                transition: 'background 0.2s',
-                flexShrink: 0,
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}
-              title="Remove Highlight"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            </button>
+            {/* Arrow/pointer at the bottom */}
+            <div style={{
+              position: 'absolute',
+              left: '50%',
+              bottom: -10,
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '10px solid transparent',
+              borderRight: '10px solid transparent',
+              borderTop: '10px solid white',
+              filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.08))',
+              zIndex: 101,
+            }} />
+            {/* Swatch grid or hex input, in place */}
+            {!showHighlighterHexInput ? (
+              <>
+                <div className="grid grid-cols-4 gap-2 mb-2">
+                  {HIGHLIGHTER_COLOR_SWATCHES.map(color => (
+                    <button
+                      key={color}
+                      className="w-7 h-7 rounded-full border flex items-center justify-center focus:outline-none"
+                      style={{
+                        background: color,
+                        borderWidth: selectedHighlightColor === color ? 1 : 1,
+                        borderColor: selectedHighlightColor === color ? '#222' : '#fff',
+                        boxShadow: selectedHighlightColor === color ? '0 0 0 1px #222' : 'none',
+                        outline: 'none',
+                        transition: 'border-color 0.2s, box-shadow 0.2s',
+                      }}
+                      onClick={() => {
+                        setSelectedHighlightColor(color);
+                        // Apply highlight color but do NOT close the popover
+                        const marks = Editor.marks(editor);
+                        if (!marks?.highlight || marks?.highlightColor !== color) {
+                          Editor.addMark(editor, 'highlight', true);
+                          Editor.addMark(editor, 'highlightColor', color);
+                        }
+                      }}
+                    >
+                      {/* No checkmark/tickmark inside the selected color */}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  className="text-sm text-black font-medium py-1 px-2 rounded hover:bg-gray-100 transition"
+                  style={{ marginBottom: 2 }}
+                  onClick={() => setShowHighlighterHexInput(true)}
+                >
+                  More colors
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center w-full">
+                <div className="flex items-center gap-2 mb-2 w-full justify-center">
+                  <input
+                    type="text"
+                    value={highlightColorInput}
+                    onChange={e => {
+                      setHighlightColorInput(e.target.value);
+                      if (isValidHex(e.target.value)) {
+                        setSelectedHighlightColor(e.target.value);
+                        // Apply highlight color but do NOT close the popover
+                        const marks = Editor.marks(editor);
+                        if (!marks?.highlight || marks?.highlightColor !== e.target.value) {
+                          Editor.addMark(editor, 'highlight', true);
+                          Editor.addMark(editor, 'highlightColor', e.target.value);
+                        }
+                      }
+                    }}
+                    placeholder="hex code"
+                    maxLength={7}
+                    className="px-2 py-1 text-base outline-none border border-gray-300 rounded flex-grow w-full"
+                    style={{ fontSize: 14 }}
+                    autoFocus
+                  />
+                  <span
+                    title={isValidHex(highlightColorInput) ? hexToColorName(highlightColorInput) : 'Invalid color'}
+                    style={{
+                      display: 'inline-block',
+                      width: 32,
+                      height: 32,
+                      borderRadius: '50%',
+                      background: isValidHex(highlightColorInput) ? highlightColorInput : '#e5e5e5',
+                      border: isValidHex(highlightColorInput) ? '1px solid #bbb' : '1px dashed #bbb',
+                      boxShadow: isValidHex(highlightColorInput) ? '0 0 0 1px #222' : 'none',
+                      transition: 'background 0.2s, border 0.2s',
+                      flexShrink: 0,
+                    }}
+                  />
+                </div>
+                <button
+                  onClick={() => setShowHighlighterHexInput(false)}
+                  className="w-full text-sm text-gray-700 font-medium py-1 px-2 rounded hover:bg-gray-100 transition"
+                  title="Back to swatches"
+                >
+                  Back
+                </button>
+              </div>
+            )}
           </div>
         </div>
-    </div>
-    {/* New block options as icon row */}
+        <div className="w-px bg-gray-300 self-stretch max-h-10 mx-2"></div>
     {/* Code block */}
-    <div className="flex items-center gap-1 mt-1 px-2 pb-1">
     <button
           className="px-1 py-1 text-base hover:bg-[hsl(var(--context-menu-hover))] transition w-8 h-8 flex items-center justify-center"
           title="Code Block"
@@ -1239,7 +1238,6 @@ const handleInsertChecklist = () => {
         >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m18 16 4-4-4-4"/><path d="m6 8-4 4 4 4"/><path d="m14.5 4-5 16"/></svg>
         </button>
-
       {/* Link Button */}
       <div className="relative">
         <button
@@ -1251,144 +1249,8 @@ const handleInsertChecklist = () => {
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
         </button>
         {/* Link Panel Slider */}
-        <div
-          ref={linkPanelRef}
-          className="absolute flex items-center bg-[hsl(var(--background))] text-[hsl(var(--popover-foreground))] border border-[hsl(var(--code-block-background))] shadow-xl rounded-lg"
-          style={{
-            left: paletteDirection === 'right' ? '100%' : undefined,
-            right: paletteDirection === 'left' ? '100%' : undefined,
-            marginLeft: paletteDirection === 'right' ? 8 : undefined,
-            marginRight: paletteDirection === 'left' ? 8 : undefined,
-            width: showLinkPanel ? 240 : 0,
-            minWidth: showLinkPanel ? 240 : 0,
-            maxWidth: 240,
-            opacity: showLinkPanel ? 1 : 0,
-            borderRadius: 10,
-            boxShadow: '0 4px 24px rgba(0,0,0,0.18)',
-            zIndex: 100,
-            display: showLinkPanel ? 'flex' : 'none',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            padding: '0.25rem 0.5rem',
-            background: 'hsl(var(--background))',
-            transition: 'all 0.2s',
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: 0,
-          }}
-        >
-          <input
-            type="text"
-            value={linkInput}
-            onChange={e => setLinkInput(e.target.value)}
-            placeholder="Paste or type URL"
-            className="px-2 py-1 text-base outline-none placeholder:text-[hsl(var(--muted-foreground))]"
-            style={{
-              border: '1px solid hsl(var(--input))',
-              height: 32,
-              fontSize: 14,
-              background: 'hsl(var(--background))',
-              color: 'hsl(var(--foreground))',
-              borderRadius: 6,
-              flex: 1,
-              minWidth: 0,
-              marginRight: 8,
-            }}
-            autoFocus
-            onKeyDown={e => {
-              if (e.key === 'Enter' && linkInput.trim()) {
-                handleApplyLink();
-              }
-              if (e.key === 'Escape') {
-                setShowLinkPanel(false);
-              }
-            }}
-          />
-          <div style={{ display: 'flex', flexDirection: 'row', gap: 8 }}>
-            {/* Apply Link Button */}
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                if (linkInput.trim()) handleApplyLink();
-              }}
-              disabled={!linkInput.trim()}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: linkInput.trim()
-                  ? 'rgba(99,102,241,0.85)'
-                  : 'rgba(136,136,136,0.18)',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(255,255,255,0.18)',
-                cursor: linkInput.trim() ? 'pointer' : 'not-allowed',
-                transition: 'background 0.2s',
-                flexShrink: 0,
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-            </button>
-            {/* Remove Link Button */}
-            <button
-              onClick={e => {
-                e.stopPropagation();
-                handleRemoveLink();
-              }}
-              disabled={!getCurrentLink()}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: '50%',
-                background: getCurrentLink()
-                  ? 'rgba(239,68,68,0.85)'
-                  : 'rgba(136,136,136,0.18)',
-                color: '#fff',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid rgba(255,255,255,0.18)',
-                cursor: getCurrentLink() ? 'pointer' : 'not-allowed',
-                transition: 'background 0.2s',
-                flexShrink: 0,
-                backdropFilter: 'blur(8px)',
-                WebkitBackdropFilter: 'blur(8px)',
-              }}
-              title="Remove Link"
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
-            </button>
-          </div>
-        </div>
+          {/* ...existing link panel code... */}
       </div>
-      <button
-        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-        title="Numbered List"
-        onClick={() => handleInsertList('numbered-list')}
-      >
-        {/* List (numbered) icon */}
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 12h11"/><path d="M10 18h11"/><path d="M10 6h11"/><path d="M4 10h2"/><path d="M4 6h1v4"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
-      </button>
-      <button
-        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-        title="Bullet List"
-        onClick={() => handleInsertList('bulleted-list')}
-      >
-        {/* List (bulleted) icon */}
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/></svg>
-      </button>
-      <button
-        className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-        title="Checklist"
-        onClick={handleInsertChecklist}
-      >
-        {/* Checklist icon */}
-        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
-      </button>
       <button
         className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
         title="Strikethrough"
@@ -1430,180 +1292,7 @@ const handleInsertChecklist = () => {
           );
         }}
       >
-        {/* Magic wand Lucide icon */}
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m16 22-1-4"/><path d="M19 13.99a1 1 0 0 0 1-1V12a2 2 0 0 0-2-2h-3a1 1 0 0 1-1-1V4a2 2 0 0 0-4 0v5a1 1 0 0 1-1 1H6a2 2 0 0 0-2 2v.99a1 1 0 0 0 1 1"/><path d="M5 14h14l1.973 6.767A1 1 0 0 1 20 22H4a1 1 0 0 1-.973-1.233z"/><path d="m8 22 1-4"/></svg>
-      </button>
-    </div>
-  </div>
-);
-};
-
-// =========================
-// Slate Editor Plugins
-// =========================
-
-// Plugin: Treat 'link' elements as inline
-const withLinks = (editor: ReactEditor) => {
-  const { isInline } = editor;
-  editor.isInline = element => element.type === 'link' ? true : isInline(element);
-  return editor;
-};
-
-// Plugin: Treat 'divider' elements as void
-const withDividers = (editor: ReactEditor) => {
-  const { isVoid } = editor;
-  editor.isVoid = element => element.type === 'divider' ? true : isVoid(element);
-  return editor;
-};
-
-// Plugin: Always ensure a trailing paragraph at the end of the document
-const withTrailingParagraph = (editor: ReactEditor) => {
-  const { normalizeNode } = editor;
-  editor.normalizeNode = entry => {
-    const [, path] = entry;
-    // Only check the root node
-    if (path.length === 0) {
-      const lastNode = editor.children[editor.children.length - 1];
-      if (!lastNode || !SlateElement.isElement(lastNode) || lastNode.type !== 'paragraph') {
-        // Insert a trailing empty paragraph
-        Transforms.insertNodes(
-          editor,
-          { type: 'paragraph', children: [{ text: '' }] },
-          { at: [editor.children.length] }
-        );
-        return;
-      }
-    }
-    normalizeNode(entry);
-  };
-  return editor;
-};
-
-// --- Add: New context menu for no selection ---
-const GeneralContextMenu = ({
-  isVisible,
-  position,
-  onClose,
-  onInsertEmoji,
-  onInsertDivider,
-}: {
-  isVisible: boolean;
-  position: { x: number; y: number };
-  onClose: () => void;
-  onInsertEmoji: (emoji: string) => void;
-  onInsertDivider: () => void;
-}) => {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const emojiPickerRef = useRef<HTMLDivElement>(null);
-  const [menuStyle, setMenuStyle] = useState<{ left: number; top: number } | null>(null);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [emojiPickerDirection, setEmojiPickerDirection] = useState<'down' | 'up'>('down');
-  const { theme } = useTheme();
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        (menuRef.current && menuRef.current.contains(e.target as Node)) ||
-        (emojiPickerRef.current && emojiPickerRef.current.contains(e.target as Node))
-      ) {
-        return; // Click inside menu or emoji picker, do nothing
-      }
-      onClose();
-      setShowEmojiPicker(false);
-    };
-    if (isVisible) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isVisible, onClose, showEmojiPicker]);
-
-  useEffect(() => {
-    if (!isVisible) return;
-    const reposition = () => {
-      if (!menuRef.current) return;
-      const menuRect = menuRef.current.getBoundingClientRect();
-      let left = position.x;
-      let top = position.y;
-      if (left + menuRect.width > window.innerWidth) {
-        left = Math.max(8, window.innerWidth - menuRect.width - 8);
-      }
-      if (top + menuRect.height > window.innerHeight) {
-        top = Math.max(8, window.innerHeight - menuRect.height - 8);
-      }
-      setMenuStyle({ left, top });
-    };
-    setTimeout(reposition, 0);
-  }, [isVisible, position.x, position.y]);
-
-  if (!isVisible) return null;
-
-  return (
-    <div
-      ref={menuRef}
-      className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-xl border border-[hsl(var(--context-menu-border))]"
-      style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
-    >
-      <div className="flex flex-row items-center gap-1 px-2 py-1 min-w-[0] relative">
-        <button
-          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-          title="Emoji"
-          onClick={e => {
-            e.stopPropagation();
-            if (!showEmojiPicker && menuRef.current) {
-              const menuRect = menuRef.current.getBoundingClientRect();
-              const pickerHeight = 400; // Approximate height of emoji picker
-              const spaceBelow = window.innerHeight - menuRect.bottom;
-              const spaceAbove = menuRect.top;
-              if (spaceBelow < pickerHeight && spaceAbove > pickerHeight) {
-                setEmojiPickerDirection('up');
-              } else {
-                setEmojiPickerDirection('down');
-              }
-            }
-            setShowEmojiPicker(v => !v);
-          }}
-        >
-          <Smile className="w-5 h-5" />
-        </button>
-        {showEmojiPicker && (
-          <div
-            ref={emojiPickerRef}
-            style={{
-              position: 'absolute',
-              zIndex: 100,
-              left: 0,
-              top: emojiPickerDirection === 'down' ? '110%' : undefined,
-              bottom: emojiPickerDirection === 'up' ? '110%' : undefined,
-            }}
-            onClick={e => e.stopPropagation()}
-          >
-            <Suspense fallback={<div className="p-4 text-center">Loading…</div>}>
-              <EmojiMartPicker
-                data={data}
-                theme={theme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : (theme === 'dark' ? 'dark' : 'light')}
-                onEmojiSelect={(emoji: any) => {
-                  onInsertEmoji(emoji.native || '');
-                  setShowEmojiPicker(false);
-                }}
-                previewPosition="none"
-                skinTonePosition="search"
-                autoFocus={false}
-                style={{
-                  width: 320,
-                  maxHeight: 380,
-                  minHeight: 200,
-                  overflowY: 'auto',
-                }}
-              />
-            </Suspense>
-          </div>
-        )}
-        <button
-          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
-          title="Horizontal Line"
-          onClick={() => { onInsertDivider(); onClose(); }}
-        >
-          <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/></svg>
         </button>
       </div>
     </div>
@@ -2100,4 +1789,189 @@ export const NoteEditor = ({ note, onUpdate, alignLeft = 0, onTitleChange, onClo
     )
   );
 };
+
+// =========================
+// Slate Editor Plugins
+// =========================
+
+// Plugin: Treat 'link' elements as inline
+const withLinks = (editor: ReactEditor) => {
+  const { isInline } = editor;
+  editor.isInline = element => element.type === 'link' ? true : isInline(element);
+  return editor;
+};
+
+// Plugin: Treat 'divider' elements as void
+const withDividers = (editor: ReactEditor) => {
+  const { isVoid } = editor;
+  editor.isVoid = element => element.type === 'divider' ? true : isVoid(element);
+  return editor;
+};
+
+// Plugin: Always ensure a trailing paragraph at the end of the document
+const withTrailingParagraph = (editor: ReactEditor) => {
+  const { normalizeNode } = editor;
+  editor.normalizeNode = entry => {
+    const [, path] = entry;
+    // Only check the root node
+    if (path.length === 0) {
+      const lastNode = editor.children[editor.children.length - 1];
+      if (!lastNode || !SlateElement.isElement(lastNode) || lastNode.type !== 'paragraph') {
+        // Insert a trailing empty paragraph
+        Transforms.insertNodes(
+          editor,
+          { type: 'paragraph', children: [{ text: '' }] },
+          { at: [editor.children.length] }
+        );
+        return;
+      }
+    }
+    normalizeNode(entry);
+  };
+  return editor;
+};
+
+// --- Add: New context menu for no selection ---
+const GeneralContextMenu = ({
+  isVisible,
+  position,
+  onClose,
+  onInsertEmoji,
+  onInsertDivider,
+}: {
+  isVisible: boolean;
+  position: { x: number; y: number };
+  onClose: () => void;
+  onInsertEmoji: (emoji: string) => void;
+  onInsertDivider: () => void;
+}) => {
+  const menuRef = useRef<HTMLDivElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const [menuStyle, setMenuStyle] = useState<{ left: number; top: number } | null>(null);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [emojiPickerDirection, setEmojiPickerDirection] = useState<'down' | 'up'>('down');
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        (menuRef.current && menuRef.current.contains(e.target as Node)) ||
+        (emojiPickerRef.current && emojiPickerRef.current.contains(e.target as Node))
+      ) {
+        return; // Click inside menu or emoji picker, do nothing
+      }
+      onClose();
+      setShowEmojiPicker(false);
+    };
+    if (isVisible) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isVisible, onClose, showEmojiPicker]);
+
+  useEffect(() => {
+    if (!isVisible) return;
+    const reposition = () => {
+      if (!menuRef.current) return;
+      const menuRect = menuRef.current.getBoundingClientRect();
+      let left = position.x;
+      let top = position.y;
+      if (left + menuRect.width > window.innerWidth) {
+        left = Math.max(8, window.innerWidth - menuRect.width - 8);
+      }
+      if (top + menuRect.height > window.innerHeight) {
+        top = Math.max(8, window.innerHeight - menuRect.height - 8);
+      }
+      setMenuStyle({ left, top });
+    };
+    setTimeout(reposition, 0);
+  }, [isVisible, position.x, position.y]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div
+      ref={menuRef}
+      className="fixed z-50 bg-[hsl(var(--context-menu-bg))] text-[hsl(var(--popover-foreground))] rounded-lg shadow-xl border border-[hsl(var(--context-menu-border))]"
+      style={menuStyle ? { left: menuStyle.left, top: menuStyle.top } : { left: position.x, top: position.y }}
+    >
+      <div className="flex flex-row items-center gap-1 px-2 py-1 min-w-[0] relative">
+        <button
+          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+          title="Emoji"
+          onClick={e => {
+            e.stopPropagation();
+            if (!showEmojiPicker && menuRef.current) {
+              const menuRect = menuRef.current.getBoundingClientRect();
+              const pickerHeight = 400; // Approximate height of emoji picker
+              const spaceBelow = window.innerHeight - menuRect.bottom;
+              const spaceAbove = menuRect.top;
+              if (spaceBelow < pickerHeight && spaceAbove > pickerHeight) {
+                setEmojiPickerDirection('up');
+              } else {
+                setEmojiPickerDirection('down');
+              }
+            }
+            setShowEmojiPicker(v => !v);
+          }}
+        >
+          <Smile className="w-5 h-5" />
+        </button>
+        {showEmojiPicker && (
+          <div
+            ref={emojiPickerRef}
+            style={{
+              position: 'absolute',
+              zIndex: 100,
+              left: 0,
+              top: emojiPickerDirection === 'down' ? '110%' : undefined,
+              bottom: emojiPickerDirection === 'up' ? '110%' : undefined,
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <Suspense fallback={<div className="p-4 text-center">Loading…</div>}>
+              <EmojiMartPicker
+                data={data}
+                theme={theme === 'system' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : (theme === 'dark' ? 'dark' : 'light')}
+                onEmojiSelect={(emoji: any) => {
+                  onInsertEmoji(emoji.native || '');
+                  setShowEmojiPicker(false);
+                }}
+                previewPosition="none"
+                skinTonePosition="search"
+                autoFocus={false}
+                style={{
+                  width: 320,
+                  maxHeight: 380,
+                  minHeight: 200,
+                  overflowY: 'auto',
+                }}
+              />
+            </Suspense>
+          </div>
+        )}
+        <button
+          className="px-1 py-1 hover:bg-[hsl(var(--context-menu-hover))] rounded transition w-8 h-8 flex items-center justify-center"
+          title="Horizontal Line"
+          onClick={() => { onInsertDivider(); onClose(); }}
+        >
+          <svg width="20" height="20" fill="none" viewBox="0 0 20 20" className="w-5 h-5"><rect x="3" y="9" width="14" height="2" rx="1" fill="currentColor"/></svg>
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Add preset color swatches for the text color popover
+const TEXT_COLOR_SWATCHES = [
+  '#FF4081', '#FF9800', '#795548', '#222222',
+  '#F8BBD0', '#7C4DFF', '#4CAF50', '#2196F3',
+];
+
+// Add preset color swatches for the highlighter color popover
+const HIGHLIGHTER_COLOR_SWATCHES = [
+  '#FFFF00', '#FFEB3B', '#FFD740', '#FFAB00',
+  '#FF4081', '#00E676', '#18FFFF', '#FF6D00',
+];
+
 
